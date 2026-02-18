@@ -1,0 +1,43 @@
+
+> build
+> vite build
+
+vite v7.3.1 building client environment for production...
+[plugin @laravel/vite-plugin-wayfinder] Types generated for actions, routes, form variants
+transforming...
+✓ 2865 modules transformed.
+✗ Build failed in 4.72s
+error during build:
+resources/js/pages/settings/two-factor.tsx (12:26): "show" is not exported by "resources/js/routes/two-factor/index.ts", imported by "resources/js/pages/settings/two-factor.tsx".
+file: /Applications/laravel/growrich/resources/js/pages/settings/two-factor.tsx:12:26
+
+10: import AppLayout from '@/layouts/app-layout';
+11: import SettingsLayout from '@/layouts/settings/layout';
+12: import { disable, enable, show } from '@/routes/two-factor';
+                              ^
+13: import type { BreadcrumbItem } from '@/types';
+
+    at getRollupError (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/parseAst.js:402:41)
+    at error (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/parseAst.js:398:42)
+    at Module.error (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:17040:16)
+    at Module.traceVariable (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:17452:29)
+    at ModuleScope.findVariable (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:15070:39)
+    at MemberExpression.bind (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:7392:49)
+    at CallExpression.bind (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:2829:23)
+    at CallExpression.bind (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:12179:15)
+    at Property.bind (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:2829:23)
+    at ObjectExpression.bind (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:2825:28)
+    at ArrayExpression.bind (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:2825:28)
+    at VariableDeclarator.bind (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:2829:23)
+    at VariableDeclaration.bind (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:2825:28)
+    at Program.bind (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:2825:28)
+    at Module.bindReferences (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:17019:18)
+    at Graph.sortAndBindModules (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:22843:20)
+    at Graph.build (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:22741:14)
+    at async file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:23432:13
+    at async catchUnfinishedHookActions (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:22902:16)
+    at async rollupInternal (file:///Applications/laravel/growrich/node_modules/rollup/dist/es/shared/node-entry.js:23427:5)
+    at async buildEnvironment (file:///Applications/laravel/growrich/node_modules/vite/dist/node/chunks/config.js:33541:12)
+    at async Object.build (file:///Applications/laravel/growrich/node_modules/vite/dist/node/chunks/config.js:33900:19)
+    at async Object.buildApp (file:///Applications/laravel/growrich/node_modules/vite/dist/node/chunks/config.js:33897:153)
+    at async CAC.<anonymous> (file:///Applications/laravel/growrich/node_modules/vite/dist/node/cli.js:629:3)

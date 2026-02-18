@@ -1,0 +1,275 @@
+│ Implementasi Marketing Plan MOIREA — GrowRich System                         │
+│                                                                              │
+│ Context                                                                      │
+│                                                                              │
+│ Mengimplementasikan full sistem MLM binary network berbasis marketing plan   │
+│ MOIREA ke dalam project Laravel 12 + Inertia v2 + React. Project saat ini    │
+│ hanya memiliki auth scaffold (Fortify). Sistem ini mencakup: registrasi      │
+│ member dengan PIN, binary tree, 6 bonus (harian + bulanan), 5 reward,        │
+│ e-wallet, member portal, dan admin panel.                                    │
+│                                                                              │
+│ ---                                                                          │
+│ Database Schema (15 Migrations, berurutan)                                   │
+│                                                                              │
+│ 1. add_mlm_fields_to_users_table — tambah phone, referral_code (unique),     │
+│ sponsor_id (FK self), role (enum: member/admin)                              │
+│ 2. create_member_profiles_table — user_id, package_type                      │
+│ (Silver/Gold/Platinum), package_status, pin_code, activated_at,              │
+│ left_child_id, right_child_id, parent_id, leg_position, left_pp_total,       │
+│ right_pp_total, left_rp_total, right_rp_total, career_level                  │
+│ 3. create_registration_pins_table — pin_code, package_type, price,           │
+│ purchased_by, used_by, status (available/used/expired)                       │
+│ 4. create_products_table — name, sku, regular_price, ro_price, is_active     │
+│ 5. create_repeat_orders_table — member_profile_id, order_number,             │
+│ total_amount, status, period_month, period_year                              │
+│ 6. create_repeat_order_items_table — repeat_order_id, product_id, quantity,  │
+│ unit_price, subtotal                                                         │
+│ 7. create_wallets_table — user_id (unique), balance (integer Rupiah)         │
+│ 8. create_wallet_transactions_table — wallet_id, type (credit/debit),        │
+│ amount, reference_type, reference_id, description, balance_before,           │
+│ balance_after                                                                │
+│ 9. create_daily_bonus_runs_table — run_date (unique), status, started_at,    │
+│ completed_at, totals per bonus type                                          │
+│ 10. create_bonuses_table — member_profile_id, bonus_type, amount,            │
+│ ewallet_amount (20%), cash_amount (80%), status, approved_by, bonus_date,    │
+│ period_month, period_year, meta (json), daily_bonus_run_id                   │
+│ 11. create_pairing_point_ledger_table — member_profile_id, leg, points,      │
+│ balance_before, balance_after, reason, reference_id, ledger_date             │
+│ 12. create_reward_point_ledger_table — sama dengan pairing ledger tapi untuk │
+│  RP                                                                          │
+│ 13. create_reward_milestones_table — name, reward_type, required_left_rp,    │
+│ required_right_rp, cash_value, sort_order                                    │
+│ 14. create_member_rewards_table — member_profile_id, reward_milestone_id,    │
+│ status, qualified_at, fulfilled_at                                           │
+│ 15. create_withdrawals_table — user_id, amount, bank_name, account_number,   │
+│ account_name, status, processed_by                                           │
+│                                                                              │
+│ Note: Semua harga disimpan sebagai integer Rupiah (no decimal).              │
+│                                                                              │
+│ ---                                                                          │
+│ PHP Enums (app/Enums/Mlm/)                                                   │
+│                                                                              │
+│ - PackageType — Silver, Gold, Platinum; method pairingPoint(),               │
+│ rewardPoint(), maxPairingPerDay(), registrationPrice()                       │
+│ - BonusType — Sponsor, Pairing, Matching, Leveling, RepeatOrder,             │
+│ GlobalSharing                                                                │
+│ - BonusStatus — Pending, Approved, Paid, Rejected                            │
+│ - CareerLevel — Member, CoreLoader, SapphireManager, RubyManager,            │
+│ EmeraldManager, DiamondManager, BlueDiamondManager, EliteTeamGlobal; method  │
+│ requiredPp(), globalSharePercent()                                           │
+│ - UserRole — Member, Admin                                                   │
+│ - LegPosition — Left, Right                                                  │
+│                                                                              │
+│ ---                                                                          │
+│ Models (app/Models/)                                                         │
+│                                                                              │
+│ - User (extend existing) — hasOne(MemberProfile), hasOne(Wallet),            │
+│ hasMany(Withdrawal), belongsTo(User, 'sponsor_id')                           │
+│ - MemberProfile — binary tree relationships (parent, leftChild, rightChild), │
+│  hasMany(Bonus), hasMany(MemberReward), hasMany(RepeatOrder), scopes:        │
+│ active(), byPackage(), byCareerLevel()                                       │
+│ - RegistrationPin, Product, RepeatOrder, RepeatOrderItem                     │
+│ - Wallet — method credit() dan debit() yang menulis ledger                   │
+│ - WalletTransaction, Bonus, DailyBonusRun                                    │
+│ - PairingPointLedger, RewardPointLedger                                      │
+│ - RewardMilestone, MemberReward, Withdrawal                                  │
+│                                                                              │
+│ ---                                                                          │
+│ Services (app/Services/Mlm/)                                                 │
+│                                                                              │
+│ - BinaryTreeService — placeMember() (Leveling Lock enforcement),             │
+│ getAncestors(), getDownline()                                                │
+│ - MemberRegistrationService — validasi PIN, buat MemberProfile, panggil      │
+│ BinaryTreeService, buat Wallet, dispatch event                               │
+│ - BonusSponsorService — hitung sponsor bonus berdasarkan paket recruiter vs  │
+│ new member                                                                   │
+│ - BonusPairingService — daily pair matching, enforce daily cap, tulis PP     │
+│ ledger                                                                       │
+│ - BonusMatchingService — G1-G4: 15%, G5-G6: 10%, G7-G10: 5% dari Bonus       │
+│ Pairing downline                                                             │
+│ - BonusLevelingService — per pair: Silver+any=250k, Gold+Gold/Plat=500k,     │
+│ Plat+Plat=750k                                                               │
+│ - BonusRepeatOrderService — monthly, 5% dari RO G1-G7, syarat own RO >= 1    │
+│ juta                                                                         │
+│ - BonusGlobalSharingService — monthly, distribusi % dari national RO pool    │
+│ per career level                                                             │
+│ - CareerLevelService — recalculate() cek PP threshold, update career_level   │
+│ jika berubah                                                                 │
+│ - RewardService — checkAndAwardRewards() cek RP threshold vs RewardMilestone │
+│ - WalletService — creditBonus() (20% ewallet + 80% cash pending),            │
+│ purchasePin()                                                                │
+│                                                                              │
+│ ---                                                                          │
+│ Controllers                                                                  │
+│                                                                              │
+│ Member (app/Http/Controllers/Member/)                                        │
+│                                                                              │
+│ DashboardController, BinaryTreeController, NetworkController,                │
+│ BonusController, WalletController, RepeatOrderController, RewardController   │
+│                                                                              │
+│ Admin (app/Http/Controllers/Admin/)                                          │
+│                                                                              │
+│ DashboardController, MemberController, BonusController, PinController,       │
+│ WithdrawalController, RepeatOrderController, ReportController                │
+│                                                                              │
+│ Routes                                                                       │
+│                                                                              │
+│ - routes/member.php — prefix /member, middleware: auth, verified,            │
+│ role:member                                                                  │
+│ - routes/admin.php — prefix /admin, middleware: auth, verified, role:admin   │
+│ - Register keduanya di bootstrap/app.php via withRouting(..., then: fn())    │
+│                                                                              │
+│ Middleware                                                                   │
+│                                                                              │
+│ app/Http/Middleware/EnsureRole.php — cek user->role, redirect jika tidak     │
+│ authorized. Alias role di bootstrap/app.php.                                 │
+│                                                                              │
+│ ---                                                                          │
+│ Jobs & Scheduling                                                            │
+│                                                                              │
+│ Jobs (app/Jobs/Mlm/)                                                         │
+│                                                                              │
+│ - ProcessDailyBonusesJob — chaining: Pairing → Matching → Leveling; buat     │
+│ DailyBonusRun record                                                         │
+│ - ProcessPairingBonusJob, ProcessMatchingBonusJob, ProcessLevelingBonusJob   │
+│ - ProcessMonthlyBonusesJob — chaining: RepeatOrder → GlobalSharing           │
+│ - ProcessRepeatOrderBonusJob, ProcessGlobalSharingBonusJob                   │
+│ - RecalculateCareerLevelsJob — harian setelah pairing                        │
+│ - CheckRewardMilestonesJob — harian setelah career level recalc              │
+│                                                                              │
+│ Events & Listeners (app/Events/Mlm/, app/Listeners/Mlm/)                     │
+│                                                                              │
+│ - MemberRegisteredEvent → BonusSponsorListener (trigger sponsor bonus        │
+│ langsung)                                                                    │
+│ - BonusApprovedEvent → CreditBonusToWalletListener (kredit 20% ke ewallet)   │
+│                                                                              │
+│ Scheduler (routes/console.php)                                               │
+│                                                                              │
+│ Schedule::job(new ProcessDailyBonusesJob())->dailyAt('00:30');               │
+│ Schedule::job(new ProcessMonthlyBonusesJob())->monthlyOn(29, '01:00');       │
+│                                                                              │
+│ ---                                                                          │
+│ Frontend Pages                                                               │
+│                                                                              │
+│ Member Portal (resources/js/pages/member/)                                   │
+│                                                                              │
+│ - dashboard.tsx — stat cards, mini binary tree, bonus recents, reward        │
+│ progress                                                                     │
+│ - network/tree.tsx — interactive binary tree (deferred prop + skeleton)      │
+│ - network/index.tsx — tabular downline list                                  │
+│ - bonuses/index.tsx — history dengan filter type & date                      │
+│ - wallet/show.tsx — balance + transactions + withdraw modal                  │
+│ - repeat-orders/index.tsx & create.tsx                                       │
+│ - rewards/index.tsx — grid milestones dengan progress bars                   │
+│                                                                              │
+│ Admin Panel (resources/js/pages/admin/)                                      │
+│                                                                              │
+│ - dashboard.tsx — KPI cards + charts                                         │
+│ - members/index.tsx & show.tsx                                               │
+│ - bonuses/index.tsx — tabs Pending/Approved/Paid + bulk approval             │
+│ - pins/index.tsx — generate PINs                                             │
+│ - withdrawals/index.tsx                                                      │
+│ - repeat-orders/index.tsx                                                    │
+│ - reports/bonuses.tsx & growth.tsx                                           │
+│                                                                              │
+│ Shared Components (resources/js/components/mlm/)                             │
+│                                                                              │
+│ BinaryTree.tsx, BinaryTreeNode.tsx, BonusBadge.tsx, PackageBadge.tsx,        │
+│ CareerLevelBadge.tsx, ProgressBar.tsx, WalletBalanceCard.tsx                 │
+│                                                                              │
+│ TypeScript Types (resources/js/types/mlm.ts)                                 │
+│                                                                              │
+│ Semua types: PackageType, BonusType, BinaryTreeNode, MemberProfileResource,  │
+│ BonusResource, WalletResource, dll.                                          │
+│                                                                              │
+│ ---                                                                          │
+│ Files Kritis yang Dimodifikasi                                               │
+│                                                                              │
+│ - app/Models/User.php — tambah MLM fields                                    │
+│ - app/Http/Middleware/HandleInertiaRequests.php — share memberProfile,       │
+│ walletBalance, role ke semua halaman                                         │
+│ - bootstrap/app.php — register middleware alias + route files tambahan       │
+│ - resources/js/components/app-sidebar.tsx — role-based navigation            │
+│ - resources/js/types/index.d.ts / auth.ts — extend dengan MLM types          │
+│                                                                              │
+│ ---                                                                          │
+│ Testing (Pest v4)                                                            │
+│                                                                              │
+│ Unit Tests (tests/Unit/Services/Mlm/)                                        │
+│                                                                              │
+│ - BinaryTreeServiceTest — placement, Leveling Lock, ancestor traversal       │
+│ - BonusPairingServiceTest — pair matching, daily cap, carry-over             │
+│ - BonusSponsorServiceTest — amount per package combo, pass-up logic          │
+│ - BonusMatchingServiceTest — percentage per generation                       │
+│ - CareerLevelServiceTest — semua threshold                                   │
+│ - RewardServiceTest — threshold check, no duplicate awards                   │
+│                                                                              │
+│ Feature Tests (tests/Feature/)                                               │
+│                                                                              │
+│ - Member/RegistrationTest — PIN validation, binary tree placement, sponsor   │
+│ bonus created                                                                │
+│ - Member/WalletTest — balance, withdrawal, insufficient balance rejection    │
+│ - Member/RepeatOrderTest — create order, total calculation                   │
+│ - Admin/BonusApprovalTest — approve/reject, bulk approval, wallet credit on  │
+│ approve                                                                      │
+│ - Admin/PinGenerationTest — generate, single-use enforcement                 │
+│ - Scheduling/DailyBonusRunTest — integration test dengan 3-member tree       │
+│ seeded                                                                       │
+│                                                                              │
+│ Run: php artisan test --compact                                              │
+│                                                                              │
+│ ---                                                                          │
+│ Urutan Implementasi                                                          │
+│                                                                              │
+│ 1. Foundation — Migrations → Enums → Models → Factories → Middleware         │
+│ 2. Binary Tree & Registrasi — BinaryTreeService → MemberRegistrationService  │
+│ → PIN logic → Tests                                                          │
+│ 3. Daily Bonuses — Sponsor → Pairing → Matching → Leveling services → Jobs → │
+│  Tests                                                                       │
+│ 4. Monthly Bonuses & Career — CareerLevelService → RepeatOrder →             │
+│ GlobalSharing → Rewards → Tests                                              │
+│ 5. Wallet System — WalletService → Withdrawal flow → Tests                   │
+│ 6. Member Portal Frontend — Routes → Controllers → Resources → Pages →       │
+│ Components                                                                   │
+│ 7. Admin Panel — Routes → Controllers → Pages → Reports                      │
+│ 8. Hardening — Full test suite → Seeders demo → Pint format → N+1 review 
+
+
+
+⚠️  Belum Dibangun (Services — Business Logic Layer)
+
+  Ini adalah nilai-nilai yang benar di enum/model tapi belum ada kode yang
+  menghitungnya:
+
+  Business Rule: Bonus Pairing nominal
+  Nilai dari PDF: Rp 100.000/pair
+  Belum Ada di: BonusPairingService
+  ────────────────────────────────────────
+  Business Rule: Bonus Sponsor per kombinasi paket
+  Nilai dari PDF: Silver rekrut any = Rp 200rb, Gold/Plat rekrut Gold = Rp
+  400rb,
+     Plat rekrut Plat = Rp 600rb
+  Belum Ada di: BonusSponsorService
+  ────────────────────────────────────────
+  Business Rule: Pass-up Bonus Sponsor
+  Nilai dari PDF: Selisih pass up ke upline
+  Belum Ada di: BonusSponsorService
+  ────────────────────────────────────────
+  Business Rule: Bonus Matching per generasi
+  Nilai dari PDF: G1-G4 = 15%, G5-G6 = 10%, G7-G10 = 5%
+  Belum Ada di: BonusMatchingService
+  ────────────────────────────────────────
+  Business Rule: Bonus Leveling per pair
+  Nilai dari PDF: Silver+any = Rp 250rb, Gold+Gold/Plat = Rp 500rb, Plat+Plat =
+    Rp 750rb
+  Belum Ada di: BonusLevelingService
+  ────────────────────────────────────────
+  Business Rule: Leveling Lock
+  Nilai dari PDF: Wajib isi 2 posisi T1 dulu sebelum spillover
+  Belum Ada di: BinaryTreeService
+
+  ---
+  Kesimpulan: Struktur data (database) sudah 100% sesuai PDF. Yang belum adalah
+  layer services yang berisi kalkulasi bonus — itu tahap implementasi
+  berikutnya. Mau lanjut ke sana?
+
