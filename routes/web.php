@@ -53,6 +53,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::resource('admin/faqs', App\Http\Controllers\Admin\FaqController::class)->names('admin.faqs');
 
     Route::resource('admin/blog-posts', App\Http\Controllers\Admin\BlogPostController::class)->names('admin.blog-posts');
+    Route::resource('admin/users', App\Http\Controllers\Admin\AdminUserController::class)->names('admin.users');
+    Route::post('admin/users/{user}/reset-password', [App\Http\Controllers\Admin\AdminUserController::class, 'resetPassword'])->name('admin.users.reset-password');
 
     Route::get('admin/legal-pages/{slug}/edit', [\App\Http\Controllers\Admin\LegalPageController::class, 'edit'])->name('admin.legal-pages.edit');
     Route::put('admin/legal-pages/{slug}', [\App\Http\Controllers\Admin\LegalPageController::class, 'update'])->name('admin.legal-pages.update');

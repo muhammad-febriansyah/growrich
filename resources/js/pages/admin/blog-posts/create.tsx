@@ -49,7 +49,7 @@ export default function BlogCreate() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Buat Artikel Baru" />
 
-            <div className="mx-auto max-w-5xl p-4 md:p-6 space-y-6">
+            <div className="flex flex-col gap-6 p-4 md:p-6">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" asChild>
                         <Link href="/admin/blog-posts">
