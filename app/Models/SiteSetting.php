@@ -37,6 +37,14 @@ class SiteSetting extends Model
         // Footer
         'footer_text',
         'copyright_text',
+        // Hero Section
+        'hero_badge',
+        'hero_title',
+        'hero_title_highlight',
+        'hero_description',
+        'hero_image',
+        'hero_stats_value',
+        'hero_stats_label',
     ];
 
     /**

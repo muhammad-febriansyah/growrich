@@ -16,6 +16,11 @@ import {
     ShieldCheck,
     Info,
     BookOpen,
+    Play,
+    Gift,
+    ArrowUpCircle,
+    Trophy,
+    Star,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -59,12 +64,21 @@ export function AppSidebar() {
             ],
         },
         {
+            label: 'Bonus Runner',
+            items: [
+                { title: 'Daily Bonus Run', href: '/admin/daily-runs', icon: Play },
+                { title: 'Manajemen Reward', href: '/admin/rewards', icon: Gift },
+                { title: 'Approve Upgrade Paket', href: '/admin/upgrades', icon: ArrowUpCircle },
+            ],
+        },
+        {
             label: 'Konten',
             items: [
                 { title: 'Manajemen Produk', href: '/admin/products', icon: Package },
                 { title: 'Manajemen Blog', href: '/admin/blog-posts', icon: BookOpen },
                 { title: 'Manajemen Admin', href: '/admin/users', icon: Users },
                 { title: 'Manajemen FAQ', href: '/admin/faqs', icon: HelpCircle },
+                { title: 'Fitur Unggulan', href: '/admin/features', icon: Star },
             ],
         },
         {
@@ -97,6 +111,14 @@ export function AppSidebar() {
                 { title: 'PIN Saya', href: '/member/pins', icon: Key },
                 { title: 'Jaringan Saya', href: '/member/network', icon: Network },
                 { title: 'Registrasi Member', href: '/member/register', icon: UserPlus },
+            ],
+        },
+        {
+            label: 'Karir & Reward',
+            items: [
+                { title: 'Upgrade Paket', href: '/member/upgrade', icon: ArrowUpCircle },
+                { title: 'Jenjang Karir', href: '/member/career', icon: Trophy },
+                { title: 'Progress Reward', href: '/member/rewards', icon: Star },
             ],
         },
         {

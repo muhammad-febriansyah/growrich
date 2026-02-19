@@ -11,7 +11,7 @@ export default function AuthSplitLayout({
     const { site } = usePage().props;
 
     return (
-        <div className="relative grid h-dvh flex-col items-center justify-center px-8 sm:px-0 lg:max-w-none lg:grid-cols-2 lg:px-0">
+        <div className="relative grid h-dvh overflow-hidden flex-col items-center justify-center px-8 sm:px-0 lg:max-w-none lg:grid-cols-2 lg:px-0">
             <div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
                 <div
                     className="absolute inset-0 bg-cover bg-center brightness-[0.4]"
@@ -36,8 +36,8 @@ export default function AuthSplitLayout({
                     </blockquote>
                 </div>
             </div>
-            <div className="w-full lg:p-8">
-                <div className="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[380px]">
+            <div className="flex h-full w-full flex-col items-center justify-center overflow-y-auto px-8 py-10 lg:px-8">
+                <div className="flex w-full flex-col space-y-8 sm:w-[380px]">
                     <Link
                         href={home()}
                         className="relative z-20 flex items-center justify-center lg:hidden"

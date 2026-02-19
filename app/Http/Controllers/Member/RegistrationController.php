@@ -92,8 +92,9 @@ class RegistrationController extends Controller
             $newUser->wallet()->create(['balance' => 0]);
 
             // 6. Create Sponsor Bonus for the sponsor
-            $packageType = $pin->package_type;
-            $bonusAmount = $packageType->sponsorBonus();
+            $newMemberPackage = $pin->package_type;
+            $sponsorPackage = $sponsorProfile->package_type;
+            $bonusAmount = $sponsorPackage->sponsorBonusFor($newMemberPackage);
             $ewalletAmount = (int) ($bonusAmount * 0.2);
             $cashAmount = $bonusAmount - $ewalletAmount;
 
@@ -107,11 +108,11 @@ class RegistrationController extends Controller
                 'bonus_date' => now()->toDateString(),
                 'period_month' => (int) now()->format('n'),
                 'period_year' => (int) now()->format('Y'),
-                'meta' => ['new_member_id' => $newUser->id],
+                'meta' => ['new_member_id' => $newUser->id, 'new_member_package' => $newMemberPackage->value, 'sponsor_package' => $sponsorPackage->value],
             ]);
 
             // 7. Propagate Pairing Points up the tree
-            $this->propagatePairingPoints($newProfile, $packageType);
+            $this->propagatePairingPoints($newProfile, $newMemberPackage);
         });
 
         // Send emails after transaction (queued)

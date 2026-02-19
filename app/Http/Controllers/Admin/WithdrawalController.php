@@ -4,10 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Withdrawal;
-use App\Models\Wallet;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class WithdrawalController extends Controller
 {
@@ -58,9 +57,6 @@ class WithdrawalController extends Controller
                 'processed_by' => auth()->id(),
             ]);
 
-            // Deduction from wallet happened at request time (usually)
-            // But if it's "manual" approval that triggers deduction:
-            // $withdrawal->user->wallet->decrement('balance', $withdrawal->amount);
         });
 
         return back()->with('success', 'Penarikan berhasil disetujui.');
@@ -78,7 +74,6 @@ class WithdrawalController extends Controller
                 'processed_by' => auth()->id(),
             ]);
 
-            // Refund to wallet
             $withdrawal->user->wallet->increment('balance', $withdrawal->amount);
         });
 

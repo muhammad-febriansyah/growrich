@@ -175,18 +175,32 @@ export default function AdminIndex({ users, filters }: Props) {
                     <div className="text-sm text-muted-foreground italic">
                         Menampilkan {users.data.length} dari {users.total} administrator
                     </div>
-                    <div className="flex gap-2">
-                        {users.links.map((link, i) => (
-                            <Button
-                                key={i}
-                                variant={link.active ? 'default' : 'outline'}
-                                size="sm"
-                                disabled={!link.url}
-                                onClick={() => link.url && router.get(link.url)}
-                                className={!link.url ? 'opacity-50 cursor-not-allowed' : ''}
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
-                        ))}
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={users.current_page === 1}
+                            onClick={() => {
+                                const prev = users.links[users.current_page - 1];
+                                if (prev?.url) router.get(prev.url);
+                            }}
+                        >
+                            Sebelumnya
+                        </Button>
+                        <span className="text-sm font-medium px-1">
+                            {users.current_page} / {users.last_page}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={users.current_page === users.last_page}
+                            onClick={() => {
+                                const next = users.links[users.current_page + 1];
+                                if (next?.url) router.get(next.url);
+                            }}
+                        >
+                            Selanjutnya
+                        </Button>
                     </div>
                 </div>
             </div>

@@ -39,7 +39,7 @@ export default function AdminEdit({ user }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Edit Admin: ${user.name}`} />
 
-            <div className="flex flex-col gap-6 p-4 md:p-6 w-full max-w-4xl mx-auto">
+            <div className="flex flex-col gap-6 p-4 md:p-6">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" asChild>
                         <Link href="/admin/users">

@@ -42,13 +42,30 @@ class HandleInertiaRequests extends Middleware
             'favicon' => $settings->favicon ? \Illuminate\Support\Facades\Storage::url($settings->favicon) : null,
         ];
 
+        $socials = array_filter([
+            'facebook' => $settings->social_facebook ?: null,
+            'instagram' => $settings->social_instagram ?: null,
+            'twitter' => $settings->social_twitter ?: null,
+            'youtube' => $settings->social_youtube ?: null,
+            'tiktok' => $settings->social_tiktok ?: null,
+        ]);
+
+        $contact = [
+            'email' => $settings->contact_email ?: null,
+            'phone' => $settings->contact_phone ?: null,
+            'whatsapp' => $settings->contact_whatsapp ?: null,
+            'address' => $settings->contact_address ?: null,
+        ];
+
         return [
             ...parent::share($request),
             'site' => $site,
+            'socials' => $socials,
+            'contact' => $contact,
             'auth' => [
                 'user' => $request->user(),
             ],
-            'sidebarOpen' => !$request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),

@@ -22,14 +22,23 @@ class CreateNewUser implements CreatesNewUsers
     {
         Validator::make($input, [
             ...$this->profileRules(),
-            'password' => $this->passwordRules(),
+            'password'       => $this->passwordRules(),
+            'sponsor_code'   => ['nullable', 'string', 'exists:users,referral_code'],
         ])->validate();
 
+        $sponsorId = null;
+
+        if (! empty($input['sponsor_code'])) {
+            $sponsorId = User::where('referral_code', $input['sponsor_code'])->value('id');
+        }
+
         return User::create([
-            'name' => $input['name'],
-            'email' => $input['email'],
-            'password' => $input['password'],
-            'role' => UserRole::Member,
+            'name'       => $input['name'],
+            'email'      => $input['email'],
+            'phone'      => $input['phone'] ?? null,
+            'password'   => $input['password'],
+            'sponsor_id' => $sponsorId,
+            'role'       => UserRole::Member,
         ]);
     }
 }

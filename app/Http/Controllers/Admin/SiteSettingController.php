@@ -20,6 +20,7 @@ class SiteSettingController extends Controller
         $data = $settings->toArray();
         $data['logo_url'] = $settings->logo ? Storage::url($settings->logo) : null;
         $data['favicon_url'] = $settings->favicon ? Storage::url($settings->favicon) : null;
+        $data['hero_image_url'] = $settings->hero_image ? Storage::url($settings->hero_image) : null;
 
         return Inertia::render('admin/settings/index', [
             'settings' => $data,
@@ -59,9 +60,17 @@ class SiteSettingController extends Controller
             // Footer
             'footer_text' => 'nullable|string',
             'copyright_text' => 'nullable|string|max:255',
+            // Hero
+            'hero_badge' => 'nullable|string|max:255',
+            'hero_title' => 'nullable|string|max:255',
+            'hero_title_highlight' => 'nullable|string|max:255',
+            'hero_description' => 'nullable|string',
+            'hero_image' => 'nullable|image|max:4096',
+            'hero_stats_value' => 'nullable|string|max:50',
+            'hero_stats_label' => 'nullable|string|max:100',
         ]);
 
-        foreach (['logo', 'favicon'] as $fileKey) {
+        foreach (['logo', 'favicon', 'hero_image'] as $fileKey) {
             if ($request->hasFile($fileKey)) {
                 if ($settings->{$fileKey}) {
                     Storage::disk('public')->delete($settings->{$fileKey});

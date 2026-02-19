@@ -4,15 +4,14 @@ namespace App\Console\Commands;
 
 use App\Enums\Mlm\BonusStatus;
 use App\Enums\Mlm\BonusType;
+use App\Mail\BonusAvailable;
 use App\Models\Bonus;
 use App\Models\DailyBonusRun;
 use App\Models\MemberProfile;
 use App\Models\PairingPointLedger;
-use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\BonusAvailable;
 
 class BonusRunDaily extends Command
 {
@@ -63,7 +62,7 @@ class BonusRunDaily extends Command
                     continue;
                 }
 
-                $amount = $pairs * 15_000;
+                $amount = $pairs * \App\Enums\Mlm\PackageType::pairingBonusAmount();
                 $ewalletAmount = (int) ($amount * 0.2);
                 $cashAmount = $amount - $ewalletAmount;
 
@@ -94,7 +93,7 @@ class BonusRunDaily extends Command
             'total_pairing_bonus' => $totalPairingBonus,
         ]);
 
-        $this->info("Selesai. Total pairing bonus: Rp " . number_format($totalPairingBonus, 0, ',', '.'));
+        $this->info('Selesai. Total pairing bonus: Rp '.number_format($totalPairingBonus, 0, ',', '.'));
 
         return self::SUCCESS;
     }

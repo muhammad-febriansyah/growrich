@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Member;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\RepeatOrder;
+use App\Models\RepeatOrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -13,66 +14,97 @@ class OrderController extends Controller
 {
     public function index()
     {
-        $products = Product::active()->get();
-        $profile = auth()->user()->memberProfile;
-        $orders = $profile
-            ? RepeatOrder::where('member_profile_id', $profile->id)
-                ->with('items.product')
-                ->orderBy('created_at', 'desc')
-                ->paginate(10)
-            : RepeatOrder::where('member_profile_id', 0)->paginate(10);
+        $user = auth()->user();
+        $profile = $user->memberProfile;
+
+        if (! $profile) {
+            return redirect()->route('dashboard')->with('error', 'Profil member tidak ditemukan.');
+        }
+
+        $orders = RepeatOrder::where('member_profile_id', $profile->id)
+            ->with(['items.product'])
+            ->orderByDesc('created_at')
+            ->paginate(10);
+
+        $products = Product::active()->orderBy('name')->get(['id', 'name', 'sku', 'ro_price', 'unit', 'image', 'stock']);
+
+        $totalRo = RepeatOrder::where('member_profile_id', $profile->id)
+            ->where('status', 'completed')
+            ->sum('total_amount');
+
+        $thisMonthRo = RepeatOrder::where('member_profile_id', $profile->id)
+            ->where('status', 'completed')
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->sum('total_amount');
 
         return Inertia::render('member/order/index', [
-            'products' => $products,
             'orders' => $orders,
+            'products' => $products,
+            'totalRo' => $totalRo,
+            'thisMonthRo' => $thisMonthRo,
         ]);
     }
 
     public function store(Request $request)
     {
+        $user = auth()->user();
+        $profile = $user->memberProfile;
+
+        if (! $profile) {
+            return back()->with('error', 'Profil member tidak ditemukan.');
+        }
+
         $request->validate([
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
         ]);
 
-        $memberProfile = auth()->user()->memberProfile;
-        if (!$memberProfile) {
-            return back()->with('error', 'Profil member tidak ditemukan.');
-        }
-
-        DB::transaction(function () use ($request, $memberProfile) {
-
+        DB::transaction(function () use ($request, $profile) {
             $totalAmount = 0;
-            $totalPoints = 0;
+            $orderItems = [];
 
-            $itemsData = [];
             foreach ($request->items as $item) {
-                $product = Product::find($item['product_id']);
-                $price = $product->ro_price;
-                $points = 1;
-                $totalAmount += $price * $item['quantity'];
-                $totalPoints += $points * $item['quantity'];
+                $product = Product::findOrFail($item['product_id']);
 
-                $itemsData[] = [
+                if (! $product->is_active) {
+                    throw new \RuntimeException("Produk {$product->name} tidak aktif.");
+                }
+
+                if ($product->stock !== null && $product->stock < $item['quantity']) {
+                    throw new \RuntimeException("Stok produk {$product->name} tidak mencukupi.");
+                }
+
+                $subtotal = $product->ro_price * $item['quantity'];
+                $totalAmount += $subtotal;
+
+                $orderItems[] = [
                     'product_id' => $product->id,
                     'quantity' => $item['quantity'],
-                    'price' => $price,
+                    'unit_price' => $product->ro_price,
+                    'subtotal' => $subtotal,
                 ];
+
+                if ($product->stock !== null) {
+                    $product->decrement('stock', $item['quantity']);
+                }
             }
 
             $order = RepeatOrder::create([
-                'member_profile_id' => $memberProfile->id,
+                'member_profile_id' => $profile->id,
+                'order_number' => 'RO-'.strtoupper(uniqid()),
                 'total_amount' => $totalAmount,
-                'points' => $totalPoints,
                 'status' => 'pending',
+                'period_month' => now()->month,
+                'period_year' => now()->year,
             ]);
 
-            foreach ($itemsData as $itemData) {
-                $order->items()->create($itemData);
+            foreach ($orderItems as $item) {
+                RepeatOrderItem::create(array_merge($item, ['repeat_order_id' => $order->id]));
             }
         });
 
-        return back()->with('success', 'Pesanan Repeat Order berhasil dibuat.');
+        return back()->with('success', 'Repeat Order berhasil dibuat. Menunggu konfirmasi admin.');
     }
 }

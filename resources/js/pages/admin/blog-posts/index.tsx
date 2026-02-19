@@ -155,18 +155,32 @@ export default function BlogIndex({ posts }: Props) {
                     <div className="text-sm text-muted-foreground italic">
                         Menampilkan {posts.data.length} dari {posts.total} total artikel
                     </div>
-                    <div className="flex gap-2">
-                        {posts.links.map((link, i) => (
-                            <Button
-                                key={i}
-                                variant={link.active ? 'default' : 'outline'}
-                                size="sm"
-                                disabled={!link.url}
-                                onClick={() => link.url && router.get(link.url)}
-                                className={!link.url ? 'opacity-50 cursor-not-allowed' : ''}
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
-                        ))}
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={posts.current_page === 1}
+                            onClick={() => {
+                                const prev = posts.links[posts.current_page - 1];
+                                if (prev?.url) router.get(prev.url);
+                            }}
+                        >
+                            Sebelumnya
+                        </Button>
+                        <span className="text-sm font-medium px-1">
+                            {posts.current_page} / {posts.last_page}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={posts.current_page === posts.last_page}
+                            onClick={() => {
+                                const next = posts.links[posts.current_page + 1];
+                                if (next?.url) router.get(next.url);
+                            }}
+                        >
+                            Selanjutnya
+                        </Button>
                     </div>
                 </div>
             </div>

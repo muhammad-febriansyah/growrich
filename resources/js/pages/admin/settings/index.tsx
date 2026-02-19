@@ -1,5 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
-import { Save, Globe, Phone, Share2, Search, Layout, Settings } from 'lucide-react';
+import { Save, Globe, Phone, Share2, Search, Layout, Settings, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,13 @@ interface SiteSettingsData {
     site_description: string | null;
     logo_url: string | null;
     favicon_url: string | null;
+    hero_image_url: string | null;
+    hero_badge: string | null;
+    hero_title: string | null;
+    hero_title_highlight: string | null;
+    hero_description: string | null;
+    hero_stats_value: string | null;
+    hero_stats_label: string | null;
     contact_phone: string | null;
     contact_whatsapp: string | null;
     contact_email: string | null;
@@ -51,6 +58,13 @@ export default function SiteSettings({ settings }: Props) {
         site_description: settings.site_description || '',
         logo: null as File | null,
         favicon: null as File | null,
+        hero_badge: settings.hero_badge || '',
+        hero_title: settings.hero_title || '',
+        hero_title_highlight: settings.hero_title_highlight || '',
+        hero_description: settings.hero_description || '',
+        hero_image: null as File | null,
+        hero_stats_value: settings.hero_stats_value || '',
+        hero_stats_label: settings.hero_stats_label || '',
         contact_phone: settings.contact_phone || '',
         contact_whatsapp: settings.contact_whatsapp || '',
         contact_email: settings.contact_email || '',
@@ -122,6 +136,12 @@ export default function SiteSettings({ settings }: Props) {
                                 className="px-4 py-3 border-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-slate-600 hover:bg-slate-100 transition-all rounded-lg font-semibold"
                             >
                                 <Search className="size-4 mr-3" /> SEO
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="hero"
+                                className="px-4 py-3 border-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-slate-600 hover:bg-slate-100 transition-all rounded-lg font-semibold"
+                            >
+                                <Image className="size-4 mr-3" /> Hero
                             </TabsTrigger>
                             <TabsTrigger
                                 value="footer"
@@ -368,6 +388,101 @@ export default function SiteSettings({ settings }: Props) {
                                                 value={data.meta_keywords}
                                                 onChange={(e) => setData('meta_keywords', e.target.value)}
                                             />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </TabsContent>
+
+                            {/* Hero Section Settings */}
+                            <TabsContent value="hero" className="mt-0 focus-visible:outline-none">
+                                <Card className="border shadow-sm rounded-xl overflow-hidden">
+                                    <CardHeader className="border-b bg-slate-50/50 py-4 px-6">
+                                        <CardTitle className="text-lg">Hero Section</CardTitle>
+                                        <CardDescription>Konten yang tampil di halaman utama website.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-6 space-y-5">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="hero_badge">Teks Badge</Label>
+                                            <Input
+                                                id="hero_badge"
+                                                placeholder="Solusi Pertumbuhan Akurat"
+                                                value={data.hero_badge}
+                                                onChange={(e) => setData('hero_badge', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="hero_title">Judul Utama</Label>
+                                                <Input
+                                                    id="hero_title"
+                                                    placeholder="Wujudkan"
+                                                    value={data.hero_title}
+                                                    onChange={(e) => setData('hero_title', e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="hero_title_highlight">Teks Highlight (Hijau)</Label>
+                                                <Input
+                                                    id="hero_title_highlight"
+                                                    placeholder="Kebebasan Finansial"
+                                                    value={data.hero_title_highlight}
+                                                    onChange={(e) => setData('hero_title_highlight', e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="hero_description">Deskripsi</Label>
+                                            <Textarea
+                                                id="hero_description"
+                                                rows={3}
+                                                placeholder="Platform ekosistem MLM modern..."
+                                                value={data.hero_description}
+                                                onChange={(e) => setData('hero_description', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="hero_stats_value">Angka Statistik</Label>
+                                                <Input
+                                                    id="hero_stats_value"
+                                                    placeholder="+128%"
+                                                    value={data.hero_stats_value}
+                                                    onChange={(e) => setData('hero_stats_value', e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="hero_stats_label">Label Statistik</Label>
+                                                <Input
+                                                    id="hero_stats_label"
+                                                    placeholder="Pertumbuhan"
+                                                    value={data.hero_stats_label}
+                                                    onChange={(e) => setData('hero_stats_label', e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <Label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Gambar Hero</Label>
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-6 p-4 border rounded-xl bg-slate-50/50">
+                                                {settings.hero_image_url ? (
+                                                    <div className="h-24 w-40 border rounded-lg overflow-hidden bg-white flex items-center justify-center shadow-sm shrink-0">
+                                                        <img src={settings.hero_image_url} alt="Hero" className="h-full w-full object-cover" />
+                                                    </div>
+                                                ) : (
+                                                    <div className="h-24 w-40 border border-dashed rounded-lg bg-white flex items-center justify-center text-muted-foreground shrink-0">
+                                                        <Image className="size-8 opacity-20" />
+                                                    </div>
+                                                )}
+                                                <div className="flex-1 space-y-2">
+                                                    <Input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={(e) => setData('hero_image', e.target.files?.[0] || null)}
+                                                        className="bg-white"
+                                                    />
+                                                    <p className="text-xs text-muted-foreground">Format: <span className="font-semibold">PNG, JPG, WEBP</span> (Maks. 4MB). Rasio ideal 4:3.</p>
+                                                    {errors.hero_image && <p className="text-xs text-destructive font-semibold">{errors.hero_image}</p>}
+                                                </div>
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>

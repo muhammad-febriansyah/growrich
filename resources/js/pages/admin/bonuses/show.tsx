@@ -85,6 +85,37 @@ const bonusTypeColor: Record<string, string> = {
     GlobalSharing: 'bg-pink-100 text-pink-700',
 };
 
+const metaLabels: Record<string, string> = {
+    pairs:             'Jumlah Pasang',
+    left_pp:           'PP Kiri',
+    right_pp:          'PP Kanan',
+    percent:           'Persentase',
+    generation:        'Generasi',
+    source_bonus_id:   'ID Bonus Sumber',
+    source_profile_id: 'ID Profil Sumber',
+    left_pkg:          'Paket Kiri',
+    right_pkg:         'Paket Kanan',
+    sponsor_id:        'ID Sponsor',
+    order_id:          'ID Pesanan',
+    order_amount:      'Nilai Pesanan',
+    total_members:     'Total Member',
+    total_pool:        'Total Pool',
+    share_percent:     'Persentase Bagian',
+};
+
+function metaLabel(key: string): string {
+    return metaLabels[key] ?? key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function metaValue(key: string, value: unknown): string {
+    if (typeof value === 'number') {
+        if (key === 'percent' || key === 'share_percent') return `${value}%`;
+        if (key.includes('amount') || key.includes('pool') || key.includes('bonus') || key.includes('order_amount')) return fmt(value);
+        return new Intl.NumberFormat('id-ID').format(value);
+    }
+    return String(value);
+}
+
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
     return (
         <div className="flex items-start justify-between gap-4 py-2.5">
@@ -311,14 +342,8 @@ export default function BonusShow({ bonus }: Props) {
                             <div className="divide-y rounded-lg border bg-slate-50/50">
                                 {Object.entries(bonus.meta).map(([key, value]) => (
                                     <div key={key} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                                        <span className="font-mono text-xs text-muted-foreground">{key}</span>
-                                        <span className="font-medium">
-                                            {typeof value === 'number'
-                                                ? (key.toLowerCase().includes('amount') || key.toLowerCase().includes('bonus')
-                                                    ? fmt(value)
-                                                    : new Intl.NumberFormat('id-ID').format(value))
-                                                : String(value)}
-                                        </span>
+                                        <span className="text-muted-foreground">{metaLabel(key)}</span>
+                                        <span className="font-medium">{metaValue(key, value)}</span>
                                     </div>
                                 ))}
                             </div>

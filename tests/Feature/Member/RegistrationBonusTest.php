@@ -25,12 +25,12 @@ function makeBonusPin(PackageType $package = PackageType::Silver, ?int $assigned
 function bonusRegisterPayload(RegistrationPin $pin, string $leg = 'left'): array
 {
     return [
-        'pin_code'              => $pin->pin_code,
-        'name'                  => 'New Bonus Member',
-        'email'                 => 'newbonus@member.test',
-        'password'              => 'password123',
+        'pin_code' => $pin->pin_code,
+        'name' => 'New Bonus Member',
+        'email' => 'newbonus@member.test',
+        'password' => 'password123',
         'password_confirmation' => 'password123',
-        'leg_position'          => $leg,
+        'leg_position' => $leg,
     ];
 }
 
@@ -40,13 +40,15 @@ beforeEach(function () {
     Mail::fake();
 
     $this->sponsor = User::factory()->create();
-    $this->sponsorProfile = MemberProfile::factory()->for($this->sponsor)->create();
+    // Sponsor selalu Platinum agar bonus matrix bisa ditest secara deterministik
+    $this->sponsorProfile = MemberProfile::factory()->platinum()->for($this->sponsor)->create();
     Wallet::factory()->for($this->sponsor)->create();
 });
 
 // ── Sponsor Bonus ─────────────────────────────────────────────────────────────
 
 it('sponsor_bonus_is_created_after_registration', function () {
+    // Sponsor=Platinum, New Member=Gold → min(3,2)×200k = 400k
     $pin = makeBonusPin(PackageType::Gold, $this->sponsor->id);
 
     actingAs($this->sponsor)
@@ -57,23 +59,24 @@ it('sponsor_bonus_is_created_after_registration', function () {
         ->first();
 
     expect($bonus)->not->toBeNull()
-        ->and($bonus->amount)->toBe(PackageType::Gold->sponsorBonus())
+        ->and($bonus->amount)->toBe(400_000)
         ->and($bonus->ewallet_amount)->toBe((int) ($bonus->amount * 0.2))
         ->and($bonus->cash_amount)->toBe($bonus->amount - $bonus->ewallet_amount)
         ->and($bonus->status->value)->toBe('Pending');
 });
 
-it('sponsor_bonus_amount_matches_package_type', function (PackageType $package, int $expectedBonus) {
-    $pin = makeBonusPin($package, $this->sponsor->id);
+it('sponsor_bonus_amount_matches_package_type', function (PackageType $newMemberPackage, int $expectedBonus) {
+    // Sponsor=Platinum, matrix: Silver=200k, Gold=400k, Platinum=600k
+    $pin = makeBonusPin($newMemberPackage, $this->sponsor->id);
 
     actingAs($this->sponsor)
         ->post('/member/register', [
-            'pin_code'              => $pin->pin_code,
-            'name'                  => 'Test Member',
-            'email'                 => "test_{$package->value}@member.test",
-            'password'              => 'password123',
+            'pin_code' => $pin->pin_code,
+            'name' => 'Test Member',
+            'email' => "test_{$newMemberPackage->value}@member.test",
+            'password' => 'password123',
             'password_confirmation' => 'password123',
-            'leg_position'          => 'left',
+            'leg_position' => 'left',
         ]);
 
     $bonus = Bonus::where('member_profile_id', $this->sponsorProfile->id)
@@ -83,9 +86,10 @@ it('sponsor_bonus_amount_matches_package_type', function (PackageType $package, 
     expect($bonus)->not->toBeNull()
         ->and($bonus->amount)->toBe($expectedBonus);
 })->with([
-    'Silver'   => [PackageType::Silver, 500_000],
-    'Gold'     => [PackageType::Gold, 1_000_000],
-    'Platinum' => [PackageType::Platinum, 1_500_000],
+    // Platinum sponsor × new member package → min(3, level) × 200k
+    'Silver' => [PackageType::Silver, 200_000],
+    'Gold' => [PackageType::Gold, 400_000],
+    'Platinum' => [PackageType::Platinum, 600_000],
 ]);
 
 // ── Pairing Points ────────────────────────────────────────────────────────────

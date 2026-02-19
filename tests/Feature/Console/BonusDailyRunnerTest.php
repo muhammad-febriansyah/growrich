@@ -52,7 +52,7 @@ beforeEach(function () {
 
 it('daily_runner_creates_pairing_bonus', function () {
     $date = '2026-01-15';
-    // 3 left, 3 right → 3 pairs → 3 * 15000 = 45000
+    // 3 left, 3 right → 3 pairs → 3 * 100_000 = 300_000
     $profile = makeMemberWithLedger($date, 3, 3, PackageType::Silver);
 
     artisan('bonus:run-daily', ['date' => $date])->assertSuccessful();
@@ -62,7 +62,7 @@ it('daily_runner_creates_pairing_bonus', function () {
         ->first();
 
     expect($bonus)->not->toBeNull()
-        ->and($bonus->amount)->toBe(45_000)
+        ->and($bonus->amount)->toBe(3 * 100_000)
         ->and($bonus->status->value)->toBe('Pending');
 });
 
@@ -78,12 +78,12 @@ it('daily_runner_caps_at_max_pairing_per_day', function () {
         ->first();
 
     expect($bonus)->not->toBeNull()
-        ->and($bonus->amount)->toBe(10 * 15_000);
+        ->and($bonus->amount)->toBe(10 * 100_000);
 });
 
 it('daily_runner_uses_min_of_left_and_right_pp', function () {
     $date = '2026-01-17';
-    // 5 left, 3 right → min = 3 pairs → 45000
+    // 5 left, 3 right → min = 3 pairs → 3 * 100_000 = 300_000
     $profile = makeMemberWithLedger($date, 5, 3, PackageType::Gold);
 
     artisan('bonus:run-daily', ['date' => $date])->assertSuccessful();
@@ -93,7 +93,7 @@ it('daily_runner_uses_min_of_left_and_right_pp', function () {
         ->first();
 
     expect($bonus)->not->toBeNull()
-        ->and($bonus->amount)->toBe(3 * 15_000);
+        ->and($bonus->amount)->toBe(3 * 100_000);
 });
 
 it('daily_runner_creates_daily_bonus_run_record', function () {
@@ -119,7 +119,7 @@ it('daily_runner_prevents_duplicate_run', function () {
 
 it('daily_runner_stores_correct_total_pairing_bonus', function () {
     $date = '2026-01-20';
-    // Two members: 2 pairs + 3 pairs = 5 pairs total = 75000
+    // Two members: 2 pairs + 3 pairs = 5 pairs total → 5 * 100_000 = 500_000
     makeMemberWithLedger($date, 2, 2, PackageType::Silver);
     makeMemberWithLedger($date, 3, 3, PackageType::Silver);
 
@@ -128,7 +128,7 @@ it('daily_runner_stores_correct_total_pairing_bonus', function () {
     $run = DailyBonusRun::whereDate('run_date', $date)->first();
 
     expect($run)->not->toBeNull()
-        ->and($run->total_pairing_bonus)->toBe(5 * 15_000);
+        ->and($run->total_pairing_bonus)->toBe(5 * 100_000);
 });
 
 it('daily_runner_skips_members_with_zero_pp', function () {
