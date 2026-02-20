@@ -46,6 +46,13 @@ class SiteSettingController extends Controller
             'contact_phone' => 'nullable|string|max:255',
             'contact_whatsapp' => 'nullable|string|max:255',
             'contact_email' => 'nullable|email|max:255',
+            'email_sender' => 'nullable|email|max:255',
+            'email_token' => 'nullable|string|max:255',
+            'duitku_merchant_code' => 'nullable|string|max:255',
+            'duitku_api_key' => 'nullable|string|max:255',
+            'duitku_is_sandbox' => 'nullable|boolean',
+            'nocaptcha_sitekey' => 'nullable|string|max:255',
+            'nocaptcha_secret' => 'nullable|string|max:255',
             'contact_address' => 'nullable|string',
             // Social Media
             'social_facebook' => 'nullable|url|max:255',
@@ -68,6 +75,8 @@ class SiteSettingController extends Controller
             'hero_image' => 'nullable|image|max:4096',
             'hero_stats_value' => 'nullable|string|max:50',
             'hero_stats_label' => 'nullable|string|max:100',
+            // Bonus
+            'pairing_bonus_amount' => 'nullable|integer|min:0',
         ]);
 
         foreach (['logo', 'favicon', 'hero_image'] as $fileKey) {

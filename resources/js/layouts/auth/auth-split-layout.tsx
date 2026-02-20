@@ -36,7 +36,7 @@ export default function AuthSplitLayout({
                     </blockquote>
                 </div>
             </div>
-            <div className="flex h-full w-full flex-col items-center justify-center overflow-y-auto px-8 py-10 lg:px-8">
+            <div className="flex h-full w-full flex-col items-center justify-start overflow-y-auto px-8 py-16 lg:px-8 lg:py-20">
                 <div className="flex w-full flex-col space-y-8 sm:w-[380px]">
                     <Link
                         href={home()}

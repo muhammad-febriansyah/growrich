@@ -40,6 +40,7 @@ class HandleInertiaRequests extends Middleware
             'name' => $settings->site_name ?? config('app.name'),
             'logo' => $settings->logo ? \Illuminate\Support\Facades\Storage::url($settings->logo) : null,
             'favicon' => $settings->favicon ? \Illuminate\Support\Facades\Storage::url($settings->favicon) : null,
+            'recaptcha_site_key' => $settings->nocaptcha_sitekey,
         ];
 
         $socials = array_filter([

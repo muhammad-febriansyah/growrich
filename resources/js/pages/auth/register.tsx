@@ -1,6 +1,7 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import { Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import ReCAPTCHA from 'react-google-recaptcha';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,15 @@ import { store } from '@/routes/register';
 export default function Register() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
+    const recaptchaWidgetRef = useRef<ReCAPTCHA>(null);
+    const recaptchaInputRef = useRef<HTMLInputElement>(null);
+
+    const resetRecaptcha = () => {
+        recaptchaWidgetRef.current?.reset();
+        if (recaptchaInputRef.current) {
+            recaptchaInputRef.current.value = '';
+        }
+    };
 
     return (
         <AuthLayout
@@ -25,6 +35,7 @@ export default function Register() {
                 {...store.form()}
                 resetOnSuccess={['password', 'password_confirmation']}
                 disableWhileProcessing
+                onError={resetRecaptcha}
                 className="flex flex-col gap-6"
             >
                 {({ processing, errors }) => (
@@ -148,6 +159,18 @@ export default function Register() {
                                 </div>
                                 <InputError message={errors.password_confirmation} />
                             </div>
+
+                            {/* reCAPTCHA */}
+                            {usePage().props.site.recaptcha_site_key && (
+                                <div className="grid gap-2 justify-items-center">
+                                    <ReCAPTCHA
+                                        ref={recaptchaWidgetRef}
+                                        sitekey={usePage().props.site.recaptcha_site_key as string}
+                                        onExpired={resetRecaptcha}
+                                    />
+                                    <InputError message={errors['g-recaptcha-response']} />
+                                </div>
+                            )}
 
                             <Button
                                 type="submit"

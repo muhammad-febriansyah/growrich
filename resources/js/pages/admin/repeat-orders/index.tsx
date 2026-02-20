@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
-import { ArrowUpCircle, CheckCircle2, Clock, Search, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Package, Search, ShoppingCart, XCircle } from 'lucide-react';
 import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,74 +15,59 @@ import {
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 
-interface UpgradeRequest {
+interface OrderItem {
     id: number;
-    current_package: string;
-    requested_package: string;
-    pin_code: string | null;
-    status: 'pending' | 'approved' | 'rejected';
-    notes: string | null;
-    reviewed_at: string | null;
+    quantity: number;
+    unit_price: number;
+    subtotal: number;
+    product: { name: string; sku: string } | null;
+}
+
+interface RepeatOrder {
+    id: number;
+    order_number: string;
+    total_amount: number;
+    status: 'pending' | 'completed' | 'rejected';
+    period_month: number;
+    period_year: number;
     created_at: string;
+    items: OrderItem[];
     member_profile: {
         user: { name: string; email: string };
     } | null;
-    reviewer: { name: string } | null;
 }
 
 interface Props {
-    requests: {
-        data: UpgradeRequest[];
+    orders: {
+        data: RepeatOrder[];
         links: { url: string | null; label: string; active: boolean }[];
         current_page: number;
         last_page: number;
         total: number;
     };
     filters: { status?: string; search?: string };
-    stats: { pending: number; approved: number; rejected: number };
+    stats: { pending: number; completed: number; rejected: number };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Approve Upgrade Paket', href: '/upgrade-requests' },
+    { title: 'Manajemen RO', href: '/admin/repeat-orders' },
 ];
 
-const pkgBadge: Record<string, string> = {
-    Silver: 'bg-slate-100 text-slate-700 border-slate-300',
-    Gold: 'bg-amber-100 text-amber-700 border-amber-300',
-    Platinum: 'bg-violet-100 text-violet-700 border-violet-300',
-};
-
-function PackageBadge({ type }: { type: string }) {
-    return (
-        <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${pkgBadge[type] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>
-            {type}
-        </span>
-    );
-}
+const MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
 
 function StatusBadge({ status }: { status: string }) {
-    const map: Record<string, { label: string; cls: string }> = {
-        pending:  { label: 'Menunggu',  cls: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
-        approved: { label: 'Disetujui', cls: 'bg-green-100 text-green-700 border-green-300' },
-        rejected: { label: 'Ditolak',   cls: 'bg-red-100 text-red-700 border-red-300' },
-    };
-    const { label, cls } = map[status] ?? { label: status, cls: 'bg-gray-100 text-gray-600 border-gray-300' };
-    return (
-        <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold ${cls}`}>
-            {label}
-        </span>
-    );
+    if (status === 'completed') return <Badge className="bg-green-100 text-green-700 border border-green-300 hover:bg-green-100">Selesai</Badge>;
+    if (status === 'pending')   return <Badge className="bg-yellow-100 text-yellow-700 border border-yellow-300 hover:bg-yellow-100">Menunggu</Badge>;
+    return <Badge variant="destructive">Ditolak</Badge>;
 }
 
-export default function UpgradeRequestIndex({ requests, filters, stats }: Props) {
+export default function RepeatOrderIndex({ orders, filters, stats }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
-    const [rejectingId, setRejectingId] = useState<number | null>(null);
-    const [rejectNotes, setRejectNotes] = useState('');
 
     const applyFilter = (key: string, value: string) => {
         const next: Record<string, string> = { ...filters };
         if (value === 'all') { delete next[key]; } else { next[key] = value; }
-        router.get('/upgrade-requests', next, { preserveState: true, replace: true });
+        router.get('/admin/repeat-orders', next, { preserveState: true, replace: true });
     };
 
     const handleSearch = (e: React.FormEvent) => {
@@ -90,25 +76,25 @@ export default function UpgradeRequestIndex({ requests, filters, stats }: Props)
     };
 
     const handleApprove = (id: number) => {
-        if (confirm('Setujui permintaan upgrade paket ini?')) {
-            router.post(`/upgrade-requests/${id}/approve`);
+        if (confirm('Setujui repeat order ini?')) {
+            router.post(`/admin/repeat-orders/${id}/approve`);
         }
     };
 
     const handleReject = (id: number) => {
-        router.post(`/upgrade-requests/${id}/reject`, { notes: rejectNotes }, {
-            onSuccess: () => { setRejectingId(null); setRejectNotes(''); },
-        });
+        if (confirm('Tolak repeat order ini?')) {
+            router.post(`/admin/repeat-orders/${id}/reject`);
+        }
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Approve Upgrade Paket" />
+            <Head title="Manajemen Repeat Order" />
 
             <div className="flex flex-col gap-6 p-4 md:p-6">
                 <div>
-                    <h1 className="text-xl font-bold text-gray-900">Permintaan Upgrade Paket</h1>
-                    <p className="text-sm text-muted-foreground">Review dan setujui permintaan upgrade paket dari member.</p>
+                    <h1 className="text-xl font-bold text-gray-900">Manajemen Repeat Order</h1>
+                    <p className="text-sm text-muted-foreground">Review dan konfirmasi repeat order dari member.</p>
                 </div>
 
                 {/* Stats */}
@@ -130,8 +116,8 @@ export default function UpgradeRequestIndex({ requests, filters, stats }: Props)
                                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold">{stats.approved}</p>
-                                <p className="text-xs text-muted-foreground">Disetujui</p>
+                                <p className="text-2xl font-bold">{stats.completed}</p>
+                                <p className="text-xs text-muted-foreground">Selesai</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -167,7 +153,7 @@ export default function UpgradeRequestIndex({ requests, filters, stats }: Props)
                         <SelectContent>
                             <SelectItem value="all">Semua Status</SelectItem>
                             <SelectItem value="pending">Menunggu</SelectItem>
-                            <SelectItem value="approved">Disetujui</SelectItem>
+                            <SelectItem value="completed">Selesai</SelectItem>
                             <SelectItem value="rejected">Ditolak</SelectItem>
                         </SelectContent>
                     </Select>
@@ -181,50 +167,50 @@ export default function UpgradeRequestIndex({ requests, filters, stats }: Props)
                                 <thead className="border-b bg-muted/50">
                                     <tr>
                                         <th className="px-4 py-3 text-left font-medium text-muted-foreground">Member</th>
-                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">Upgrade</th>
-                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">PIN</th>
-                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tanggal</th>
+                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">No. Order</th>
+                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">Produk</th>
+                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">Periode</th>
+                                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Total</th>
                                         <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
                                         <th className="px-4 py-3 text-right font-medium text-muted-foreground">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
-                                    {requests.data.map((req) => (
-                                        <tr key={req.id} className="hover:bg-muted/30 align-top">
+                                    {orders.data.map((order) => (
+                                        <tr key={order.id} className="hover:bg-muted/30 align-top">
                                             <td className="px-4 py-3">
-                                                <p className="font-medium">{req.member_profile?.user.name ?? '—'}</p>
-                                                <p className="text-xs text-muted-foreground">{req.member_profile?.user.email ?? ''}</p>
+                                                <p className="font-medium">{order.member_profile?.user.name ?? '—'}</p>
+                                                <p className="text-xs text-muted-foreground">{order.member_profile?.user.email ?? ''}</p>
+                                            </td>
+                                            <td className="px-4 py-3 font-mono text-xs text-slate-700 font-bold">
+                                                {order.order_number}
                                             </td>
                                             <td className="px-4 py-3">
-                                                <div className="flex items-center gap-2">
-                                                    <PackageBadge type={req.current_package} />
-                                                    <ArrowUpCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                                    <PackageBadge type={req.requested_package} />
+                                                <div className="flex flex-col gap-0.5">
+                                                    {order.items.map((item) => (
+                                                        <span key={item.id} className="text-xs text-muted-foreground">
+                                                            {item.product?.name ?? '—'} &times; {item.quantity}
+                                                        </span>
+                                                    ))}
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 font-mono text-xs text-slate-600">
-                                                {req.pin_code ?? '—'}
-                                            </td>
                                             <td className="px-4 py-3 text-xs text-muted-foreground">
-                                                {new Date(req.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                {MONTHS[order.period_month - 1]} {order.period_year}
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-bold text-slate-900 whitespace-nowrap">
+                                                Rp {new Intl.NumberFormat('id-ID').format(order.total_amount)}
                                             </td>
                                             <td className="px-4 py-3">
-                                                <StatusBadge status={req.status} />
-                                                {req.reviewer && (
-                                                    <p className="text-[10px] text-muted-foreground mt-1">oleh {req.reviewer.name}</p>
-                                                )}
-                                                {req.notes && (
-                                                    <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[150px] truncate" title={req.notes}>{req.notes}</p>
-                                                )}
+                                                <StatusBadge status={order.status} />
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                {req.status === 'pending' && rejectingId !== req.id && (
+                                                {order.status === 'pending' && (
                                                     <div className="flex gap-2 justify-end">
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
                                                             className="h-7 text-xs text-green-700 border-green-300 hover:bg-green-50"
-                                                            onClick={() => handleApprove(req.id)}
+                                                            onClick={() => handleApprove(order.id)}
                                                         >
                                                             <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                                                             Setujui
@@ -233,51 +219,22 @@ export default function UpgradeRequestIndex({ requests, filters, stats }: Props)
                                                             size="sm"
                                                             variant="outline"
                                                             className="h-7 text-xs text-red-600 border-red-300 hover:bg-red-50"
-                                                            onClick={() => { setRejectingId(req.id); setRejectNotes(''); }}
+                                                            onClick={() => handleReject(order.id)}
                                                         >
                                                             <XCircle className="h-3.5 w-3.5 mr-1" />
                                                             Tolak
                                                         </Button>
                                                     </div>
                                                 )}
-                                                {req.status === 'pending' && rejectingId === req.id && (
-                                                    <div className="flex flex-col gap-2 min-w-[220px]">
-                                                        <Input
-                                                            placeholder="Alasan penolakan (opsional)"
-                                                            value={rejectNotes}
-                                                            onChange={(e) => setRejectNotes(e.target.value)}
-                                                            className="text-xs h-8"
-                                                            autoFocus
-                                                        />
-                                                        <div className="flex gap-2 justify-end">
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                className="h-7 text-xs"
-                                                                onClick={() => { setRejectingId(null); setRejectNotes(''); }}
-                                                            >
-                                                                Batal
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="destructive"
-                                                                className="h-7 text-xs"
-                                                                onClick={() => handleReject(req.id)}
-                                                            >
-                                                                Konfirmasi Tolak
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                )}
                                             </td>
                                         </tr>
                                     ))}
-                                    {requests.data.length === 0 && (
+                                    {orders.data.length === 0 && (
                                         <tr>
-                                            <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                                                <ArrowUpCircle className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                                                <p className="text-sm font-medium">Belum ada permintaan upgrade</p>
-                                                <p className="text-xs mt-1">Permintaan upgrade paket dari member akan muncul di sini.</p>
+                                            <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
+                                                <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                                                <p className="text-sm font-medium">Belum ada repeat order</p>
+                                                <p className="text-xs mt-1">Repeat order dari member akan muncul di sini.</p>
                                             </td>
                                         </tr>
                                     )}
@@ -288,18 +245,18 @@ export default function UpgradeRequestIndex({ requests, filters, stats }: Props)
                 </Card>
 
                 {/* Pagination */}
-                {requests.last_page > 1 && (
+                {orders.last_page > 1 && (
                     <div className="flex items-center justify-between gap-3">
                         <div className="text-sm text-muted-foreground">
-                            Halaman {requests.current_page} dari {requests.last_page} · {requests.total} total
+                            Halaman {orders.current_page} dari {orders.last_page} · {orders.total} total
                         </div>
                         <div className="flex gap-2">
                             <Button
                                 variant="outline"
                                 size="sm"
-                                disabled={requests.current_page === 1}
+                                disabled={orders.current_page === 1}
                                 onClick={() => {
-                                    const prev = requests.links[requests.current_page - 1];
+                                    const prev = orders.links[orders.current_page - 1];
                                     if (prev?.url) router.get(prev.url);
                                 }}
                             >
@@ -308,9 +265,9 @@ export default function UpgradeRequestIndex({ requests, filters, stats }: Props)
                             <Button
                                 variant="outline"
                                 size="sm"
-                                disabled={requests.current_page === requests.last_page}
+                                disabled={orders.current_page === orders.last_page}
                                 onClick={() => {
-                                    const next = requests.links[requests.current_page + 1];
+                                    const next = orders.links[orders.current_page + 1];
                                     if (next?.url) router.get(next.url);
                                 }}
                             >

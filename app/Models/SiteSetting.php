@@ -23,6 +23,13 @@ class SiteSetting extends Model
         'contact_phone',
         'contact_whatsapp',
         'contact_email',
+        'email_sender',
+        'email_token',
+        'duitku_merchant_code',
+        'duitku_api_key',
+        'duitku_is_sandbox',
+        'nocaptcha_sitekey',
+        'nocaptcha_secret',
         'contact_address',
         // Social Media
         'social_facebook',
@@ -45,6 +52,13 @@ class SiteSetting extends Model
         'hero_image',
         'hero_stats_value',
         'hero_stats_label',
+        // Bonus
+        'pairing_bonus_amount',
+    ];
+
+    protected $casts = [
+        'duitku_is_sandbox' => 'boolean',
+        'pairing_bonus_amount' => 'integer',
     ];
 
     /**

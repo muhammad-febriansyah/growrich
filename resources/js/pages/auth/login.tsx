@@ -1,6 +1,7 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import { Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import ReCAPTCHA from 'react-google-recaptcha';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,15 @@ export default function Login({
     canRegister,
 }: Props) {
     const [showPassword, setShowPassword] = useState(false);
+    const recaptchaWidgetRef = useRef<ReCAPTCHA>(null);
+    const recaptchaInputRef = useRef<HTMLInputElement>(null);
+
+    const resetRecaptcha = () => {
+        recaptchaWidgetRef.current?.reset();
+        if (recaptchaInputRef.current) {
+            recaptchaInputRef.current.value = '';
+        }
+    };
 
     return (
         <AuthLayout
@@ -36,6 +46,7 @@ export default function Login({
             <Form
                 {...store.form()}
                 resetOnSuccess={['password']}
+                onError={resetRecaptcha}
                 className="flex flex-col gap-8"
             >
                 {({ processing, errors }) => (
@@ -105,6 +116,18 @@ export default function Login({
                                     Ingat saya
                                 </Label>
                             </div>
+
+                            {/* reCAPTCHA */}
+                            {usePage().props.site.recaptcha_site_key && (
+                                <div className="grid gap-2 justify-items-center">
+                                    <ReCAPTCHA
+                                        ref={recaptchaWidgetRef}
+                                        sitekey={usePage().props.site.recaptcha_site_key as string}
+                                        onExpired={resetRecaptcha}
+                                    />
+                                    <InputError message={errors['g-recaptcha-response']} />
+                                </div>
+                            )}
 
                             <Button
                                 type="submit"

@@ -31,6 +31,28 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
+
+        Fortify::authenticateUsing(function (Request $request) {
+            $user = \App\Models\User::where('email', $request->email)->first();
+
+            if (! $user || ! \Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+                return null;
+            }
+
+            $recaptchaRule = new \App\Rules\ReCaptcha;
+            $recaptchaError = null;
+            $recaptchaRule->validate('g-recaptcha-response', $request->input('g-recaptcha-response'), function ($message) use (&$recaptchaError) {
+                $recaptchaError = $message;
+            });
+
+            if ($recaptchaError) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'g-recaptcha-response' => [$recaptchaError],
+                ]);
+            }
+
+            return $user;
+        });
     }
 
     /**

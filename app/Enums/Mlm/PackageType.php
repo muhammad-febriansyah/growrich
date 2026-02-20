@@ -43,10 +43,10 @@ enum PackageType: string
         return $this->sponsorBonusFor($this);
     }
 
-    /** Pairing bonus per matched pair: Rp 100.000 */
+    /** Pairing bonus per matched pair, dibaca dari site_settings. */
     public static function pairingBonusAmount(): int
     {
-        return Package::PAIRING_BONUS_AMOUNT;
+        return Package::pairingBonusAmount();
     }
 
     public function registrationPrice(): int

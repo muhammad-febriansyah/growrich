@@ -53,37 +53,32 @@ const packageColors: Record<string, { badge: string; border: string; icon: strin
     },
 };
 
-const packageBenefits: Record<string, string[]> = {
-    Silver: [
-        'Bonus Sponsor hingga Rp 200.000',
-        'Pairing Bonus 1 PP per aktivasi',
-        'Maks. 10 pasang/hari',
-        'Maks. bonus pairing Rp 1.000.000/hari',
-        'Akses dashboard member',
-        'Support komunitas aktif',
-    ],
-    Gold: [
-        'Bonus Sponsor hingga Rp 400.000',
-        'Pairing Bonus 2 PP per aktivasi',
-        'Maks. 20 pasang/hari',
-        'Maks. bonus pairing Rp 2.000.000/hari',
-        'Reward Point 1 poin per aktivasi',
-        'Akses dashboard member',
-        'Support komunitas aktif',
-    ],
-    Platinum: [
-        'Bonus Sponsor hingga Rp 600.000',
-        'Pairing Bonus 3 PP per aktivasi',
-        'Maks. 30 pasang/hari',
-        'Maks. bonus pairing Rp 3.000.000/hari',
-        'Reward Point 2 poin per aktivasi',
-        'Prioritas dukungan admin',
-        'Akses dashboard member',
-        'Support komunitas aktif',
-    ],
-};
+function getPackageBenefits(pkg: PackageItem, pairingBonusAmount: number): string[] {
+    const maxBonusPerDay = (pkg.max_pairing * pairingBonusAmount).toLocaleString('id');
+    const sponsorBonus = pkg.sponsor_bonus.toLocaleString('id');
 
-const comparisonRows: { label: string; key: (pkg: PackageItem) => React.ReactNode }[] = [
+    const benefits = [
+        `Bonus Sponsor hingga Rp ${sponsorBonus}`,
+        `Pairing Bonus ${pkg.pairing_point} PP per aktivasi`,
+        `Maks. ${pkg.max_pairing} pasang/hari`,
+        `Maks. bonus pairing Rp ${maxBonusPerDay}/hari`,
+        'Akses dashboard member',
+        'Support komunitas aktif',
+    ];
+
+    if (pkg.reward_point > 0) {
+        benefits.splice(4, 0, `Reward Point ${pkg.reward_point} poin per aktivasi`);
+    }
+
+    if (pkg.name === 'Platinum') {
+        benefits.splice(benefits.length - 1, 0, 'Prioritas dukungan admin');
+    }
+
+    return benefits;
+}
+
+function getComparisonRows(pairingBonusAmount: number): { label: string; key: (pkg: PackageItem) => React.ReactNode }[] {
+    return [
     {
         label: 'Harga Registrasi',
         key: (pkg) => `Rp ${(pkg.price / 1_000_000).toFixed(2).replace('.', ',')} jt`,
@@ -98,7 +93,7 @@ const comparisonRows: { label: string; key: (pkg: PackageItem) => React.ReactNod
     },
     {
         label: 'Maks. Bonus Pairing/Hari',
-        key: (pkg) => `Rp ${(pkg.max_pairing * 100_000).toLocaleString('id')}`,
+        key: (pkg) => `Rp ${(pkg.max_pairing * pairingBonusAmount).toLocaleString('id')}`,
     },
     {
         label: 'Bonus Sponsor (maks.)',
@@ -124,7 +119,8 @@ const comparisonRows: { label: string; key: (pkg: PackageItem) => React.ReactNod
                 ? `Rp ${(pkg.upgrade_price / 1_000_000).toFixed(2).replace('.', ',')} jt`
                 : <span className="text-gray-300">—</span>,
     },
-];
+    ];
+}
 
 const faqs = [
     {
@@ -175,9 +171,11 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 export default function Paket({
     packages,
     canRegister = true,
+    pairingBonusAmount = 100_000,
 }: {
     packages: PackageItem[];
     canRegister?: boolean;
+    pairingBonusAmount?: number;
 }) {
     return (
         <HomeLayout>
@@ -210,7 +208,7 @@ export default function Paket({
                     <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
                         {packages.map((pkg) => {
                             const colors = packageColors[pkg.name] ?? packageColors.Silver;
-                            const benefits = packageBenefits[pkg.name] ?? [];
+                            const benefits = getPackageBenefits(pkg, pairingBonusAmount);
 
                             return (
                                 <div
@@ -324,7 +322,7 @@ export default function Paket({
                         </div>
 
                         {/* Rows */}
-                        {comparisonRows.map((row, i) => (
+                        {getComparisonRows(pairingBonusAmount).map((row, i) => (
                             <div
                                 key={row.label}
                                 className={`grid grid-cols-4 items-center border-t border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}
@@ -413,7 +411,7 @@ export default function Paket({
                                             <div className="text-right">
                                                 <p className="text-xs text-gray-400">Maks. bonus</p>
                                                 <p className="text-sm font-black text-gray-900">
-                                                    Rp {(pkg.max_pairing * 100_000).toLocaleString('id')}
+                                                    Rp {(pkg.max_pairing * pairingBonusAmount).toLocaleString('id')}
                                                 </p>
                                                 <p className="text-[10px] text-gray-400">per hari</p>
                                             </div>

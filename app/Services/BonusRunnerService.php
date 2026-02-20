@@ -10,6 +10,7 @@ use App\Models\Bonus;
 use App\Models\DailyBonusRun;
 use App\Models\MemberProfile;
 use App\Models\MemberReward;
+use App\Models\Package;
 use App\Models\RepeatOrder;
 use App\Models\RewardMilestone;
 use Carbon\Carbon;
@@ -273,15 +274,8 @@ class BonusRunnerService
 
     private function levelingBonusAmount(PackageType $left, PackageType $right): int
     {
-        // Use the lower tier of the pair
-        $tiers = [
-            PackageType::Silver->value => 250_000,
-            PackageType::Gold->value => 500_000,
-            PackageType::Platinum->value => 750_000,
-        ];
-
-        $leftVal = $tiers[$left->value];
-        $rightVal = $tiers[$right->value];
+        $leftVal = Package::findByKey($left->value)->leveling_bonus_amount;
+        $rightVal = Package::findByKey($right->value)->leveling_bonus_amount;
 
         return min($leftVal, $rightVal);
     }

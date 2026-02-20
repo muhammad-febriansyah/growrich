@@ -9,8 +9,17 @@ use Illuminate\Support\Facades\Cache;
 
 class Package extends Model
 {
-    /** Pairing bonus per matched pair: Rp 100.000 (constant, not per-package) */
+    /** Fallback pairing bonus per matched pair jika belum dikonfigurasi di site_settings. */
     public const PAIRING_BONUS_AMOUNT = 100_000;
+
+    /**
+     * Pairing bonus per matched pair, dibaca dari site_settings.
+     * Fallback ke PAIRING_BONUS_AMOUNT jika belum dikonfigurasi.
+     */
+    public static function pairingBonusAmount(): int
+    {
+        return SiteSetting::instance()->pairing_bonus_amount ?? self::PAIRING_BONUS_AMOUNT;
+    }
 
     protected $fillable = [
         'key',

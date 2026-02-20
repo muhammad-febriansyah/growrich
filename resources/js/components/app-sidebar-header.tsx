@@ -34,28 +34,6 @@ import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { BreadcrumbItem as BreadcrumbItemType, User } from '@/types';
 
-// ── All nav items (admin + member) for search ────────────────────────────────
-const adminNavItems = [
-    { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
-    { title: 'Manajemen Member', href: '/admin/members', icon: Users },
-    { title: 'Registration PIN', href: '/admin/pins', icon: Key },
-    { title: 'Manajemen Produk', href: '/admin/products', icon: Package },
-    { title: 'Riwayat Bonus', href: '/admin/bonuses', icon: DollarSign },
-    { title: 'Penarikan Dana', href: '/admin/withdrawals', icon: Wallet },
-    { title: 'Pengaturan Situs', href: '/admin/settings', icon: Settings },
-];
-
-const memberNavItems = [
-    { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
-    { title: 'Profil Saya', href: '/member/profile', icon: UserIcon },
-    { title: 'Jaringan Saya', href: '/member/network', icon: Network },
-    { title: 'Riwayat Bonus', href: '/member/bonuses', icon: DollarSign },
-    { title: 'Wallet & Withdraw', href: '/member/wallet', icon: Wallet },
-    { title: 'Repeat Order', href: '/member/ro', icon: ShoppingCart },
-    { title: 'Registrasi Member', href: '/member/register', icon: UserPlus },
-];
-
-// ── Menu Search ──────────────────────────────────────────────────────────────
 import {
     CommandDialog,
     CommandEmpty,
@@ -64,10 +42,12 @@ import {
     CommandItem,
     CommandList,
 } from '@/components/ui/command';
+import { adminNavGroups, memberNavGroups } from './app-sidebar';
 
 function MenuSearch({ role }: { role: string }) {
     const [open, setOpen] = useState(false);
-    const items = role === 'admin' ? adminNavItems : memberNavItems;
+    const groups = role === 'admin' ? adminNavGroups : memberNavGroups;
+    const items = groups.flatMap((group) => group.items);
 
     // CMD/CTRL + K shortcut
     useEffect(() => {
@@ -106,13 +86,17 @@ function MenuSearch({ role }: { role: string }) {
                     <CommandGroup heading="Navigasi Menu">
                         {items.map((item) => (
                             <CommandItem
-                                key={item.href}
+                                key={String(item.href)}
                                 value={item.title}
-                                onSelect={() => onSelect(item.href)}
+                                onSelect={() => onSelect(String(item.href))}
                                 className="flex items-center gap-3 group cursor-pointer"
                             >
                                 <div className="flex size-7 items-center justify-center rounded-lg bg-gray-100 transition-colors group-data-[selected=true]:bg-white/20">
-                                    <item.icon className="size-3.5 transition-colors group-data-[selected=true]:text-white" />
+                                    {item.icon ? (
+                                        <item.icon className="size-3.5 transition-colors group-data-[selected=true]:text-white" />
+                                    ) : (
+                                        <LayoutGrid className="size-3.5 transition-colors group-data-[selected=true]:text-white" />
+                                    )}
                                 </div>
                                 <span className="font-medium">{item.title}</span>
                             </CommandItem>

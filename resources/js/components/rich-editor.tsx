@@ -41,6 +41,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
     return (
         <div className="rich-editor-toolbar flex flex-wrap gap-1 border-b bg-gray-50/50 p-1">
             <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
@@ -51,6 +52,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 <Bold className="h-4 w-4" />
             </Button>
             <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
@@ -61,6 +63,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 <Italic className="h-4 w-4" />
             </Button>
             <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
@@ -70,6 +73,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 <UnderlineIcon className="h-4 w-4" />
             </Button>
             <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
@@ -83,6 +87,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
             <div className="mx-1 h-8 w-px bg-gray-200" />
 
             <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
@@ -92,6 +97,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 <Heading1 className="h-4 w-4" />
             </Button>
             <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
@@ -104,6 +110,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
             <div className="mx-1 h-8 w-px bg-gray-200" />
 
             <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
@@ -113,6 +120,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 <List className="h-4 w-4" />
             </Button>
             <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
@@ -125,6 +133,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
             <div className="mx-1 h-8 w-px bg-gray-200" />
 
             <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
@@ -134,6 +143,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 <AlignLeft className="h-4 w-4" />
             </Button>
             <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
@@ -143,6 +153,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 <AlignCenter className="h-4 w-4" />
             </Button>
             <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
@@ -155,6 +166,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
             <div className="mx-1 h-8 w-px bg-gray-200" />
 
             <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
@@ -164,6 +176,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 <Quote className="h-4 w-4" />
             </Button>
             <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
@@ -175,6 +188,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
 
             <div className="ml-auto flex gap-1">
                 <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
@@ -184,6 +198,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
                     <Undo className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
@@ -253,6 +268,21 @@ export default function RichEditor({ value, onChange, placeholder }: RichEditorP
                 .rich-editor-toolbar [data-active=""] {
                     background-color: #f1f5f9;
                     color: #0f172a;
+                }
+                .ProseMirror ul {
+                    list-style-type: disc !important;
+                    padding-left: 1.5rem !important;
+                    margin-top: 0.5rem !important;
+                    margin-bottom: 0.5rem !important;
+                }
+                .ProseMirror ol {
+                    list-style-type: decimal !important;
+                    padding-left: 1.5rem !important;
+                    margin-top: 0.5rem !important;
+                    margin-bottom: 0.5rem !important;
+                }
+                .ProseMirror li {
+                    display: list-item !important;
                 }
             ` }} />
         </div>

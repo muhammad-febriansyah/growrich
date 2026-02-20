@@ -1,6 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import { ColumnDef } from '@tanstack/react-table';
-import { CreditCard, History, Info, Send } from 'lucide-react';
+import { ArrowDownToLine, CreditCard, History, Info, Send, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -122,21 +122,42 @@ export default function WalletIndex({ wallet, withdrawals }: Props) {
 
                 <div className="grid gap-6 md:grid-cols-2">
                     {/* Balance Card */}
-                    <Card className="bg-primary text-primary-foreground border-none shadow-premium">
-                        <CardHeader>
-                            <CardTitle className="text-primary-foreground/80 font-medium">Saldo Utama</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-white/10 rounded-xl">
-                                    <CreditCard className="h-8 w-8 text-white" />
-                                </div>
-                                <h3 className="text-4xl font-extrabold tracking-tight">
-                                    Rp {new Intl.NumberFormat('id-ID').format(wallet.balance)}
-                                </h3>
+                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1a5c0e] via-[#237A13] to-[#2d9e1a] p-6 text-white shadow-xl min-h-[200px] flex flex-col justify-between">
+                        {/* Decorative circles */}
+                        <div className="pointer-events-none absolute -top-10 -right-10 h-48 w-48 rounded-full bg-white/5" />
+                        <div className="pointer-events-none absolute -bottom-14 -right-6 h-56 w-56 rounded-full bg-white/5" />
+                        <div className="pointer-events-none absolute top-1/2 -left-8 h-32 w-32 rounded-full bg-white/5" />
+
+                        {/* Top row */}
+                        <div className="relative flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Wallet className="h-5 w-5 text-white/70" />
+                                <span className="text-sm font-medium text-white/70 tracking-wide">Saldo Utama</span>
                             </div>
-                        </CardContent>
-                    </Card>
+                            <div className="flex gap-1">
+                                <div className="h-2 w-2 rounded-full bg-white/30" />
+                                <div className="h-2 w-2 rounded-full bg-white/30" />
+                                <div className="h-2 w-2 rounded-full bg-white/60" />
+                            </div>
+                        </div>
+
+                        {/* Balance */}
+                        <div className="relative mt-4">
+                            <p className="text-xs text-white/50 uppercase tracking-widest mb-1">Saldo Tersedia</p>
+                            <h3 className="text-4xl font-extrabold tracking-tight">
+                                Rp {new Intl.NumberFormat('id-ID').format(wallet.balance)}
+                            </h3>
+                        </div>
+
+                        {/* Bottom row */}
+                        <div className="relative mt-6 flex items-center justify-between border-t border-white/10 pt-4">
+                            <div className="flex items-center gap-2 text-white/60 text-xs">
+                                <ArrowDownToLine className="h-3.5 w-3.5" />
+                                <span>Siap ditarik ke rekening bank</span>
+                            </div>
+                            <CreditCard className="h-6 w-6 text-white/30" />
+                        </div>
+                    </div>
 
                     {/* WD Form Card */}
                     <Card className="shadow-premium border-none">

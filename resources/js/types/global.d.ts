@@ -9,6 +9,7 @@ declare module '@inertiajs/core' {
                 name: string;
                 logo: string | null;
                 favicon: string | null;
+                recaptcha_site_key: string | null;
             };
             sidebarOpen: boolean;
             [key: string]: unknown;

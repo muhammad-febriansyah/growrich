@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { ColumnDef } from '@tanstack/react-table';
 import { Package, Plus, ShoppingBag, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
@@ -15,8 +15,11 @@ interface Product {
     name: string;
     sku: string;
     ro_price: number;
+    stock: number | null;
     image_url: string | null;
 }
+
+const isOutOfStock = (p: Product) => p.stock !== null && p.stock === 0;
 
 interface Order {
     id: number;
@@ -49,7 +52,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function OrderIndex({ products, orders }: Props) {
     const [cart, setCart] = useState<{ product_id: number; quantity: number }[]>([]);
 
-    const { post, processing, setData } = useForm({
+    const { post, processing } = useForm({
         items: [] as { product_id: number; quantity: number }[],
     });
 
@@ -121,8 +124,7 @@ export default function OrderIndex({ products, orders }: Props) {
 
     const submitOrder = () => {
         if (cart.length === 0) return;
-        setData('items', cart);
-        post('/member/ro', {
+        router.post('/member/ro', { items: cart }, {
             onSuccess: () => setCart([]),
         });
     };
@@ -148,35 +150,68 @@ export default function OrderIndex({ products, orders }: Props) {
                     {/* Product List */}
                     <div className="md:col-span-2 space-y-4">
                         <div className="grid gap-4 sm:grid-cols-2">
-                            {products.map(product => (
-                                <Card key={product.id} className="overflow-hidden shadow-premium border-none transition-all hover:ring-2 hover:ring-primary/20">
-                                    <div className="p-4 flex gap-4">
-                                        <div className="rounded-lg overflow-hidden flex items-center justify-center h-16 w-16 bg-slate-100 shrink-0">
-                                            {product.image_url ? (
-                                                <img
-                                                    src={product.image_url}
-                                                    alt={product.name}
-                                                    className="h-full w-full object-cover"
-                                                />
-                                            ) : (
-                                                <Package className="h-8 w-8 text-slate-400" />
-                                            )}
-                                        </div>
-                                        <div className="flex-1">
-                                            <h4 className="font-bold">{product.name}</h4>
-                                            <p className="text-xs text-muted-foreground mb-2">{product.sku}</p>
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-sm font-bold text-primary">
-                                                    Rp {new Intl.NumberFormat('id-ID').format(product.ro_price)}
-                                                </p>
-                                                <Button size="sm" variant="outline" onClick={() => addToCart(product)} className="bg-white">
-                                                    <Plus className="h-3 w-3 mr-1" /> Pilih
-                                                </Button>
+                            {products.map(product => {
+                                const outOfStock = isOutOfStock(product);
+                                return (
+                                    <Card
+                                        key={product.id}
+                                        className={`overflow-hidden shadow-premium border-none transition-all ${outOfStock ? 'opacity-60' : 'hover:ring-2 hover:ring-primary/20'}`}
+                                    >
+                                        <div className="p-4 flex gap-4">
+                                            {/* Image */}
+                                            <div className="relative rounded-lg overflow-hidden flex items-center justify-center h-16 w-16 bg-slate-100 shrink-0">
+                                                {product.image_url ? (
+                                                    <img
+                                                        src={product.image_url}
+                                                        alt={product.name}
+                                                        className={`h-full w-full object-cover ${outOfStock ? 'grayscale' : ''}`}
+                                                    />
+                                                ) : (
+                                                    <Package className="h-8 w-8 text-slate-400" />
+                                                )}
+                                                {outOfStock && (
+                                                    <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
+                                                        <span className="text-[9px] font-bold text-white leading-tight text-center px-1">STOK HABIS</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Info */}
+                                            <div className="flex-1">
+                                                <div className="flex items-start justify-between gap-2 mb-0.5">
+                                                    <h4 className="font-bold text-sm leading-tight">{product.name}</h4>
+                                                    {outOfStock && (
+                                                        <span className="shrink-0 inline-flex items-center rounded-md bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700 border border-red-200">
+                                                            Stok Habis
+                                                        </span>
+                                                    )}
+                                                    {!outOfStock && product.stock !== null && (
+                                                        <span className="shrink-0 inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700 border border-green-200">
+                                                            Stok: {product.stock}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground mb-2">{product.sku}</p>
+                                                <div className="flex items-center justify-between">
+                                                    <p className="text-sm font-bold text-primary">
+                                                        Rp {new Intl.NumberFormat('id-ID').format(product.ro_price)}
+                                                    </p>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => addToCart(product)}
+                                                        className="bg-white"
+                                                        disabled={outOfStock}
+                                                    >
+                                                        <Plus className="h-3 w-3 mr-1" />
+                                                        {outOfStock ? 'Habis' : 'Pilih'}
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </Card>
-                            ))}
+                                    </Card>
+                                );
+                            })}
                         </div>
                     </div>
 

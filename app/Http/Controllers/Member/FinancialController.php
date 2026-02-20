@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Member;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendWithdrawalSubmittedEmail;
 use App\Models\Bonus;
 use App\Models\Withdrawal;
 use Illuminate\Http\Request;
@@ -53,8 +54,10 @@ class FinancialController extends Controller
             return back()->with('error', 'Saldo tidak mencukupi.');
         }
 
-        DB::transaction(function () use ($user, $request) {
-            Withdrawal::create([
+        $withdrawal = null;
+
+        DB::transaction(function () use ($user, $request, &$withdrawal) {
+            $withdrawal = Withdrawal::create([
                 'user_id' => $user->id,
                 'amount' => $request->amount,
                 'bank_name' => $request->bank_name,
@@ -65,6 +68,8 @@ class FinancialController extends Controller
 
             $user->wallet->decrement('balance', $request->amount);
         });
+
+        SendWithdrawalSubmittedEmail::dispatch($withdrawal->load('user'));
 
         return back()->with('success', 'Permintaan penarikan berhasil dikirim.');
     }

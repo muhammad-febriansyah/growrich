@@ -16,7 +16,7 @@ class BlogPostController extends Controller
         $posts = BlogPost::latest()->paginate(10);
 
         return Inertia::render('admin/blog-posts/index', [
-            'posts' => $posts
+            'posts' => $posts,
         ]);
     }
 
@@ -39,7 +39,7 @@ class BlogPostController extends Controller
             $validated['thumbnail'] = $request->file('thumbnail')->store('blog-thumbnails', 'public');
         }
 
-        $validated['slug'] = Str::slug($validated['title']) . '-' . Str::random(5);
+        $validated['slug'] = Str::slug($validated['title']).'-'.Str::random(5);
 
         if ($validated['is_published'] ?? false) {
             $validated['published_at'] = now();
@@ -53,7 +53,7 @@ class BlogPostController extends Controller
     public function edit(BlogPost $blogPost)
     {
         return Inertia::render('admin/blog-posts/edit', [
-            'post' => $blogPost
+            'post' => $blogPost,
         ]);
     }
 
@@ -72,11 +72,13 @@ class BlogPostController extends Controller
                 Storage::disk('public')->delete($blogPost->thumbnail);
             }
             $validated['thumbnail'] = $request->file('thumbnail')->store('blog-thumbnails', 'public');
+        } else {
+            unset($validated['thumbnail']);
         }
 
-        if (($validated['is_published'] ?? false) && !$blogPost->is_published) {
+        if (($validated['is_published'] ?? false) && ! $blogPost->is_published) {
             $validated['published_at'] = now();
-        } elseif (!($validated['is_published'] ?? false)) {
+        } elseif (! ($validated['is_published'] ?? false)) {
             $validated['published_at'] = null;
         }
 

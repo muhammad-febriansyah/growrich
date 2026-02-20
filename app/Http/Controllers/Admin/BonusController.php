@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\Mlm\BonusStatus;
 use App\Http\Controllers\Controller;
+use App\Jobs\SendBonusApprovedEmail;
+use App\Jobs\SendBonusRejectedEmail;
 use App\Models\Bonus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -85,6 +87,8 @@ class BonusController extends Controller
             );
         });
 
+        SendBonusApprovedEmail::dispatch($bonus->load('memberProfile.user'));
+
         return back()->with('success', 'Bonus berhasil disetujui dan saldo member telah diperbarui.');
     }
 
@@ -98,6 +102,8 @@ class BonusController extends Controller
             'status' => BonusStatus::Rejected,
             'approved_by' => auth()->id(),
         ]);
+
+        SendBonusRejectedEmail::dispatch($bonus->load('memberProfile.user'));
 
         return back()->with('success', 'Bonus berhasil ditolak.');
     }

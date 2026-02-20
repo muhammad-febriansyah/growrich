@@ -1,11 +1,14 @@
 import { Head, useForm } from '@inertiajs/react';
-import { Save, Globe, Phone, Share2, Search, Layout, Settings, Image } from 'lucide-react';
+import React, { useState } from 'react';
+import { Save, Globe, Phone, Share2, Search, Layout, Settings, Image, Mail, CreditCard, Eye, EyeOff, Coins, ShieldCheck } from 'lucide-react';
+import { InputRupiah } from '@/components/ui/input-rupiah';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 
@@ -37,6 +40,14 @@ interface SiteSettingsData {
     meta_keywords: string | null;
     footer_text: string | null;
     copyright_text: string | null;
+    email_sender: string | null;
+    email_token: string | null;
+    duitku_merchant_code: string | null;
+    duitku_api_key: string | null;
+    duitku_is_sandbox: boolean;
+    nocaptcha_sitekey: string | null;
+    nocaptcha_secret: string | null;
+    pairing_bonus_amount: number;
 }
 
 interface Props {
@@ -79,7 +90,19 @@ export default function SiteSettings({ settings }: Props) {
         meta_keywords: settings.meta_keywords || '',
         footer_text: settings.footer_text || '',
         copyright_text: settings.copyright_text || '',
+        email_sender: settings.email_sender || '',
+        email_token: settings.email_token || '',
+        duitku_merchant_code: settings.duitku_merchant_code || '',
+        duitku_api_key: settings.duitku_api_key || '',
+        duitku_is_sandbox: !!settings.duitku_is_sandbox,
+        nocaptcha_sitekey: settings.nocaptcha_sitekey || '',
+        nocaptcha_secret: settings.nocaptcha_secret || '',
+        pairing_bonus_amount: settings.pairing_bonus_amount ?? 100000,
     });
+
+    const [showEmailToken, setShowEmailToken] = useState(false);
+    const [showDuitkuApiKey, setShowDuitkuApiKey] = useState(false);
+    const [showNocaptchaSecret, setShowNocaptchaSecret] = useState(false);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -148,6 +171,30 @@ export default function SiteSettings({ settings }: Props) {
                                 className="px-4 py-3 border-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-slate-600 hover:bg-slate-100 transition-all rounded-lg font-semibold"
                             >
                                 <Layout className="size-4 mr-3" /> Footer
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="email"
+                                className="px-4 py-3 border-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-slate-600 hover:bg-slate-100 transition-all rounded-lg font-semibold"
+                            >
+                                <Mail className="size-4 mr-3" /> Email
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="payment"
+                                className="px-4 py-3 border-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-slate-600 hover:bg-slate-100 transition-all rounded-lg font-semibold"
+                            >
+                                <CreditCard className="size-4 mr-3" /> Pembayaran
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="recaptcha"
+                                className="px-4 py-3 border-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-slate-600 hover:bg-slate-100 transition-all rounded-lg font-semibold"
+                            >
+                                <ShieldCheck className="size-4 mr-3" /> reCAPTCHA
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="bonus"
+                                className="px-4 py-3 border-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-slate-600 hover:bg-slate-100 transition-all rounded-lg font-semibold"
+                            >
+                                <Coins className="size-4 mr-3" /> Bonus
                             </TabsTrigger>
                         </TabsList>
 
@@ -513,6 +560,170 @@ export default function SiteSettings({ settings }: Props) {
                                                 value={data.copyright_text}
                                                 onChange={(e) => setData('copyright_text', e.target.value)}
                                             />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </TabsContent>
+
+                            {/* Email Settings */}
+                            <TabsContent value="email" className="mt-0 focus-visible:outline-none">
+                                <Card className="border shadow-sm rounded-xl overflow-hidden">
+                                    <CardHeader className="border-b bg-slate-50/50 py-4 px-6 font-semibold">
+                                        <CardTitle className="text-lg">Pengaturan Email</CardTitle>
+                                        <CardDescription>Konfigurasi pengiriman email sistem.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-6 space-y-5">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="email_sender">Email Pengirim (Sender)</Label>
+                                            <Input
+                                                id="email_sender"
+                                                type="email"
+                                                placeholder="noreply@example.com"
+                                                value={data.email_sender}
+                                                onChange={(e) => setData('email_sender', e.target.value)}
+                                            />
+                                            {errors.email_sender && <p className="text-sm text-destructive">{errors.email_sender}</p>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="email_token">Token Email</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    id="email_token"
+                                                    type={showEmailToken ? 'text' : 'password'}
+                                                    placeholder="Masukkan token layanan email"
+                                                    value={data.email_token}
+                                                    onChange={(e) => setData('email_token', e.target.value)}
+                                                    className="pr-10"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowEmailToken(!showEmailToken)}
+                                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                                                >
+                                                    {showEmailToken ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                                                </button>
+                                            </div>
+                                            {errors.email_token && <p className="text-sm text-destructive">{errors.email_token}</p>}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </TabsContent>
+
+                            {/* Payment Settings */}
+                            <TabsContent value="payment" className="mt-0 focus-visible:outline-none">
+                                <Card className="border shadow-sm rounded-xl overflow-hidden">
+                                    <CardHeader className="border-b bg-slate-50/50 py-4 px-6 font-semibold">
+                                        <CardTitle className="text-lg">Gerbang Pembayaran Duitku</CardTitle>
+                                        <CardDescription>Konfigurasi integrasi pembayaran otomatis menggunakan Duitku.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-6 space-y-6">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="duitku_merchant_code">Merchant Code</Label>
+                                            <Input
+                                                id="duitku_merchant_code"
+                                                placeholder="Contoh: D1234"
+                                                value={data.duitku_merchant_code}
+                                                onChange={(e) => setData('duitku_merchant_code', e.target.value)}
+                                            />
+                                            {errors.duitku_merchant_code && <p className="text-sm text-destructive">{errors.duitku_merchant_code}</p>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="duitku_api_key">API Key</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    id="duitku_api_key"
+                                                    type={showDuitkuApiKey ? 'text' : 'password'}
+                                                    placeholder="Masukkan API Key Duitku"
+                                                    value={data.duitku_api_key}
+                                                    onChange={(e) => setData('duitku_api_key', e.target.value)}
+                                                    className="pr-10"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowDuitkuApiKey(!showDuitkuApiKey)}
+                                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                                                >
+                                                    {showDuitkuApiKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                                                </button>
+                                            </div>
+                                            {errors.duitku_api_key && <p className="text-sm text-destructive">{errors.duitku_api_key}</p>}
+                                        </div>
+                                        <div className="flex items-center justify-between p-4 border rounded-xl bg-slate-50/50">
+                                            <div className="space-y-0.5">
+                                                <Label htmlFor="duitku_is_sandbox">Sandbox Mode</Label>
+                                                <p className="text-sm text-muted-foreground">Aktifkan untuk testing (Environment Sandbox).</p>
+                                            </div>
+                                            <Switch
+                                                id="duitku_is_sandbox"
+                                                checked={data.duitku_is_sandbox}
+                                                onCheckedChange={(checked) => setData('duitku_is_sandbox', checked)}
+                                            />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </TabsContent>
+
+                            {/* reCAPTCHA Settings */}
+                            <TabsContent value="recaptcha" className="mt-0 focus-visible:outline-none">
+                                <Card className="border shadow-sm rounded-xl overflow-hidden">
+                                    <CardHeader className="border-b bg-slate-50/50 py-4 px-6 font-semibold">
+                                        <CardTitle className="text-lg">Google reCAPTCHA v2</CardTitle>
+                                        <CardDescription>Konfigurasi keamanan Google reCAPTCHA v2 untuk form pendaftaran dan login.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-6 space-y-6">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="nocaptcha_sitekey">Site Key</Label>
+                                            <Input
+                                                id="nocaptcha_sitekey"
+                                                placeholder="Masukkan reCAPTCHA Site Key"
+                                                value={data.nocaptcha_sitekey}
+                                                onChange={(e) => setData('nocaptcha_sitekey', e.target.value)}
+                                            />
+                                            {errors.nocaptcha_sitekey && <p className="text-sm text-destructive">{errors.nocaptcha_sitekey}</p>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="nocaptcha_secret">Secret Key</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    id="nocaptcha_secret"
+                                                    type={showNocaptchaSecret ? 'text' : 'password'}
+                                                    placeholder="Masukkan reCAPTCHA Secret Key"
+                                                    value={data.nocaptcha_secret}
+                                                    onChange={(e) => setData('nocaptcha_secret', e.target.value)}
+                                                    className="pr-10"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowNocaptchaSecret(!showNocaptchaSecret)}
+                                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                                                >
+                                                    {showNocaptchaSecret ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                                                </button>
+                                            </div>
+                                            {errors.nocaptcha_secret && <p className="text-sm text-destructive">{errors.nocaptcha_secret}</p>}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </TabsContent>
+                            {/* Bonus Settings */}
+                            <TabsContent value="bonus" className="mt-0 focus-visible:outline-none">
+                                <Card className="border shadow-sm rounded-xl overflow-hidden">
+                                    <CardHeader className="border-b bg-slate-50/50 py-4 px-6 font-semibold">
+                                        <CardTitle className="text-lg">Konfigurasi Bonus</CardTitle>
+                                        <CardDescription>Pengaturan nilai bonus MLM yang berlaku secara global.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-6 space-y-5">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="pairing_bonus_amount">Bonus Pairing per Pasang</Label>
+                                            <InputRupiah
+                                                id="pairing_bonus_amount"
+                                                value={data.pairing_bonus_amount}
+                                                onChange={(v) => setData('pairing_bonus_amount', v)}
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                                Nilai bonus yang diberikan kepada member untuk setiap 1 pasang (pair) yang terbentuk di jaringan binary. Default: Rp 100.000.
+                                            </p>
+                                            {errors.pairing_bonus_amount && <p className="text-sm text-destructive">{errors.pairing_bonus_amount}</p>}
                                         </div>
                                     </CardContent>
                                 </Card>

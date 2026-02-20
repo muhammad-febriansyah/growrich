@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendUpgradeApprovedEmail;
+use App\Jobs\SendUpgradeRejectedEmail;
 use App\Models\PackageUpgradeRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -56,6 +58,8 @@ class UpgradeRequestController extends Controller
             'reviewed_at' => now(),
         ]);
 
+        SendUpgradeApprovedEmail::dispatch($upgradeRequest->load('memberProfile.user'));
+
         return back()->with('success', "Upgrade paket berhasil disetujui. Member sekarang menggunakan paket {$upgradeRequest->requested_package}.");
     }
 
@@ -71,6 +75,8 @@ class UpgradeRequestController extends Controller
             'reviewed_at' => now(),
             'notes' => $request->notes ?? $upgradeRequest->notes,
         ]);
+
+        SendUpgradeRejectedEmail::dispatch($upgradeRequest->load('memberProfile.user'));
 
         return back()->with('success', 'Permintaan upgrade berhasil ditolak.');
     }

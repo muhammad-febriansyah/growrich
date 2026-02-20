@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendWithdrawalApprovedEmail;
+use App\Jobs\SendWithdrawalRejectedEmail;
 use App\Models\Withdrawal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,8 +58,9 @@ class WithdrawalController extends Controller
                 'status' => 'approved',
                 'processed_by' => auth()->id(),
             ]);
-
         });
+
+        SendWithdrawalApprovedEmail::dispatch($withdrawal->load('user'));
 
         return back()->with('success', 'Penarikan berhasil disetujui.');
     }
@@ -76,6 +79,8 @@ class WithdrawalController extends Controller
 
             $withdrawal->user->wallet->increment('balance', $withdrawal->amount);
         });
+
+        SendWithdrawalRejectedEmail::dispatch($withdrawal->load('user'));
 
         return back()->with('success', 'Penarikan berhasil ditolak dan saldo dikembalikan.');
     }
