@@ -76,6 +76,8 @@ class SiteSettingController extends Controller
                     Storage::disk('public')->delete($settings->{$fileKey});
                 }
                 $validated[$fileKey] = $request->file($fileKey)->store('branding', 'public');
+            } else {
+                unset($validated[$fileKey]);
             }
         }
 

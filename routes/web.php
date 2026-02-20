@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ResellerProgramController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -30,7 +31,7 @@ Route::get('/', function () {
         'features' => \App\Models\Feature::where('is_active', true)
             ->orderBy('sort_order')
             ->get(['id', 'icon', 'title', 'description']),
-        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn ($p) => [
+        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn($p) => [
             'name' => $p->value,
             'price' => $p->registrationPrice(),
             'pairing_point' => $p->pairingPoint(),
@@ -71,11 +72,20 @@ Route::get('/privacy', function () {
     return Inertia::render('legal/privacy', ['page' => $page]);
 })->name('privacy');
 
-Route::get('/blog', function () {
+Route::get('/blog', function (\Illuminate\Http\Request $request) {
+    $search = $request->query('search');
+
     $posts = \App\Models\BlogPost::where('is_published', true)
+        ->when($search, function ($query, $search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('excerpt', 'like', "%{$search}%");
+            });
+        })
         ->orderByDesc('published_at')
-        ->paginate(9)
-        ->through(fn ($p) => [
+        ->paginate(6)
+        ->withQueryString()
+        ->through(fn($p) => [
             'id' => $p->id,
             'title' => $p->title,
             'slug' => $p->slug,
@@ -84,7 +94,12 @@ Route::get('/blog', function () {
             'published_at' => $p->published_at?->toDateString(),
         ]);
 
-    return Inertia::render('blog/index', ['posts' => $posts]);
+    return Inertia::render('blog/index', [
+        'posts' => $posts,
+        'filters' => [
+            'search' => $search,
+        ],
+    ]);
 })->name('blog');
 
 Route::get('/blog/{slug}', function (string $slug) {
@@ -97,7 +112,7 @@ Route::get('/blog/{slug}', function (string $slug) {
         ->orderByDesc('published_at')
         ->limit(3)
         ->get()
-        ->map(fn ($p) => [
+        ->map(fn($p) => [
             'id' => $p->id,
             'title' => $p->title,
             'slug' => $p->slug,
@@ -126,14 +141,22 @@ Route::get('/produk', function () {
         ->get(['id', 'name', 'description', 'sku', 'unit', 'image', 'regular_price', 'ro_price', 'member_discount', 'stock', 'bpom_number']);
 
     return Inertia::render('produk', [
-        'products' => $products->map(fn ($p) => array_merge($p->toArray(), ['image_url' => $p->image_url])),
+        'products' => $products->map(fn(\App\Models\Product $p) => array_merge($p->toArray(), ['image_url' => $p->image_url])),
     ]);
 })->name('produk');
+
+Route::get('/produk/{product}', function (\App\Models\Product $product) {
+    abort_if(!$product->is_active, 404);
+
+    return Inertia::render('produk/show', [
+        'product' => array_merge($product->toArray(), ['image_url' => $product->image_url]),
+    ]);
+})->name('produk.show');
 
 Route::get('/paket', function () {
     return Inertia::render('paket', [
         'canRegister' => Features::enabled(Features::registration()),
-        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn ($p) => [
+        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn($p) => [
             'name' => $p->value,
             'price' => $p->registrationPrice(),
             'pairing_point' => $p->pairingPoint(),
@@ -146,17 +169,43 @@ Route::get('/paket', function () {
         ]),
     ]);
 })->name('paket');
+Route::get('/reseller-program', function () {
+    $settings = \App\Models\ResellerProgramSetting::instance();
+    $data = $settings->toArray();
+
+    if (isset($data['cara_bergabung']) && is_array($data['cara_bergabung'])) {
+        $data['cara_bergabung'] = collect($data['cara_bergabung'])->map(function ($item) {
+            if (isset($item['image']) && $item['image']) {
+                $item['image_url'] = \Illuminate\Support\Facades\Storage::url($item['image']);
+            } else {
+                $item['image_url'] = null;
+            }
+
+            return $item;
+        })->toArray();
+    }
+
+    if (isset($data['trip_images']) && is_array($data['trip_images'])) {
+        $data['trip_images_urls'] = collect($data['trip_images'])
+            ->map(fn($path) => \Illuminate\Support\Facades\Storage::url($path))
+            ->toArray();
+    }
+
+    return Inertia::render('reseller-program', [
+        'settings' => $data,
+    ]);
+})->name('reseller-program');
 
 Route::get('/marketing-plan', function () {
     return Inertia::render('marketing-plan', [
-        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn ($p) => [
+        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn($p) => [
             'name' => $p->value,
             'price' => $p->registrationPrice(),
             'pairing_point' => $p->pairingPoint(),
             'max_pairing' => $p->maxPairingPerDay(),
             'sponsor_bonus' => $p->sponsorBonus(),
         ]),
-        'careerLevels' => collect(\App\Enums\Mlm\CareerLevel::cases())->map(fn ($l) => [
+        'careerLevels' => collect(\App\Enums\Mlm\CareerLevel::cases())->map(fn($l) => [
             'value' => $l->value,
             'label' => $l->label(),
             'required_pp' => $l->requiredPp(),
@@ -171,7 +220,7 @@ Route::get('/terms', function () {
     return Inertia::render('legal/terms', ['page' => $page]);
 })->name('terms');
 
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';
 
 Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('admin/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('admin.dashboard');
@@ -228,6 +277,12 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::post('upgrade-requests/{id}/reject', [App\Http\Controllers\Admin\UpgradeRequestController::class, 'reject'])->name('upgrade-requests.reject');
 
     Route::resource('admin/features', App\Http\Controllers\Admin\FeatureController::class)->names('admin.features');
+
+    Route::get('admin/reseller-program', [ResellerProgramController::class, 'index'])->name('admin.reseller-program.index');
+    Route::put('admin/reseller-program', [ResellerProgramController::class, 'update'])->name('admin.reseller-program.update');
+
+    Route::resource('admin/packages', App\Http\Controllers\Admin\PackageController::class)
+        ->names('admin.packages');
 });
 
 Route::middleware(['auth', 'verified', 'role:member'])->group(function () {

@@ -3,6 +3,7 @@ import {
     ArrowRight,
     BadgeCheck,
     Boxes,
+    ExternalLink,
     Package,
     ShieldCheck,
     ShoppingBag,
@@ -128,6 +129,14 @@ function ProductCard({ product }: { product: ProductItem }) {
                             Satuan: <span className="font-semibold text-gray-600">{product.unit}</span>
                         </p>
                     )}
+
+                    <Link
+                        href={`/produk/${product.id}`}
+                        className="flex items-center justify-center gap-2 rounded-2xl border-2 border-primary/20 py-3 text-sm font-bold text-primary transition-all hover:border-primary hover:bg-primary hover:text-white"
+                    >
+                        <ExternalLink className="h-4 w-4" />
+                        Lihat Detail
+                    </Link>
                 </div>
             </div>
         </div>

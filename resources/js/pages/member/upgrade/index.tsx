@@ -1,5 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
-import { ArrowRight, Package, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { ArrowRight, Package, CheckCircle, Clock, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,10 +32,10 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Upgrade Paket', href: '/member/upgrade' },
 ];
 
-const packageColors: Record<string, string> = {
-    Silver: 'from-slate-400 to-slate-600',
-    Gold: 'from-amber-400 to-amber-600',
-    Platinum: 'from-violet-400 to-violet-600',
+const packageIcons: Record<string, React.ElementType> = {
+    Silver: Package,
+    Gold: ShieldCheck,
+    Platinum: Sparkles,
 };
 
 const packageBenefits: Record<string, string[]> = {
@@ -66,62 +66,89 @@ export default function UpgradePage({ currentPackage, nextPackage, upgradePrice,
                 </div>
 
                 {/* Current Package */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card className="overflow-hidden border-0 shadow-md">
-                        <div className={`bg-gradient-to-br ${packageColors[currentPackage] ?? 'from-gray-400 to-gray-600'} p-6 text-white`}>
-                            <div className="flex items-center gap-3">
-                                <Package className="h-8 w-8" />
-                                <div>
-                                    <p className="text-sm opacity-80">Paket Saat Ini</p>
-                                    <h2 className="text-2xl font-bold">{currentPackage}</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <CardContent className="p-4">
-                            <ul className="space-y-2">
-                                {(packageBenefits[currentPackage] ?? []).map((b) => (
-                                    <li key={b} className="flex items-center gap-2 text-sm text-gray-700">
-                                        <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
-                                        {b}
-                                    </li>
-                                ))}
-                            </ul>
-                        </CardContent>
-                    </Card>
-
-                    {nextPackage ? (
-                        <Card className="overflow-hidden border-2 border-primary/30 shadow-md">
-                            <div className={`bg-gradient-to-br ${packageColors[nextPackage] ?? 'from-gray-400 to-gray-600'} p-6 text-white`}>
-                                <div className="flex items-center gap-3">
-                                    <Package className="h-8 w-8" />
-                                    <div>
-                                        <p className="text-sm opacity-80">Upgrade ke</p>
-                                        <h2 className="text-2xl font-bold">{nextPackage}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Current */}
+                    {(() => {
+                        const Icon = packageIcons[currentPackage] ?? Package;
+                        return (
+                            <Card className="relative overflow-hidden border-0 shadow-md">
+                                <div className="bg-gradient-to-br from-primary to-brand-700 p-5 text-primary-foreground">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                                            <Icon className="h-6 w-6" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[11px] font-semibold uppercase tracking-widest opacity-70">Paket Saat Ini</p>
+                                            <h2 className="text-2xl font-extrabold leading-tight">{currentPackage}</h2>
+                                        </div>
+                                    </div>
+                                    <div className="pointer-events-none absolute -right-4 -bottom-4 opacity-10">
+                                        <Icon className="h-24 w-24" />
                                     </div>
                                 </div>
-                            </div>
-                            <CardContent className="p-4">
-                                <ul className="space-y-2 mb-4">
-                                    {(packageBenefits[nextPackage] ?? []).map((b) => (
-                                        <li key={b} className="flex items-center gap-2 text-sm text-gray-700">
-                                            <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
-                                            {b}
-                                        </li>
-                                    ))}
-                                </ul>
-                                {upgradePrice && (
-                                    <p className="text-sm font-semibold text-primary">
-                                        Harga Upgrade: Rp {new Intl.NumberFormat('id-ID').format(upgradePrice)}
-                                    </p>
-                                )}
-                            </CardContent>
-                        </Card>
+                                <CardContent className="p-4">
+                                    <ul className="space-y-2">
+                                        {(packageBenefits[currentPackage] ?? []).map((b) => (
+                                            <li key={b} className="flex items-center gap-2 text-sm">
+                                                <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                                                {b}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        );
+                    })()}
+
+                    {/* Next / Max */}
+                    {nextPackage ? (
+                        (() => {
+                            const Icon = packageIcons[nextPackage] ?? Package;
+                            return (
+                                <Card className="relative overflow-hidden border-0 shadow-md">
+                                    <div className="bg-gradient-to-br from-pink to-pink-700 p-5 text-pink-foreground">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                                                <Icon className="h-6 w-6" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[11px] font-semibold uppercase tracking-widest opacity-70">Upgrade ke</p>
+                                                <h2 className="text-2xl font-extrabold leading-tight">{nextPackage}</h2>
+                                            </div>
+                                        </div>
+                                        <div className="pointer-events-none absolute -right-4 -bottom-4 opacity-10">
+                                            <Icon className="h-24 w-24" />
+                                        </div>
+                                    </div>
+                                    <CardContent className="p-4">
+                                        <ul className="space-y-2 mb-4">
+                                            {(packageBenefits[nextPackage] ?? []).map((b) => (
+                                                <li key={b} className="flex items-center gap-2 text-sm">
+                                                    <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                                                    {b}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        {upgradePrice && (
+                                            <div className="rounded-lg bg-primary/8 border border-primary/20 px-3 py-2">
+                                                <p className="text-xs text-muted-foreground">Harga Upgrade</p>
+                                                <p className="text-base font-bold text-primary">
+                                                    Rp {new Intl.NumberFormat('id-ID').format(upgradePrice)}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            );
+                        })()
                     ) : (
-                        <Card className="flex items-center justify-center p-8 border-dashed">
-                            <div className="text-center text-muted-foreground">
-                                <CheckCircle className="h-12 w-12 mx-auto mb-2 text-green-500" />
-                                <p className="font-semibold">Anda sudah di level tertinggi!</p>
-                                <p className="text-sm">Paket Platinum adalah paket terbaik.</p>
+                        <Card className="flex items-center justify-center p-8 border-dashed border-primary/30 bg-primary/5">
+                            <div className="text-center">
+                                <div className="flex h-14 w-14 mx-auto mb-3 items-center justify-center rounded-full bg-primary/10">
+                                    <CheckCircle className="h-7 w-7 text-primary" />
+                                </div>
+                                <p className="font-semibold text-foreground">Anda sudah di level tertinggi!</p>
+                                <p className="text-sm text-muted-foreground mt-1">Paket Platinum adalah paket terbaik.</p>
                             </div>
                         </Card>
                     )}

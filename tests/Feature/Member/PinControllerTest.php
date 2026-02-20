@@ -18,17 +18,17 @@ class PinControllerTest extends TestCase
 
         $assignedPin = RegistrationPin::factory()->create([
             'assigned_to' => $member->id,
-            'status' => 'available'
+            'status' => 'available',
         ]);
 
         $unassignedPin = RegistrationPin::factory()->create([
             'assigned_to' => null,
-            'status' => 'available'
+            'status' => 'available',
         ]);
 
         $otherMemberPin = RegistrationPin::factory()->create([
             'assigned_to' => $otherMember->id,
-            'status' => 'available'
+            'status' => 'available',
         ]);
 
         $response = $this->actingAs($member)
@@ -49,10 +49,8 @@ class PinControllerTest extends TestCase
     public function test_admin_cannot_access_member_pins()
     {
         $admin = User::factory()->create(['role' => 'admin']);
-
         $response = $this->actingAs($admin)
             ->get(route('member.pins.index'));
-
         $response->assertRedirect(route('admin.dashboard'));
     }
 }

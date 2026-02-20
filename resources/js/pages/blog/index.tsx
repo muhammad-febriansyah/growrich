@@ -1,7 +1,17 @@
-import { Head, Link } from '@inertiajs/react';
-import { ArrowRight, BookOpen, CalendarDays, FileText, Rss } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { ArrowRight, BookOpen, CalendarDays, FileText, Rss, Search } from 'lucide-react';
 import HomeLayout from '@/layouts/home-layout';
 import PageHeader from '@/components/page-header';
+import { Input } from '@/components/ui/input';
+import { useState, useEffect, useRef } from 'react';
+
+function usePrevious<T>(value: T): T | undefined {
+    const ref = useRef<T>(undefined);
+    useEffect(() => {
+        ref.current = value;
+    }, [value]);
+    return ref.current;
+}
 
 interface Post {
     id: number;
@@ -78,7 +88,23 @@ function PostCard({ post }: { post: Post }) {
     );
 }
 
-export default function BlogIndex({ posts }: { posts: PaginatedPosts }) {
+export default function BlogIndex({ posts, filters }: { posts: PaginatedPosts; filters: { search: string | null } }) {
+    const [search, setSearch] = useState(filters.search || '');
+    const prevSearch = usePrevious(search);
+
+    useEffect(() => {
+        if (prevSearch !== undefined && prevSearch !== search) {
+            const timeoutId = setTimeout(() => {
+                router.get(
+                    '/blog',
+                    { search: search || undefined },
+                    { preserveState: true, replace: true }
+                );
+            }, 500);
+            return () => clearTimeout(timeoutId);
+        }
+    }, [search]);
+
     const hasPosts = posts.data.length > 0;
 
     return (
@@ -96,10 +122,21 @@ export default function BlogIndex({ posts }: { posts: PaginatedPosts }) {
 
                 <div className="relative mx-auto max-w-6xl px-4 md:px-6">
                     {/* Header row */}
-                    <div className="mb-10 flex items-center justify-between">
+                    <div className="mb-10 flex flex-col items-center justify-between gap-4 sm:flex-row">
                         <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary">
                             <Rss className="h-3.5 w-3.5" />
                             {hasPosts ? `${posts.total} Artikel` : 'Blog'}
+                        </div>
+
+                        <div className="relative w-full max-w-sm">
+                            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <Input
+                                type="text"
+                                placeholder="Cari artikel..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="h-10 rounded-xl border-gray-200 pl-10 focus:border-primary/30 focus:ring-primary/20"
+                            />
                         </div>
                     </div>
 
@@ -130,11 +167,10 @@ export default function BlogIndex({ posts }: { posts: PaginatedPosts }) {
                                             <Link
                                                 key={i}
                                                 href={link.url}
-                                                className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
-                                                    link.active
-                                                        ? 'bg-primary text-white shadow-md shadow-primary/25'
-                                                        : 'border border-gray-200 text-gray-600 hover:border-primary/30 hover:text-primary'
-                                                }`}
+                                                className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${link.active
+                                                    ? 'bg-primary text-white shadow-md shadow-primary/25'
+                                                    : 'border border-gray-200 text-gray-600 hover:border-primary/30 hover:text-primary'
+                                                    }`}
                                                 dangerouslySetInnerHTML={{ __html: link.label }}
                                             />
                                         ) : (

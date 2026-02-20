@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Trophy, TrendingUp, CheckCircle, Lock } from 'lucide-react';
+import { Trophy, TrendingUp, CheckCircle, Lock, ArrowLeftRight, ArrowRightLeft, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -55,24 +55,53 @@ export default function CareerPage({ currentLevel, nextLevel, leftPp, rightPp, s
                 </div>
 
                 {/* PP Summary */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="bg-gradient-to-br from-blue-500 to-blue-700 text-white border-0 shadow-md">
-                        <CardContent className="p-5">
-                            <p className="text-sm opacity-80">PP Kiri</p>
-                            <p className="text-3xl font-bold mt-1">{leftPp.toLocaleString('id-ID')}</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <Card className="relative overflow-hidden border-0 shadow-md bg-gradient-to-br from-primary to-brand-700 text-primary-foreground">
+                        <CardContent className="p-4 flex items-center gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                                <ArrowLeftRight className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-[11px] font-semibold uppercase tracking-widest opacity-70">PP Kiri</p>
+                                <p className="text-2xl font-extrabold tabular-nums leading-tight">{leftPp.toLocaleString('id-ID')}</p>
+                                <p className="text-[11px] opacity-60 mt-0.5">Pairing Point</p>
+                            </div>
                         </CardContent>
+                        <div className="pointer-events-none absolute -right-3 -bottom-3 opacity-10">
+                            <ArrowLeftRight className="h-20 w-20" />
+                        </div>
                     </Card>
-                    <Card className="bg-gradient-to-br from-green-500 to-green-700 text-white border-0 shadow-md">
-                        <CardContent className="p-5">
-                            <p className="text-sm opacity-80">PP Kanan</p>
-                            <p className="text-3xl font-bold mt-1">{rightPp.toLocaleString('id-ID')}</p>
+
+                    <Card className="relative overflow-hidden border-0 shadow-md bg-gradient-to-br from-brand-600 to-brand-700 text-primary-foreground">
+                        <CardContent className="p-4 flex items-center gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                                <ArrowRightLeft className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-[11px] font-semibold uppercase tracking-widest opacity-70">PP Kanan</p>
+                                <p className="text-2xl font-extrabold tabular-nums leading-tight">{rightPp.toLocaleString('id-ID')}</p>
+                                <p className="text-[11px] opacity-60 mt-0.5">Pairing Point</p>
+                            </div>
                         </CardContent>
+                        <div className="pointer-events-none absolute -right-3 -bottom-3 opacity-10">
+                            <ArrowRightLeft className="h-20 w-20" />
+                        </div>
                     </Card>
-                    <Card className="bg-gradient-to-br from-primary to-primary/80 text-white border-0 shadow-md">
-                        <CardContent className="p-5">
-                            <p className="text-sm opacity-80">PP Efektif (Leg Terkecil)</p>
-                            <p className="text-3xl font-bold mt-1">{smallerLeg.toLocaleString('id-ID')}</p>
+
+                    <Card className="relative overflow-hidden border-0 shadow-md bg-gradient-to-br from-pink to-pink-700 text-pink-foreground">
+                        <CardContent className="p-4 flex items-center gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                                <Zap className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-[11px] font-semibold uppercase tracking-widest opacity-70">PP Efektif</p>
+                                <p className="text-2xl font-extrabold tabular-nums leading-tight">{smallerLeg.toLocaleString('id-ID')}</p>
+                                <p className="text-[11px] opacity-60 mt-0.5">Leg terkecil</p>
+                            </div>
                         </CardContent>
+                        <div className="pointer-events-none absolute -right-3 -bottom-3 opacity-10">
+                            <Zap className="h-20 w-20" />
+                        </div>
                     </Card>
                 </div>
 

@@ -2,6 +2,8 @@
 
 namespace App\Enums\Mlm;
 
+use App\Models\Package;
+
 enum PackageType: string
 {
     case Silver = 'Silver';
@@ -10,33 +12,21 @@ enum PackageType: string
 
     public function pairingPoint(): int
     {
-        return match ($this) {
-            self::Silver => 1,
-            self::Gold => 2,
-            self::Platinum => 3,
-        };
+        return Package::findByKey($this->value)->pairing_point;
     }
 
     public function rewardPoint(): int
     {
-        return match ($this) {
-            self::Silver => 0,
-            self::Gold => 1,
-            self::Platinum => 2,
-        };
+        return Package::findByKey($this->value)->reward_point;
     }
 
     public function maxPairingPerDay(): int
     {
-        return match ($this) {
-            self::Silver => 10,
-            self::Gold => 20,
-            self::Platinum => 30,
-        };
+        return Package::findByKey($this->value)->max_pairing_per_day;
     }
 
     /**
-     * Sponsor bonus: min(sponsor_level, new_member_level) × Rp 200.000
+     * Sponsor bonus: min(sponsor_level, new_member_level) × sponsor_bonus_unit
      * Matrix (sponsor \ new member):
      *   Silver×Any      = Rp 200.000
      *   Gold×Silver     = Rp 200.000  | Gold×Gold/Platinum   = Rp 400.000
@@ -44,13 +34,7 @@ enum PackageType: string
      */
     public function sponsorBonusFor(PackageType $newMemberPackage): int
     {
-        $level = fn (PackageType $p): int => match ($p) {
-            self::Silver => 1,
-            self::Gold => 2,
-            self::Platinum => 3,
-        };
-
-        return min($level($this), $level($newMemberPackage)) * 200_000;
+        return Package::findByKey($this->value)->sponsorBonusFor(Package::findByKey($newMemberPackage->value));
     }
 
     /** @deprecated Use sponsorBonusFor() instead */
@@ -62,16 +46,12 @@ enum PackageType: string
     /** Pairing bonus per matched pair: Rp 100.000 */
     public static function pairingBonusAmount(): int
     {
-        return 100_000;
+        return Package::PAIRING_BONUS_AMOUNT;
     }
 
     public function registrationPrice(): int
     {
-        return match ($this) {
-            self::Silver => 2_450_000,
-            self::Gold => 4_900_000,
-            self::Platinum => 7_350_000,
-        };
+        return Package::findByKey($this->value)->registration_price;
     }
 
     public function label(): string
@@ -82,19 +62,13 @@ enum PackageType: string
     /** Price difference to upgrade to next tier */
     public function upgradePrice(): ?int
     {
-        return match ($this) {
-            self::Silver => 2_450_000,
-            self::Gold => 2_450_000,
-            self::Platinum => null,
-        };
+        return Package::findByKey($this->value)->upgrade_price;
     }
 
     public function next(): ?PackageType
     {
-        return match ($this) {
-            self::Silver => self::Gold,
-            self::Gold => self::Platinum,
-            self::Platinum => null,
-        };
+        $next = Package::findByKey($this->value)->next();
+
+        return $next ? PackageType::from($next->key) : null;
     }
 }

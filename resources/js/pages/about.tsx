@@ -115,10 +115,29 @@ export default function About({ page, features }: { page: LegalPage; features: F
                                             <Target className="h-6 w-6" />
                                         </div>
                                         <h3 className="mb-4 text-xl font-bold text-gray-900">Misi Kami</h3>
-                                        <div
-                                            className="text-gray-600 [&_ul]:space-y-3 [&_ul]:pl-0 [&_ul]:list-none [&_li]:flex [&_li]:items-start [&_li]:gap-2.5 [&_li]:leading-relaxed [&_p]:mb-3 [&_p]:leading-relaxed"
-                                            dangerouslySetInnerHTML={{ __html: page.mission }}
-                                        />
+                                        <ul className="space-y-3 list-none pl-0">
+                                            {page.mission
+                                                .replace(/<\/?ul>/g, '')
+                                                .split(/<\/li>/)
+                                                .map((item) => item.replace(/<li>/g, '').trim())
+                                                .filter((item) => {
+                                                    const text = item.replace(/<[^>]*>/g, '').trim();
+                                                    return text.length > 0;
+                                                })
+                                                .map((item, i) => (
+                                                    <li key={i} className="flex items-start gap-3">
+                                                        <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                                                            <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
+                                                                <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                                            </svg>
+                                                        </span>
+                                                        <span
+                                                            className="text-sm leading-relaxed text-gray-600 [&_p]:mb-0"
+                                                            dangerouslySetInnerHTML={{ __html: item }}
+                                                        />
+                                                    </li>
+                                                ))}
+                                        </ul>
                                     </div>
                                 </div>
                             )}

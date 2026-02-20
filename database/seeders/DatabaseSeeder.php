@@ -35,6 +35,7 @@ class DatabaseSeeder extends Seeder
 
         // ── Reference data (no FK deps) ──────────────────────────────────────
         $this->call([
+            PackageSeeder::class,
             SiteSettingSeeder::class,
             ProductSeeder::class,
             RewardMilestoneSeeder::class,

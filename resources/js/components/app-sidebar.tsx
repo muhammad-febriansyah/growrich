@@ -54,6 +54,7 @@ export function AppSidebar() {
             items: [
                 { title: 'Manajemen Member', href: '/admin/members', icon: Users },
                 { title: 'Registration PIN', href: '/admin/pins', icon: Key },
+                { title: 'Manajemen Paket', href: '/admin/packages', icon: Package },
             ],
         },
         {
@@ -78,6 +79,7 @@ export function AppSidebar() {
                 { title: 'Manajemen Blog', href: '/admin/blog-posts', icon: BookOpen },
                 { title: 'Manajemen Admin', href: '/admin/users', icon: Users },
                 { title: 'Manajemen FAQ', href: '/admin/faqs', icon: HelpCircle },
+                { title: 'Reseller Program', href: '/admin/reseller-program', icon: LayoutGrid },
                 { title: 'Fitur Unggulan', href: '/admin/features', icon: Star },
             ],
         },

@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
 use App\Enums\Mlm\BonusStatus;
-use App\Enums\Mlm\BonusType;
+use App\Http\Controllers\Controller;
 use App\Models\Bonus;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,7 +37,7 @@ class BonusController extends Controller
             ->withQueryString();
 
         $stats = [
-            'pending'  => Bonus::where('status', BonusStatus::Pending)->count(),
+            'pending' => Bonus::where('status', BonusStatus::Pending)->count(),
             'approved' => Bonus::where('status', BonusStatus::Approved)->count(),
             'rejected' => Bonus::where('status', BonusStatus::Rejected)->count(),
             'total_amount' => Bonus::where('status', BonusStatus::Approved)->sum('amount'),
@@ -46,7 +46,7 @@ class BonusController extends Controller
         return Inertia::render('admin/bonuses/index', [
             'bonuses' => $bonuses,
             'filters' => $request->only(['status', 'type', 'search']),
-            'stats'   => $stats,
+            'stats' => $stats,
         ]);
     }
 
@@ -70,12 +70,22 @@ class BonusController extends Controller
             return back()->with('error', 'Hanya bonus berstatus Pending yang dapat disetujui.');
         }
 
-        $bonus->update([
-            'status'      => BonusStatus::Approved,
-            'approved_by' => auth()->id(),
-        ]);
+        DB::transaction(function () use ($bonus) {
+            $bonus->update([
+                'status' => BonusStatus::Approved,
+                'approved_by' => auth()->id(),
+            ]);
 
-        return back()->with('success', 'Bonus berhasil disetujui.');
+            $wallet = $bonus->memberProfile->user->wallet;
+            $wallet->credit(
+                $bonus->ewallet_amount,
+                'Bonus '.$bonus->bonus_type->value.' disetujui',
+                Bonus::class,
+                $bonus->id,
+            );
+        });
+
+        return back()->with('success', 'Bonus berhasil disetujui dan saldo member telah diperbarui.');
     }
 
     public function reject(Bonus $bonus)
@@ -85,7 +95,7 @@ class BonusController extends Controller
         }
 
         $bonus->update([
-            'status'      => BonusStatus::Rejected,
+            'status' => BonusStatus::Rejected,
             'approved_by' => auth()->id(),
         ]);
 

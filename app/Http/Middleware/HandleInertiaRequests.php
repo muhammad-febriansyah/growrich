@@ -57,11 +57,17 @@ class HandleInertiaRequests extends Middleware
             'address' => $settings->contact_address ?: null,
         ];
 
+        $footer = [
+            'about' => $settings->footer_text ?: null,
+            'copyright' => $settings->copyright_text ?: null,
+        ];
+
         return [
             ...parent::share($request),
             'site' => $site,
             'socials' => $socials,
             'contact' => $contact,
+            'footer' => $footer,
             'auth' => [
                 'user' => $request->user(),
             ],

@@ -28,7 +28,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (\Illuminate\Http\Exceptions\PostTooLargeException $e, \Illuminate\Http\Request $request) {
+            return back()->withErrors([
+                'new_trip_images' => 'Upload gagal: total ukuran terlalu besar. Coba upload gambar lebih sedikit sekaligus.',
+            ]);
+        });
     })
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
         $schedule->command('bonus:run-daily')->dailyAt('00:05');

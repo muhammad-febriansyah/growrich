@@ -64,10 +64,14 @@ interface SharedProps {
         whatsapp?: string;
         address?: string;
     };
+    footer: {
+        about?: string | null;
+        copyright?: string | null;
+    };
 }
 
 export default function HomeLayout({ children, transparentNavbar }: Props) {
-    const { auth, socials, contact } = usePage<SharedProps>().props;
+    const { auth, socials, contact, footer } = usePage<SharedProps>().props;
     const [mobileOpen, setMobileOpen] = useState(false);
     const isActive = useActiveLink();
 
@@ -76,7 +80,7 @@ export default function HomeLayout({ children, transparentNavbar }: Props) {
         { key: 'facebook', icon: <Facebook className="h-4 w-4" />, label: 'Facebook', href: socials.facebook },
         { key: 'youtube', icon: <Youtube className="h-4 w-4" />, label: 'YouTube', href: socials.youtube },
         { key: 'twitter', icon: <Twitter className="h-4 w-4" />, label: 'Twitter/X', href: socials.twitter },
-        { key: 'tiktok', icon: <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.27 8.27 0 0 0 4.84 1.56V6.81a4.85 4.85 0 0 1-1.07-.12z"/></svg>, label: 'TikTok', href: socials.tiktok },
+        { key: 'tiktok', icon: <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.27 8.27 0 0 0 4.84 1.56V6.81a4.85 4.85 0 0 1-1.07-.12z" /></svg>, label: 'TikTok', href: socials.tiktok },
     ].filter((s) => s.href);
 
     return (
@@ -98,7 +102,7 @@ export default function HomeLayout({ children, transparentNavbar }: Props) {
                         ) : (
                             <>
                                 <Link
-                                    href={register()}
+                                    href="/reseller-program"
                                     className="rounded-full border-2 border-primary px-5 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
                                 >
                                     Reseller Program
@@ -186,7 +190,7 @@ export default function HomeLayout({ children, transparentNavbar }: Props) {
                             ) : (
                                 <>
                                     <Link
-                                        href={register()}
+                                        href="/reseller-program"
                                         className="w-full rounded-full border-2 border-primary px-5 py-2.5 text-center text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
                                         onClick={() => setMobileOpen(false)}
                                     >
@@ -227,7 +231,7 @@ export default function HomeLayout({ children, transparentNavbar }: Props) {
                         <div className="space-y-4">
                             <AppLogo />
                             <p className="text-sm leading-relaxed text-gray-500">
-                                Platform ekosistem MLM modern yang dirancang untuk mempercepat karir dan pendapatan Anda dengan transparansi penuh.
+                                {footer?.about || 'Platform ekosistem MLM modern yang dirancang untuk mempercepat karir dan pendapatan Anda dengan transparansi penuh.'}
                             </p>
                         </div>
 
@@ -247,7 +251,7 @@ export default function HomeLayout({ children, transparentNavbar }: Props) {
                                     <li key={item.label}>
                                         <a href={item.href} className="group inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-primary">
                                             <ArrowRight className="h-3 w-3 -translate-x-1 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100" />
-                                            {item.label}
+                                            <span className="underline-offset-2 group-hover:underline">{item.label}</span>
                                         </a>
                                     </li>
                                 ))}
@@ -267,7 +271,7 @@ export default function HomeLayout({ children, transparentNavbar }: Props) {
                                 {contact.email && (
                                     <li className="flex items-center gap-3 text-sm text-gray-500">
                                         <Mail className="h-4 w-4 shrink-0 text-primary" />
-                                        <a href={`mailto:${contact.email}`} className="transition-colors hover:text-primary">
+                                        <a href={`mailto:${contact.email}`} className="underline-offset-2 transition-colors hover:text-primary hover:underline">
                                             {contact.email}
                                         </a>
                                     </li>
@@ -275,7 +279,7 @@ export default function HomeLayout({ children, transparentNavbar }: Props) {
                                 {contact.phone && (
                                     <li className="flex items-center gap-3 text-sm text-gray-500">
                                         <Phone className="h-4 w-4 shrink-0 text-primary" />
-                                        <a href={`tel:${contact.phone}`} className="transition-colors hover:text-primary">
+                                        <a href={`tel:${contact.phone}`} className="underline-offset-2 transition-colors hover:text-primary hover:underline">
                                             {contact.phone}
                                         </a>
                                     </li>
@@ -329,7 +333,7 @@ export default function HomeLayout({ children, transparentNavbar }: Props) {
                 <div className="relative border-t border-primary/10">
                     <div className="mx-auto max-w-7xl px-4 py-5 md:px-6">
                         <div className="flex flex-col items-center justify-between gap-3 text-xs text-gray-400 sm:flex-row">
-                            <p>&copy; {new Date().getFullYear()} GrowRich. Seluruh hak cipta dilindungi.</p>
+                            <p>{footer?.copyright || `© ${new Date().getFullYear()} GrowRich. Seluruh hak cipta dilindungi.`}</p>
                             <div className="flex gap-5">
                                 <Link href="/terms" className="transition-colors hover:text-gray-700">Syarat &amp; Ketentuan</Link>
                                 <Link href="/privacy" className="transition-colors hover:text-gray-700">Kebijakan Privasi</Link>
