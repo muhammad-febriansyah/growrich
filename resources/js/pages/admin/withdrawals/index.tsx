@@ -63,7 +63,7 @@ export default function WithdrawalIndex({ withdrawals, filters }: Props) {
             cell: ({ row }) => (
                 <div className="flex flex-col">
                     <span className="font-medium text-slate-900">{row.original.user?.name}</span>
-                    <span className="text-xs text-muted-foreground">{row.original.user?.referral_code}</span>
+                    <span className="text-xs text-muted-foreground">{row.original.user?.member_id ?? row.original.user?.referral_code}</span>
                 </div>
             ),
         },

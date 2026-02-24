@@ -18,6 +18,11 @@ class RepeatOrder extends Model
         'status',
         'period_month',
         'period_year',
+        'payment_method',
+        'payment_url',
+        'payment_receipt',
+        'duitku_reference',
+        'paid_at',
     ];
 
     protected function casts(): array
@@ -26,7 +31,13 @@ class RepeatOrder extends Model
             'total_amount' => 'integer',
             'period_month' => 'integer',
             'period_year' => 'integer',
+            'paid_at' => 'datetime',
         ];
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->paid_at !== null;
     }
 
     public function memberProfile(): BelongsTo

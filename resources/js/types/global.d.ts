@@ -16,3 +16,14 @@ declare module '@inertiajs/core' {
         };
     }
 }
+
+import { Config, RouteParamsWithQueryOverload } from 'ziggy-js';
+
+declare global {
+    function route(
+        name?: string,
+        params?: RouteParamsWithQueryOverload,
+        absolute?: boolean,
+        config?: Config,
+    ): string;
+}

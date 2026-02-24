@@ -180,9 +180,9 @@ export default function Dashboard({ stats, recentBonuses, rewardProgress }: Dash
                                 <span className="rounded-full bg-pink/80 px-3 py-1 text-xs font-semibold">
                                     {stats.careerLevel}
                                 </span>
-                                {user.referral_code && (
+                                {(user.member_id ?? user.referral_code) && (
                                     <span className="rounded-full bg-white/10 px-3 py-1 font-mono text-xs">
-                                        Ref: {user.referral_code}
+                                        ID: {user.member_id ?? user.referral_code}
                                     </span>
                                 )}
                             </div>
@@ -368,8 +368,8 @@ export default function Dashboard({ stats, recentBonuses, rewardProgress }: Dash
                     {[
                         { label: 'Repeat Order', sub: 'Min Rp 1 Juta', icon: ShoppingCart, href: '/member/ro', color: 'bg-brand-50 text-brand border-brand-200' },
                         { label: 'Tarik Dana', sub: 'Saldo e-wallet', icon: Wallet, href: '/member/wallet', color: 'bg-pink-50 text-pink border-pink-200' },
-                        { label: 'Jaringan Saya', sub: 'Lihat binary tree', icon: GitFork, href: '/member/network', color: 'bg-brand-50 text-brand border-brand-200' },
-                        { label: 'Riwayat Bonus', sub: 'Semua tipe', icon: Award, href: '/member/bonuses', color: 'bg-pink-50 text-pink border-pink-200' },
+                        { label: 'Diagram Jaringan', sub: 'Lihat binary tree', icon: GitFork, href: '/member/network', color: 'bg-brand-50 text-brand border-brand-200' },
+                        { label: 'Bonus Statement', sub: 'Semua tipe', icon: Award, href: '/member/bonuses', color: 'bg-pink-50 text-pink border-pink-200' },
                     ].map((action) => (
                         <a
                             key={action.label}

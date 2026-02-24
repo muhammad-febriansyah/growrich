@@ -207,7 +207,7 @@ export default function WithdrawalShow({ withdrawal }: Props) {
                                     </div>
                                     <div>
                                         <p className="font-semibold text-gray-900">{withdrawal.user.name}</p>
-                                        <p className="font-mono text-xs text-muted-foreground">{withdrawal.user.referral_code}</p>
+                                        <p className="font-mono text-xs text-muted-foreground">{withdrawal.user.member_id ?? withdrawal.user.referral_code}</p>
                                     </div>
                                 </div>
 

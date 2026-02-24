@@ -31,6 +31,29 @@ class MemberProfile extends Model
         'left_rp_total',
         'right_rp_total',
         'career_level',
+        // Data Pribadi
+        'birth_date',
+        'birth_place',
+        'gender',
+        'marital_status',
+        'nationality',
+        'id_number',
+        'address',
+        'province',
+        'city',
+        'district',
+        'village',
+        'postal_code',
+        // Rekening Bank
+        'bank_name',
+        'bank_branch',
+        'bank_account_number',
+        'bank_account_name',
+        // Data Ahli Waris
+        'beneficiary_name',
+        'beneficiary_relationship',
+        'beneficiary_id_number',
+        'beneficiary_phone',
     ];
 
     protected function casts(): array

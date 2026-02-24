@@ -124,7 +124,7 @@ export default function BonusIndex({ bonuses, filters, stats }: Props) {
             cell: ({ row }) => (
                 <div className="flex flex-col">
                     <span className="font-medium text-slate-900">{row.original.member_profile?.user?.name ?? '-'}</span>
-                    <span className="font-mono text-xs text-muted-foreground">{row.original.member_profile?.user?.referral_code}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{row.original.member_profile?.user?.member_id ?? row.original.member_profile?.user?.referral_code}</span>
                 </div>
             ),
         },

@@ -34,7 +34,7 @@ class NetworkController extends Controller
         }
 
         return Inertia::render('member/network/index', [
-            'tree' => $this->getTree($viewRoot, 3),
+            'tree' => $this->getTree($viewRoot, 2),
             'ancestors' => $this->buildAncestors($authProfile, $viewRoot),
         ]);
     }
@@ -93,9 +93,12 @@ class NetworkController extends Controller
 
         return [
             'id' => $member->id,
+            'member_id' => $member->user->member_id ?? $member->user->referral_code,
             'referral_code' => $member->user->referral_code,
             'name' => $member->user->name,
             'package' => $member->package_type->value,
+            'career_level' => $member->career_level->value ?? $member->career_level,
+            'avatar' => $member->user->avatar,
             'left_pp' => $member->left_pp_total,
             'right_pp' => $member->right_pp_total,
             'left' => $this->getTree($member->leftChild, $depth - 1),

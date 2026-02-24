@@ -23,13 +23,13 @@ interface Props {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Profil Saya', href: '/member/profile' },
+    { title: 'Profil', href: '/member/profile' },
 ];
 
 export default function ProfileIndex({ user }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Profil Saya" />
+            <Head title="Profil" />
 
             <div className="flex flex-col gap-6 p-4 md:p-6 text-foreground">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -66,8 +66,8 @@ export default function ProfileIndex({ user }: Props) {
                                     <ShieldCheck className="h-4 w-4 text-slate-600" />
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Kode Referral</p>
-                                    <p className="font-medium font-mono">{user.referral_code}</p>
+                                    <p className="text-xs text-muted-foreground">Nomor ID Member</p>
+                                    <p className="font-medium font-mono">{user.member_id ?? user.referral_code}</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
@@ -111,9 +111,9 @@ export default function ProfileIndex({ user }: Props) {
                                 </Badge>
                             </div>
                             <div className="pt-2 border-t mt-2">
-                                <p className="text-xs text-muted-foreground">Referral Code</p>
+                                <p className="text-xs text-muted-foreground">Nomor ID Member</p>
                                 <code className="block p-2 bg-slate-50 border rounded mt-1 font-mono text-sm">
-                                    {user.referral_code}
+                                    {user.member_id ?? user.referral_code}
                                 </code>
                             </div>
                         </CardContent>

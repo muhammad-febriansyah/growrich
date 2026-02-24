@@ -35,6 +35,7 @@ interface Member {
     id: number;
     name: string;
     email: string;
+    member_id: string | null;
     referral_code: string | null;
     role: string;
     created_at: string;
@@ -148,11 +149,11 @@ export default function MemberIndex({ members, filters }: Props) {
             ),
         },
         {
-            accessorKey: 'referral_code',
-            header: 'Kode Referral',
+            accessorKey: 'member_id',
+            header: 'Nomor ID',
             cell: ({ row }) => (
                 <div className="font-mono text-xs font-semibold tracking-wider text-slate-600">
-                    {row.original.referral_code ?? '—'}
+                    {row.original.member_id ?? row.original.referral_code ?? '—'}
                 </div>
             ),
         },

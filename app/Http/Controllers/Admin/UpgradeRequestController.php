@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Mlm\PackageType;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendUpgradeApprovedEmail;
 use App\Jobs\SendUpgradeRejectedEmail;
 use App\Models\PackageUpgradeRequest;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -49,8 +51,22 @@ class UpgradeRequestController extends Controller
 
         $profile = $upgradeRequest->memberProfile;
 
-        // Update the member's package
+        // Generate new member_id with upgrade prefix (GU / PU)
+        $requestedPackage = PackageType::from($upgradeRequest->requested_package);
+        $upgradePrefix = match ($requestedPackage) {
+            PackageType::Gold => 'GU',
+            PackageType::Platinum => 'PU',
+            default => null,
+        };
+
+        // Update the member's package and member_id
         $profile->update(['package_type' => $upgradeRequest->requested_package]);
+
+        if ($upgradePrefix) {
+            $profile->user->update([
+                'member_id' => User::generateMemberId($upgradePrefix),
+            ]);
+        }
 
         $upgradeRequest->update([
             'status' => 'approved',

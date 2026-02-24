@@ -41,6 +41,15 @@ class RepeatOrderController extends Controller
         ]);
     }
 
+    public function show(RepeatOrder $repeatOrder)
+    {
+        $repeatOrder->load(['memberProfile.user', 'items.product']);
+
+        return Inertia::render('admin/repeat-orders/show', [
+            'order' => $repeatOrder,
+        ]);
+    }
+
     public function approve(RepeatOrder $repeatOrder)
     {
         if ($repeatOrder->status !== 'pending') {
@@ -58,6 +67,14 @@ class RepeatOrderController extends Controller
     {
         if ($repeatOrder->status !== 'pending') {
             return back()->with('error', 'Hanya order berstatus pending yang dapat ditolak.');
+        }
+
+        $repeatOrder->load('items.product');
+
+        foreach ($repeatOrder->items as $item) {
+            if ($item->product && $item->product->stock !== null) {
+                $item->product->increment('stock', $item->quantity);
+            }
         }
 
         $repeatOrder->update(['status' => 'rejected']);

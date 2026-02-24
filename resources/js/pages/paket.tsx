@@ -1,6 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
 import {
-    ArrowRight,
     ArrowUpCircle,
     CheckCircle2,
     HelpCircle,
@@ -15,7 +14,7 @@ import {
 import { useState } from 'react';
 import HomeLayout from '@/layouts/home-layout';
 import PageHeader from '@/components/page-header';
-import { register } from '@/routes';
+
 
 interface PackageItem {
     name: string;
@@ -170,11 +169,9 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 export default function Paket({
     packages,
-    canRegister = true,
     pairingBonusAmount = 100_000,
 }: {
     packages: PackageItem[];
-    canRegister?: boolean;
     pairingBonusAmount?: number;
 }) {
     return (
@@ -264,23 +261,16 @@ export default function Paket({
                                         ))}
                                     </ul>
 
-                                    {canRegister ? (
-                                        <Link
-                                            href={register()}
-                                            className={`flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
-                                                pkg.is_popular
-                                                    ? 'bg-primary text-white shadow-lg shadow-primary/25 hover:bg-primary/90'
-                                                    : 'border-2 border-gray-200 text-gray-700 hover:border-primary/40 hover:text-primary'
-                                            }`}
-                                        >
-                                            Daftar Paket {pkg.name}
-                                            <ArrowRight className="h-4 w-4" />
-                                        </Link>
-                                    ) : (
-                                        <div className={`flex items-center justify-center rounded-2xl py-3.5 text-sm font-bold ${pkg.is_popular ? 'bg-primary/10 text-primary' : 'bg-gray-50 text-gray-400'}`}>
-                                            Registrasi Ditutup
-                                        </div>
-                                    )}
+                                    <Link
+                                        href="/login"
+                                        className={`flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+                                            pkg.is_popular
+                                                ? 'bg-primary text-white shadow-lg shadow-primary/25 hover:bg-primary/90'
+                                                : 'border-2 border-gray-200 text-gray-700 hover:border-primary/40 hover:text-primary'
+                                        }`}
+                                    >
+                                        Login untuk Bergabung
+                                    </Link>
                                 </div>
                             );
                         })}
@@ -336,27 +326,6 @@ export default function Paket({
                             </div>
                         ))}
 
-                        {/* CTA row */}
-                        {canRegister && (
-                            <div className="grid grid-cols-4 items-center border-t border-gray-100 bg-white px-0 py-4">
-                                <div className="px-5 text-sm font-semibold text-gray-500" />
-                                {packages.map((pkg) => (
-                                    <div key={pkg.name} className={`px-4 text-center ${pkg.is_popular ? 'bg-primary/5' : ''}`}>
-                                        <Link
-                                            href={register()}
-                                            className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition-all hover:scale-105 ${
-                                                pkg.is_popular
-                                                    ? 'bg-primary text-white shadow-md shadow-primary/20'
-                                                    : 'border border-gray-200 text-gray-600 hover:border-primary/30 hover:text-primary'
-                                            }`}
-                                        >
-                                            Pilih {pkg.name}
-                                            <ArrowRight className="h-3 w-3" />
-                                        </Link>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
                     </div>
                 </div>
             </section>
@@ -461,37 +430,6 @@ export default function Paket({
                 </div>
             </section>
 
-            {/* ── CTA ───────────────────────────────────────────────── */}
-            {canRegister && (
-                <section className="relative overflow-hidden bg-primary py-16 lg:py-20">
-                    <div className="pointer-events-none absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.06%22%3E%3Cpath d=%22M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]" />
-
-                    <div className="relative mx-auto max-w-3xl px-4 text-center md:px-6">
-                        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-bold text-white">
-                            <span className="relative flex h-2 w-2">
-                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-60" />
-                                <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
-                            </span>
-                            Daftar Sekarang
-                        </div>
-
-                        <h2 className="mb-4 text-3xl font-extrabold tracking-tight text-white lg:text-4xl">
-                            Pilih Paket &amp; Mulai Sekarang
-                        </h2>
-                        <p className="mx-auto mb-8 max-w-xl text-base text-white/80">
-                            Bergabung dengan ribuan member aktif GrowRich. Aktivasi akun Anda dalam hitungan menit.
-                        </p>
-
-                        <Link
-                            href={register()}
-                            className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-bold text-primary shadow-xl shadow-black/20 transition-all hover:scale-105 hover:bg-gray-50 active:scale-95"
-                        >
-                            Daftar Sekarang
-                            <ArrowRight className="h-4 w-4" />
-                        </Link>
-                    </div>
-                </section>
-            )}
         </HomeLayout>
     );
 }

@@ -28,7 +28,7 @@ interface Props {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'PIN Saya', href: '/member/pins' },
+    { title: 'Stok PIN', href: '/member/pins' },
 ];
 
 export default function PinIndex({ pins }: Props) {
@@ -124,7 +124,7 @@ export default function PinIndex({ pins }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="PIN Saya" />
+            <Head title="Stok PIN" />
 
             <div className="flex flex-col gap-6 p-4 md:p-6 text-foreground">
                 <div className="flex flex-col gap-2">

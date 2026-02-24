@@ -4,6 +4,7 @@ export type User = {
     email: string;
     phone?: string;
     avatar?: string;
+    member_id?: string;
     referral_code?: string;
     sponsor_id?: number;
     role: string;

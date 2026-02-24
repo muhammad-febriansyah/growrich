@@ -21,11 +21,13 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
         'phone',
         'avatar',
         'referral_code',
+        'member_id',
         'sponsor_id',
         'role',
     ];
@@ -73,6 +75,32 @@ class User extends Authenticatable
     public function referrals(): HasMany
     {
         return $this->hasMany(User::class, 'sponsor_id');
+    }
+
+    /**
+     * Generate a unique member ID based on package prefix.
+     *
+     * Prefixes:
+     *  - Silver (new)            → S
+     *  - Gold (new)              → G
+     *  - Gold (upgrade)          → GU
+     *  - Platinum (new)          → P
+     *  - Platinum (upgrade)      → PU
+     *
+     * Format: {PREFIX}{10-digit zero-padded sequential number}
+     * Example: S0000000001, GU0000000001
+     */
+    public static function generateMemberId(string $prefix): string
+    {
+        $prefix = strtoupper($prefix);
+
+        do {
+            $count = self::where('member_id', 'like', $prefix.'%')->count();
+            $next = $count + 1;
+            $memberId = $prefix.str_pad((string) $next, 10, '0', STR_PAD_LEFT);
+        } while (self::where('member_id', $memberId)->exists());
+
+        return $memberId;
     }
 
     public function isAdmin(): bool

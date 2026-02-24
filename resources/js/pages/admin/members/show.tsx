@@ -55,7 +55,7 @@ export default function MemberShow({ member }: Props) {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold">{member.name}</h1>
-                        <p className="text-muted-foreground">{member.referral_code} | Joined {new Date(member.created_at).toLocaleDateString()}</p>
+                        <p className="text-muted-foreground">{member.member_id ?? member.referral_code} | Joined {new Date(member.created_at).toLocaleDateString()}</p>
                     </div>
                     <div className="ml-auto flex gap-2">
                         <Button asChild variant="outline">
@@ -114,8 +114,8 @@ export default function MemberShow({ member }: Props) {
                                     <p>{member.name}</p>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-sm font-medium text-muted-foreground">Kode Referral</p>
-                                    <p className="font-mono font-semibold">{member.referral_code}</p>
+                                    <p className="text-sm font-medium text-muted-foreground">Nomor ID Member</p>
+                                    <p className="font-mono font-semibold">{member.member_id ?? member.referral_code}</p>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-sm font-medium text-muted-foreground">Email</p>
@@ -126,8 +126,8 @@ export default function MemberShow({ member }: Props) {
                                     <p>{member.phone || '-'}</p>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-sm font-medium text-muted-foreground">Kode Referral</p>
-                                    <p>{member.referral_code || '-'}</p>
+                                    <p className="text-sm font-medium text-muted-foreground">Nomor ID Member</p>
+                                    <p>{member.member_id ?? member.referral_code ?? '-'}</p>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-sm font-medium text-muted-foreground">ID Sponsor</p>

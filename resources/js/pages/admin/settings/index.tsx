@@ -23,9 +23,29 @@ interface SiteSettingsData {
     hero_badge: string | null;
     hero_title: string | null;
     hero_title_highlight: string | null;
+    hero_title_suffix: string | null;
     hero_description: string | null;
     hero_stats_value: string | null;
     hero_stats_label: string | null;
+    features_section_badge: string | null;
+    features_section_title: string | null;
+    features_section_highlight: string | null;
+    features_section_description: string | null;
+    packages_section_badge: string | null;
+    packages_section_title: string | null;
+    packages_section_highlight: string | null;
+    packages_section_description: string | null;
+    marketing_section_badge: string | null;
+    marketing_section_title: string | null;
+    marketing_section_highlight: string | null;
+    marketing_section_description: string | null;
+    career_section_title: string | null;
+    career_section_highlight: string | null;
+    career_section_description: string | null;
+    steps_section_badge: string | null;
+    steps_section_title: string | null;
+    steps_section_highlight: string | null;
+    steps_section_description: string | null;
     contact_phone: string | null;
     contact_whatsapp: string | null;
     contact_email: string | null;
@@ -47,6 +67,11 @@ interface SiteSettingsData {
     duitku_is_sandbox: boolean;
     nocaptcha_sitekey: string | null;
     nocaptcha_secret: string | null;
+    google_maps_url: string | null;
+    google_maps_embed: string | null;
+    bank_name: string | null;
+    bank_account_number: string | null;
+    bank_account_name: string | null;
     pairing_bonus_amount: number;
 }
 
@@ -72,10 +97,30 @@ export default function SiteSettings({ settings }: Props) {
         hero_badge: settings.hero_badge || '',
         hero_title: settings.hero_title || '',
         hero_title_highlight: settings.hero_title_highlight || '',
+        hero_title_suffix: settings.hero_title_suffix || '',
         hero_description: settings.hero_description || '',
         hero_image: null as File | null,
         hero_stats_value: settings.hero_stats_value || '',
         hero_stats_label: settings.hero_stats_label || '',
+        features_section_badge: settings.features_section_badge || '',
+        features_section_title: settings.features_section_title || '',
+        features_section_highlight: settings.features_section_highlight || '',
+        features_section_description: settings.features_section_description || '',
+        packages_section_badge: settings.packages_section_badge || '',
+        packages_section_title: settings.packages_section_title || '',
+        packages_section_highlight: settings.packages_section_highlight || '',
+        packages_section_description: settings.packages_section_description || '',
+        marketing_section_badge: settings.marketing_section_badge || '',
+        marketing_section_title: settings.marketing_section_title || '',
+        marketing_section_highlight: settings.marketing_section_highlight || '',
+        marketing_section_description: settings.marketing_section_description || '',
+        career_section_title: settings.career_section_title || '',
+        career_section_highlight: settings.career_section_highlight || '',
+        career_section_description: settings.career_section_description || '',
+        steps_section_badge: settings.steps_section_badge || '',
+        steps_section_title: settings.steps_section_title || '',
+        steps_section_highlight: settings.steps_section_highlight || '',
+        steps_section_description: settings.steps_section_description || '',
         contact_phone: settings.contact_phone || '',
         contact_whatsapp: settings.contact_whatsapp || '',
         contact_email: settings.contact_email || '',
@@ -95,8 +140,13 @@ export default function SiteSettings({ settings }: Props) {
         duitku_merchant_code: settings.duitku_merchant_code || '',
         duitku_api_key: settings.duitku_api_key || '',
         duitku_is_sandbox: !!settings.duitku_is_sandbox,
+        bank_name: settings.bank_name || '',
+        bank_account_number: settings.bank_account_number || '',
+        bank_account_name: settings.bank_account_name || '',
         nocaptcha_sitekey: settings.nocaptcha_sitekey || '',
         nocaptcha_secret: settings.nocaptcha_secret || '',
+        google_maps_url: settings.google_maps_url || '',
+        google_maps_embed: settings.google_maps_embed || '',
         pairing_bonus_amount: settings.pairing_bonus_amount ?? 100000,
     });
 
@@ -161,10 +211,10 @@ export default function SiteSettings({ settings }: Props) {
                                 <Search className="size-4 mr-3" /> SEO
                             </TabsTrigger>
                             <TabsTrigger
-                                value="hero"
+                                value="landing"
                                 className="px-4 py-3 border-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-slate-600 hover:bg-slate-100 transition-all rounded-lg font-semibold"
                             >
-                                <Image className="size-4 mr-3" /> Hero
+                                <Layout className="size-4 mr-3" /> Landing Page
                             </TabsTrigger>
                             <TabsTrigger
                                 value="footer"
@@ -348,6 +398,19 @@ export default function SiteSettings({ settings }: Props) {
                                                 onChange={(e) => setData('contact_address', e.target.value)}
                                             />
                                         </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="google_maps_embed">Google Maps Embed Code</Label>
+                                            <Textarea
+                                                id="google_maps_embed"
+                                                rows={4}
+                                                placeholder="Tempel kode iframe dari Google Maps di sini"
+                                                value={data.google_maps_embed}
+                                                onChange={(e) => setData('google_maps_embed', e.target.value)}
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                                Buka Google Maps, cari lokasi, klik 'Bagikan', pilih 'Sematkan peta', lalu salin kode HTML-nya.
+                                            </p>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             </TabsContent>
@@ -440,99 +503,153 @@ export default function SiteSettings({ settings }: Props) {
                                 </Card>
                             </TabsContent>
 
-                            {/* Hero Section Settings */}
-                            <TabsContent value="hero" className="mt-0 focus-visible:outline-none">
-                                <Card className="border shadow-sm rounded-xl overflow-hidden">
-                                    <CardHeader className="border-b bg-slate-50/50 py-4 px-6">
-                                        <CardTitle className="text-lg">Hero Section</CardTitle>
-                                        <CardDescription>Konten yang tampil di halaman utama website.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="p-6 space-y-5">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="hero_badge">Teks Badge</Label>
-                                            <Input
-                                                id="hero_badge"
-                                                placeholder="Solusi Pertumbuhan Akurat"
-                                                value={data.hero_badge}
-                                                onChange={(e) => setData('hero_badge', e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Landing Page Settings */}
+                            <TabsContent value="landing" className="mt-0 focus-visible:outline-none">
+                                <div className="space-y-6">
+                                    <Card className="border shadow-sm rounded-xl overflow-hidden">
+                                        <CardHeader className="border-b bg-slate-50/50 py-4 px-6">
+                                            <CardTitle className="text-lg">Hero Section</CardTitle>
+                                            <CardDescription>Konten utama yang tampil di bagian paling atas website.</CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="p-6 space-y-5">
                                             <div className="space-y-2">
-                                                <Label htmlFor="hero_title">Judul Utama</Label>
+                                                <Label htmlFor="hero_badge">Teks Badge</Label>
                                                 <Input
-                                                    id="hero_title"
-                                                    placeholder="Wujudkan"
-                                                    value={data.hero_title}
-                                                    onChange={(e) => setData('hero_title', e.target.value)}
+                                                    id="hero_badge"
+                                                    placeholder="Solusi Pertumbuhan Akurat"
+                                                    value={data.hero_badge}
+                                                    onChange={(e) => setData('hero_badge', e.target.value)}
                                                 />
                                             </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="hero_title_highlight">Teks Highlight (Hijau)</Label>
-                                                <Input
-                                                    id="hero_title_highlight"
-                                                    placeholder="Kebebasan Finansial"
-                                                    value={data.hero_title_highlight}
-                                                    onChange={(e) => setData('hero_title_highlight', e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="hero_description">Deskripsi</Label>
-                                            <Textarea
-                                                id="hero_description"
-                                                rows={3}
-                                                placeholder="Platform ekosistem MLM modern..."
-                                                value={data.hero_description}
-                                                onChange={(e) => setData('hero_description', e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="hero_stats_value">Angka Statistik</Label>
-                                                <Input
-                                                    id="hero_stats_value"
-                                                    placeholder="+128%"
-                                                    value={data.hero_stats_value}
-                                                    onChange={(e) => setData('hero_stats_value', e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="hero_stats_label">Label Statistik</Label>
-                                                <Input
-                                                    id="hero_stats_label"
-                                                    placeholder="Pertumbuhan"
-                                                    value={data.hero_stats_label}
-                                                    onChange={(e) => setData('hero_stats_label', e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <Label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Gambar Hero</Label>
-                                            <div className="flex flex-col sm:flex-row sm:items-center gap-6 p-4 border rounded-xl bg-slate-50/50">
-                                                {settings.hero_image_url ? (
-                                                    <div className="h-24 w-40 border rounded-lg overflow-hidden bg-white flex items-center justify-center shadow-sm shrink-0">
-                                                        <img src={settings.hero_image_url} alt="Hero" className="h-full w-full object-cover" />
-                                                    </div>
-                                                ) : (
-                                                    <div className="h-24 w-40 border border-dashed rounded-lg bg-white flex items-center justify-center text-muted-foreground shrink-0">
-                                                        <Image className="size-8 opacity-20" />
-                                                    </div>
-                                                )}
-                                                <div className="flex-1 space-y-2">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="hero_title">Judul (Bagian 1)</Label>
                                                     <Input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={(e) => setData('hero_image', e.target.files?.[0] || null)}
-                                                        className="bg-white"
+                                                        id="hero_title"
+                                                        placeholder="Grow Your Life"
+                                                        value={data.hero_title}
+                                                        onChange={(e) => setData('hero_title', e.target.value)}
                                                     />
-                                                    <p className="text-xs text-muted-foreground">Format: <span className="font-semibold">PNG, JPG, WEBP</span> (Maks. 4MB). Rasio ideal 4:3.</p>
-                                                    {errors.hero_image && <p className="text-xs text-destructive font-semibold">{errors.hero_image}</p>}
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="hero_title_highlight">Judul Highlight (Bagian 2 - Hijau)</Label>
+                                                    <Input
+                                                        id="hero_title_highlight"
+                                                        placeholder="With Us"
+                                                        value={data.hero_title_highlight}
+                                                        onChange={(e) => setData('hero_title_highlight', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="hero_title_suffix">Judul Akhir (Bagian 3)</Label>
+                                                    <Input
+                                                        id="hero_title_suffix"
+                                                        placeholder="Bersama Kami"
+                                                        value={data.hero_title_suffix}
+                                                        onChange={(e) => setData('hero_title_suffix', e.target.value)}
+                                                    />
                                                 </div>
                                             </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="hero_description">Deskripsi</Label>
+                                                <Textarea
+                                                    id="hero_description"
+                                                    rows={3}
+                                                    placeholder="Platform ekosistem MLM modern..."
+                                                    value={data.hero_description}
+                                                    onChange={(e) => setData('hero_description', e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="space-y-4">
+                                                <Label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Gambar Hero</Label>
+                                                <div className="flex flex-col sm:flex-row sm:items-center gap-6 p-4 border rounded-xl bg-slate-50/50">
+                                                    {settings.hero_image_url ? (
+                                                        <div className="h-24 w-40 border rounded-lg overflow-hidden bg-white flex items-center justify-center shadow-sm shrink-0">
+                                                            <img src={settings.hero_image_url} alt="Hero" className="h-full w-full object-cover" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="h-24 w-40 border border-dashed rounded-lg bg-white flex items-center justify-center text-muted-foreground shrink-0">
+                                                            <Image className="size-8 opacity-20" />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex-1 space-y-2">
+                                                        <Input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            onChange={(e) => setData('hero_image', e.target.files?.[0] || null)}
+                                                            className="bg-white"
+                                                        />
+                                                        <p className="text-xs text-muted-foreground">Format: <span className="font-semibold">PNG, JPG, WEBP</span> (Maks. 4MB). Rasio ideal 4:3.</p>
+                                                        {errors.hero_image && <p className="text-xs text-destructive font-semibold">{errors.hero_image}</p>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {[
+                                        { id: 'features', label: 'Fitur Unggulan', fields: ['badge', 'title', 'highlight', 'description'], defaults: { badge: 'Fitur Unggulan', title: 'Mengapa Memilih', highlight: 'GrowRich?', description: 'Platform lengkap yang dirancang untuk mempercepat pertumbuhan bisnis MLM Anda.' } },
+                                        { id: 'packages', label: 'Paket Bergabung', fields: ['badge', 'title', 'highlight', 'description'], defaults: { badge: 'Paket Bergabung', title: 'Pilih Paket', highlight: 'Terbaik Anda', description: 'Mulai perjalanan bisnis Anda dengan paket yang sesuai. Upgrade kapan saja seiring pertumbuhan jaringan Anda.' } },
+                                        { id: 'marketing', label: 'Marketing Plan', fields: ['badge', 'title', 'highlight', 'description'], defaults: { badge: 'Marketing Plan', title: '6 Jenis', highlight: 'Bonus Menggiurkan', description: 'Sistem jaringan binary dengan 6 jalur bonus transparan yang mengalir setiap hari dan setiap bulan.' } },
+                                        { id: 'career', label: 'Jalur Karir', fields: ['title', 'highlight', 'description'], defaults: { title: 'Jalur Karir', highlight: 'Global Sharing', description: 'Level karir naik otomatis saat Pairing Point pada kaki terkecil memenuhi syarat.' } },
+                                        { id: 'steps', label: 'Langkah Bergabung', fields: ['badge', 'title', 'highlight', 'description'], defaults: { badge: 'Cara Bergabung', title: 'Mulai dalam', highlight: '4 Langkah', description: 'Proses bergabung yang mudah dan cepat. Dalam hitungan menit, akun Anda sudah aktif dan siap membangun jaringan.' } },
+                                    ].map((section) => (
+                                        <Card key={section.id} className="border shadow-sm rounded-xl overflow-hidden">
+                                            <CardHeader className="border-b bg-slate-50/50 py-4 px-6">
+                                                <CardTitle className="text-lg">Section: {section.label}</CardTitle>
+                                                <CardDescription>Header dan deskripsi untuk bagian {section.label}.</CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="p-6 space-y-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {section.fields.includes('badge') && (
+                                                        <div className="space-y-2 md:col-span-2">
+                                                            <Label htmlFor={`${section.id}_badge`}>Badge</Label>
+                                                            <Input
+                                                                id={`${section.id}_badge`}
+                                                                placeholder={(section.defaults as any).badge}
+                                                                value={(data as any)[`${section.id}_section_badge`] || ''}
+                                                                onChange={(e) => setData(`${section.id}_section_badge` as any, e.target.value)}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor={`${section.id}_title`}>Judul</Label>
+                                                        <Input
+                                                            id={`${section.id}_title`}
+                                                            placeholder={(section.defaults as any).title}
+                                                            value={(data as any)[`${section.id}_section_title`] || ''}
+                                                            onChange={(e) => setData(`${section.id}_section_title` as any, e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor={`${section.id}_highlight`}>Highlight (Hijau)</Label>
+                                                        <Input
+                                                            id={`${section.id}_highlight`}
+                                                            placeholder={(section.defaults as any).highlight}
+                                                            value={(data as any)[`${section.id}_section_highlight`] || ''}
+                                                            onChange={(e) => setData(`${section.id}_section_highlight` as any, e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor={`${section.id}_description`}>Deskripsi</Label>
+                                                    <Textarea
+                                                        id={`${section.id}_description`}
+                                                        rows={2}
+                                                        placeholder={(section.defaults as any).description}
+                                                        value={(data as any)[`${section.id}_section_description`] || ''}
+                                                        onChange={(e) => setData(`${section.id}_section_description` as any, e.target.value)}
+                                                    />
+                                                </div>
+                                                {section.id === 'marketing' && (
+                                                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-100">
+                                                        <strong>Info:</strong> Konten rincian bonus (Bonus Sponsor, Pairing, dll) saat ini diatur sistem. Hubungi developer untuk perubahan rincian tersebut.
+                                                    </p>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
                             </TabsContent>
 
                             {/* Footer Settings */}
@@ -658,6 +775,47 @@ export default function SiteSettings({ settings }: Props) {
                                                 checked={data.duitku_is_sandbox}
                                                 onCheckedChange={(checked) => setData('duitku_is_sandbox', checked)}
                                             />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border shadow-sm rounded-xl overflow-hidden mt-6">
+                                    <CardHeader className="border-b bg-slate-50/50 py-4 px-6 font-semibold">
+                                        <CardTitle className="text-lg">Transfer Bank Manual</CardTitle>
+                                        <CardDescription>Informasi rekening bank untuk pembayaran metode transfer manual.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-6 space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="bank_name">Nama Bank</Label>
+                                                <Input
+                                                    id="bank_name"
+                                                    placeholder="Contoh: Bank BCA"
+                                                    value={data.bank_name}
+                                                    onChange={(e) => setData('bank_name', e.target.value)}
+                                                />
+                                                {errors.bank_name && <p className="text-sm text-destructive">{errors.bank_name}</p>}
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="bank_account_number">Nomor Rekening</Label>
+                                                <Input
+                                                    id="bank_account_number"
+                                                    placeholder="Contoh: 1234567890"
+                                                    value={data.bank_account_number}
+                                                    onChange={(e) => setData('bank_account_number', e.target.value)}
+                                                />
+                                                {errors.bank_account_number && <p className="text-sm text-destructive">{errors.bank_account_number}</p>}
+                                            </div>
+                                            <div className="space-y-2 md:col-span-2">
+                                                <Label htmlFor="bank_account_name">Atas Nama (Pemilik Rekening)</Label>
+                                                <Input
+                                                    id="bank_account_name"
+                                                    placeholder="Contoh: PT GrowRich Indonesia"
+                                                    value={data.bank_account_name}
+                                                    onChange={(e) => setData('bank_account_name', e.target.value)}
+                                                />
+                                                {errors.bank_account_name && <p className="text-sm text-destructive">{errors.bank_account_name}</p>}
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>

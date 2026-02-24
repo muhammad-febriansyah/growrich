@@ -303,7 +303,7 @@ export default function BonusShow({ bonus }: Props) {
                             <InfoRow label="Email" value={bonus.member_profile.user.email} />
                             <InfoRow label="No. Telepon" value={bonus.member_profile.user.phone ?? '-'} />
                             <InfoRow label="Kode Referral" value={
-                                <span className="font-mono text-xs">{bonus.member_profile.user.referral_code}</span>
+                                <span className="font-mono text-xs">{bonus.member_profile.user.member_id ?? bonus.member_profile.user.referral_code}</span>
                             } />
                             <InfoRow label="Paket" value={
                                 <Badge variant="outline" className="text-xs uppercase">
@@ -321,7 +321,7 @@ export default function BonusShow({ bonus }: Props) {
                                     <span className="text-xs">
                                         {bonus.member_profile.parent.user.name}
                                         <span className="font-mono text-muted-foreground ml-1">
-                                            ({bonus.member_profile.parent.user.referral_code})
+                                            ({bonus.member_profile.parent.user.member_id ?? bonus.member_profile.parent.user.referral_code})
                                         </span>
                                     </span>
                                 } />

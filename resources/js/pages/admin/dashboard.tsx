@@ -316,7 +316,7 @@ export default function AdminDashboard({ stats, bonusByType, memberGrowth, recen
                                     <div className="flex items-center justify-between rounded-lg border bg-gray-50 px-3 py-2.5 transition-colors hover:bg-gray-100">
                                         <div>
                                             <p className="text-sm font-medium text-gray-900">{m.name}</p>
-                                            <p className="font-mono text-xs text-muted-foreground">{m.referral_code}</p>
+                                            <p className="font-mono text-xs text-muted-foreground">{m.member_id ?? m.referral_code}</p>
                                         </div>
                                         <div className="flex flex-col items-end gap-1">
                                             <PackageBadge type={m.package_type} />

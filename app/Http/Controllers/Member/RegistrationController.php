@@ -17,6 +17,7 @@ use App\Models\MemberProfile;
 use App\Models\PairingPointLedger;
 use App\Models\RegistrationPin;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -25,7 +26,7 @@ use Inertia\Inertia;
 
 class RegistrationController extends Controller
 {
-    public function index()
+    public function index(Request $request): \Inertia\Response
     {
         $myPins = RegistrationPin::where('assigned_to', auth()->id())
             ->where('status', 'available')
@@ -33,6 +34,8 @@ class RegistrationController extends Controller
 
         return Inertia::render('member/registration/index', [
             'myPins' => $myPins,
+            'prefillParentId' => $request->integer('parent_id') ?: null,
+            'prefillLeg' => $request->input('leg'),
         ]);
     }
 
@@ -52,17 +55,36 @@ class RegistrationController extends Controller
                 throw new \RuntimeException('Profil sponsor tidak ditemukan.');
             }
 
-            // Find the shallowest empty slot in the chosen direction via BFS
-            ['parent' => $parent, 'leg' => $leg] = $this->findBfsSlot($sponsorProfile, $request->leg_position);
+            // If a specific parent slot was pre-selected (from network diagram), use it directly.
+            // Otherwise, BFS to find the shallowest empty slot in the chosen direction.
+            if ($request->parent_id) {
+                $parent = MemberProfile::findOrFail($request->parent_id);
+                $leg = $request->leg_position;
+            } else {
+                ['parent' => $parent, 'leg' => $leg] = $this->findBfsSlot($sponsorProfile, $request->leg_position);
+            }
 
             // 1. Create User
+            $packageType = $pin->package_type instanceof PackageType
+                ? $pin->package_type
+                : PackageType::from($pin->package_type);
+
+            $memberIdPrefix = match ($packageType) {
+                PackageType::Silver => 'S',
+                PackageType::Gold => 'G',
+                PackageType::Platinum => 'P',
+            };
+
             $newUser = User::create([
                 'name' => $request->name,
+                'username' => $request->username ?: null,
                 'email' => $request->email,
+                'phone' => $request->phone,
                 'password' => Hash::make($request->password),
                 'role' => UserRole::Member,
                 'sponsor_id' => $sponsor->id,
                 'referral_code' => Str::upper(Str::random(8)),
+                'member_id' => User::generateMemberId($memberIdPrefix),
                 'email_verified_at' => now(),
             ]);
 
@@ -76,6 +98,29 @@ class RegistrationController extends Controller
                 'parent_id' => $parent->id,
                 'leg_position' => $leg,
                 'career_level' => CareerLevel::Member->value,
+                // Data Pribadi
+                'birth_date' => $request->birth_date,
+                'birth_place' => $request->birth_place,
+                'gender' => $request->gender,
+                'marital_status' => $request->marital_status,
+                'nationality' => $request->nationality,
+                'id_number' => $request->id_number,
+                'address' => $request->address,
+                'province' => $request->province,
+                'city' => $request->city,
+                'district' => $request->district,
+                'village' => $request->village,
+                'postal_code' => $request->postal_code,
+                // Rekening Bank
+                'bank_name' => $request->bank_name,
+                'bank_branch' => $request->bank_branch,
+                'bank_account_number' => $request->bank_account_number,
+                'bank_account_name' => $request->bank_account_name,
+                // Data Ahli Waris
+                'beneficiary_name' => $request->beneficiary_name,
+                'beneficiary_relationship' => $request->beneficiary_relationship,
+                'beneficiary_id_number' => $request->beneficiary_id_number,
+                'beneficiary_phone' => $request->beneficiary_phone,
             ]);
 
             // 3. Update parent's child pointer

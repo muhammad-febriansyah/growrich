@@ -1,5 +1,6 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
+import * as LucideIcons from 'lucide-react';
 import {
     ArrowRight,
     BarChart3,
@@ -27,33 +28,27 @@ interface PackageItem {
 }
 
 interface CareerLevelItem {
-    value: string;
+    id: number;
+    key: string;
     label: string;
     required_pp: number;
     global_share_percent: number;
+    dot_color: string | null;
+    text_color: string | null;
 }
 
-const careerDotColors: Record<string, string> = {
-    Member: 'bg-gray-300',
-    CoreLoader: 'bg-blue-400',
-    SapphireManager: 'bg-cyan-400',
-    RubyManager: 'bg-rose-400',
-    EmeraldManager: 'bg-emerald-400',
-    DiamondManager: 'bg-violet-400',
-    BlueDiamondManager: 'bg-indigo-400',
-    EliteTeamGlobal: 'bg-amber-400',
-};
+interface MarketingBonusItem {
+    id: number;
+    category: 'daily' | 'monthly';
+    icon: string;
+    icon_color: string | null;
+    tag: string | null;
+    tag_color: string | null;
+    title: string;
+    description: string;
+    details: { label: string; value: string }[] | null;
+}
 
-const careerTextColors: Record<string, string> = {
-    Member: 'text-gray-400',
-    CoreLoader: 'text-blue-600',
-    SapphireManager: 'text-cyan-600',
-    RubyManager: 'text-rose-600',
-    EmeraldManager: 'text-emerald-600',
-    DiamondManager: 'text-violet-600',
-    BlueDiamondManager: 'text-indigo-600',
-    EliteTeamGlobal: 'text-amber-600',
-};
 
 const packageColors: Record<string, { icon: string; border: string; badge: string }> = {
     Silver: { icon: 'bg-gray-100 text-gray-500', border: 'border-gray-200', badge: 'bg-gray-100 text-gray-600' },
@@ -119,12 +114,23 @@ function DetailRow({ label, value, highlight = false }: { label: string; value: 
 }
 
 export default function MarketingPlan({
-    packages,
-    careerLevels,
+    packages = [],
+    careerLevels = [],
+    marketingBonuses = [],
 }: {
-    packages: PackageItem[];
-    careerLevels: CareerLevelItem[];
+    packages?: PackageItem[];
+    careerLevels?: CareerLevelItem[];
+    marketingBonuses?: MarketingBonusItem[];
 }) {
+    const dailyBonuses = marketingBonuses.filter((b) => b.category === 'daily');
+    const monthlyBonuses = marketingBonuses.filter((b) => b.category === 'monthly');
+
+    const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
+        const Icon = (LucideIcons as any)[name];
+        if (!Icon) return <Shield className={className} />;
+        return <Icon className={className} />;
+    };
+
     return (
         <HomeLayout>
             <Head title="Marketing Plan — GrowRich" />
@@ -138,7 +144,6 @@ export default function MarketingPlan({
             <section className="bg-white py-14 lg:py-20">
                 <div className="mx-auto max-w-5xl px-4 md:px-6">
                     <div className="grid gap-8 lg:grid-cols-3 lg:items-start">
-                        {/* Description */}
                         <div className="lg:col-span-2">
                             <span className="mb-3 inline-block rounded-full bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary">
                                 Sistem Binary MLM
@@ -154,13 +159,12 @@ export default function MarketingPlan({
                             </p>
                         </div>
 
-                        {/* Quick Stats */}
                         <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
                             {[
-                                { label: 'Jenis Bonus', value: '6', color: 'bg-primary/5 text-primary' },
-                                { label: 'Bonus Harian', value: '4', color: 'bg-emerald-50 text-emerald-600' },
-                                { label: 'Bonus Bulanan', value: '2', color: 'bg-sky-50 text-sky-600' },
-                                { label: 'Level Karir', value: '8', color: 'bg-amber-50 text-amber-600' },
+                                { label: 'Jenis Bonus', value: marketingBonuses.length.toString(), color: 'bg-primary/5 text-primary' },
+                                { label: 'Bonus Harian', value: dailyBonuses.length.toString(), color: 'bg-emerald-50 text-emerald-600' },
+                                { label: 'Bonus Bulanan', value: monthlyBonuses.length.toString(), color: 'bg-sky-50 text-sky-600' },
+                                { label: 'Level Karir', value: careerLevels.length.toString(), color: 'bg-amber-50 text-amber-600' },
                             ].map((s) => (
                                 <div key={s.label} className={`rounded-2xl p-4 ${s.color}`}>
                                     <p className="text-3xl font-black">{s.value}</p>
@@ -184,112 +188,43 @@ export default function MarketingPlan({
                     />
 
                     <div className="grid gap-5 md:grid-cols-2">
-                        {/* 1. Bonus Sponsor */}
-                        <BonusBlock
-                            icon={<UserPlus className="h-6 w-6" />}
-                            iconColor="bg-primary/10 text-primary"
-                            tag="Instan"
-                            tagColor="bg-primary/10 text-primary"
-                            title="1. Bonus Sponsor"
-                            description="Diterima langsung saat Anda berhasil merekrut member baru. Besarannya ditentukan oleh level paket sponsor dan member baru (menggunakan level yang lebih rendah)."
-                        >
-                            <div className="overflow-hidden rounded-xl border border-gray-100">
-                                <div className="grid grid-cols-4 border-b border-gray-100 bg-gray-50 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                                    <span>Sponsor ↓ / Member →</span>
-                                    <span className="text-center">Silver</span>
-                                    <span className="text-center">Gold</span>
-                                    <span className="text-center">Platinum</span>
+                        {dailyBonuses.map((bonus, idx) => (
+                            <BonusBlock
+                                key={bonus.id}
+                                icon={<DynamicIcon name={bonus.icon} className="h-6 w-6" />}
+                                iconColor={bonus.icon_color || 'bg-primary/10 text-primary'}
+                                tag={bonus.tag || ''}
+                                tagColor={bonus.tag_color || 'bg-primary/10 text-primary'}
+                                title={`${idx + 1}. ${bonus.title}`}
+                                description={bonus.description}
+                            >
+                                <div className="space-y-2">
+                                    {bonus.details?.map((detail, dIdx) => (
+                                        <DetailRow
+                                            key={dIdx}
+                                            label={detail.label}
+                                            value={detail.value}
+                                            highlight={dIdx === 0}
+                                        />
+                                    ))}
+                                    {bonus.title === 'Bonus Pairing' && (
+                                        <div className="mt-3 rounded-xl bg-emerald-50 p-3 text-xs text-emerald-700">
+                                            <strong>Catatan:</strong> PP yang sudah dipairing akan dikurangi dari akumulasi kaki kiri &amp; kanan.
+                                        </div>
+                                    )}
+                                    {bonus.title === 'Bonus Matching' && (
+                                        <div className="mt-3 rounded-xl bg-violet-50 p-3 text-xs text-violet-700">
+                                            <strong>Contoh:</strong> Downline G1 dapat pairing Rp 1.000.000 → Anda dapat <strong>Rp 150.000</strong> matching bonus.
+                                        </div>
+                                    )}
+                                    {bonus.title === 'Bonus Leveling' && (
+                                        <div className="mt-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
+                                            <strong>Catatan:</strong> Kombinasi mixed (mis. Gold + Platinum) menggunakan nilai level yang lebih rendah (Gold = Rp 500.000).
+                                        </div>
+                                    )}
                                 </div>
-                                {[
-                                    { sponsor: 'Silver', values: ['Rp 200rb', 'Rp 200rb', 'Rp 200rb'] },
-                                    { sponsor: 'Gold', values: ['Rp 200rb', 'Rp 400rb', 'Rp 400rb'] },
-                                    { sponsor: 'Platinum', values: ['Rp 200rb', 'Rp 400rb', 'Rp 600rb'] },
-                                ].map((row, i) => (
-                                    <div key={row.sponsor} className={`grid grid-cols-4 items-center border-t border-gray-50 px-4 py-2.5 text-xs ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
-                                        <span className="font-semibold text-gray-700">{row.sponsor}</span>
-                                        {row.values.map((v, j) => (
-                                            <span key={j} className={`text-center font-bold ${v === 'Rp 600rb' ? 'text-primary' : v === 'Rp 400rb' ? 'text-emerald-600' : 'text-gray-600'}`}>{v}</span>
-                                        ))}
-                                    </div>
-                                ))}
-                            </div>
-                        </BonusBlock>
-
-                        {/* 2. Bonus Pairing */}
-                        <BonusBlock
-                            icon={<GitBranch className="h-6 w-6" />}
-                            iconColor="bg-emerald-50 text-emerald-600"
-                            tag="Setiap Hari"
-                            tagColor="bg-emerald-50 text-emerald-600"
-                            title="2. Bonus Pairing"
-                            description="Dihitung setiap hari dari pencocokan kaki kiri dan kanan jaringan binary Anda. Setiap pasang bernilai Rp 100.000, dibatasi sesuai paket."
-                        >
-                            <div className="space-y-2">
-                                <DetailRow label="Nilai per Pasang" value="Rp 100.000" highlight />
-                                {packages.map((pkg) => (
-                                    <DetailRow
-                                        key={pkg.name}
-                                        label={`Paket ${pkg.name}`}
-                                        value={`Maks. ${pkg.max_pairing} pasang/hari (Rp ${(pkg.max_pairing * 100_000).toLocaleString('id')})`}
-                                    />
-                                ))}
-                                <div className="mt-3 rounded-xl bg-emerald-50 p-3 text-xs text-emerald-700">
-                                    <strong>Catatan:</strong> PP yang sudah dipairing akan dikurangi dari akumulasi kaki kiri &amp; kanan.
-                                </div>
-                            </div>
-                        </BonusBlock>
-
-                        {/* 3. Bonus Matching */}
-                        <BonusBlock
-                            icon={<Share2 className="h-6 w-6" />}
-                            iconColor="bg-violet-50 text-violet-600"
-                            tag="Setiap Hari"
-                            tagColor="bg-violet-50 text-violet-600"
-                            title="3. Bonus Matching"
-                            description="Anda mendapat persentase dari Bonus Pairing yang diterima downline Anda, dihitung hingga 10 generasi ke bawah setiap harinya."
-                        >
-                            <div className="space-y-2">
-                                {[
-                                    { gen: 'Generasi 1 – 4', pct: '15%', color: 'text-violet-600' },
-                                    { gen: 'Generasi 5 – 6', pct: '10%', color: 'text-violet-500' },
-                                    { gen: 'Generasi 7 – 10', pct: '5%', color: 'text-violet-400' },
-                                ].map((row) => (
-                                    <div key={row.gen} className="flex items-center justify-between rounded-xl bg-gray-50 px-3.5 py-2.5 text-sm">
-                                        <span className="text-gray-500">{row.gen}</span>
-                                        <span className={`text-lg font-black ${row.color}`}>{row.pct}</span>
-                                    </div>
-                                ))}
-                                <div className="mt-3 rounded-xl bg-violet-50 p-3 text-xs text-violet-700">
-                                    <strong>Contoh:</strong> Downline G1 dapat pairing Rp 1.000.000 → Anda dapat <strong>Rp 150.000</strong> matching bonus.
-                                </div>
-                            </div>
-                        </BonusBlock>
-
-                        {/* 4. Bonus Leveling */}
-                        <BonusBlock
-                            icon={<Layers className="h-6 w-6" />}
-                            iconColor="bg-amber-50 text-amber-600"
-                            tag="Setiap Hari"
-                            tagColor="bg-amber-50 text-amber-600"
-                            title="4. Bonus Leveling"
-                            description="Bonus tambahan berdasarkan kombinasi paket dari direct downline kiri dan kanan Anda. Nilai ditentukan oleh paket yang lebih rendah dari kedua kaki."
-                        >
-                            <div className="space-y-2">
-                                {[
-                                    { combo: 'Silver + Silver', value: 'Rp 250.000 / hari', color: 'text-gray-600' },
-                                    { combo: 'Gold + Gold', value: 'Rp 500.000 / hari', color: 'text-primary' },
-                                    { combo: 'Platinum + Platinum', value: 'Rp 750.000 / hari', color: 'text-violet-600' },
-                                ].map((row) => (
-                                    <div key={row.combo} className="flex items-center justify-between rounded-xl bg-gray-50 px-3.5 py-2.5 text-sm">
-                                        <span className="text-gray-500">{row.combo}</span>
-                                        <span className={`font-bold ${row.color}`}>{row.value}</span>
-                                    </div>
-                                ))}
-                                <div className="mt-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
-                                    <strong>Catatan:</strong> Kombinasi mixed (mis. Gold + Platinum) menggunakan nilai level yang lebih rendah (Gold = Rp 500.000).
-                                </div>
-                            </div>
-                        </BonusBlock>
+                            </BonusBlock>
+                        ))}
                     </div>
                 </div>
             </section>
@@ -306,53 +241,48 @@ export default function MarketingPlan({
                     />
 
                     <div className="grid gap-5 md:grid-cols-2">
-                        {/* 5. Bonus Repeat Order */}
-                        <BonusBlock
-                            icon={<RefreshCw className="h-6 w-6" />}
-                            iconColor="bg-sky-50 text-sky-600"
-                            tag="Per Bulan"
-                            tagColor="bg-sky-50 text-sky-600"
-                            title="5. Bonus Repeat Order"
-                            description="Diterima setiap bulan dari total omset Repeat Order seluruh downline Anda hingga 7 generasi. Syarat: Anda harus memiliki RO pribadi minimal Rp 1.000.000 di bulan tersebut."
-                        >
-                            <div className="space-y-2">
-                                <DetailRow label="Komisi dari RO Downline" value="5%" highlight />
-                                <DetailRow label="Jangkauan Generasi" value="G1 – G7" />
-                                <DetailRow label="Syarat RO Pribadi" value="≥ Rp 1.000.000 / bulan" />
-                                <DetailRow label="Syarat RO Downline" value="≥ Rp 1.000.000 total" />
-                                <div className="mt-3 rounded-xl bg-sky-50 p-3 text-xs text-sky-700">
-                                    <strong>Contoh:</strong> Total RO downline G1–G7 = Rp 10.000.000 → Anda dapat <strong>Rp 500.000</strong> RO bonus.
-                                </div>
-                            </div>
-                        </BonusBlock>
-
-                        {/* 6. Bonus Global Sharing */}
-                        <BonusBlock
-                            icon={<Globe className="h-6 w-6" />}
-                            iconColor="bg-rose-50 text-rose-600"
-                            tag="Per Bulan"
-                            tagColor="bg-rose-50 text-rose-600"
-                            title="6. Bonus Global Sharing"
-                            description="Bagian dari pool omset RO nasional yang dibagi rata ke seluruh member dengan level karir yang sama. Semakin tinggi level karir Anda, semakin besar persentase yang Anda dapatkan."
-                        >
-                            <div className="space-y-2">
-                                <DetailRow label="Sumber Pool" value="Omset RO Nasional" highlight />
-                                <DetailRow label="Syarat RO Pribadi" value="≥ Rp 1.000.000 / bulan" />
-                                <DetailRow label="Dibagi Rata" value="Per member dalam level" />
-                                <div className="overflow-hidden rounded-xl border border-gray-100 mt-2">
-                                    <div className="grid grid-cols-2 bg-gray-50 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100">
-                                        <span>Level Karir</span>
-                                        <span className="text-right">% Pool</span>
-                                    </div>
-                                    {careerLevels.filter((l) => l.global_share_percent > 0).map((l, i) => (
-                                        <div key={l.value} className={`grid grid-cols-2 px-4 py-2 text-xs border-t border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
-                                            <span className={`font-medium ${careerTextColors[l.value] ?? 'text-gray-600'}`}>{l.label}</span>
-                                            <span className={`text-right font-bold ${careerTextColors[l.value] ?? 'text-gray-600'}`}>{l.global_share_percent}%</span>
-                                        </div>
+                        {monthlyBonuses.map((bonus, idx) => (
+                            <BonusBlock
+                                key={bonus.id}
+                                icon={<DynamicIcon name={bonus.icon} className="h-6 w-6" />}
+                                iconColor={bonus.icon_color || 'bg-sky-50 text-sky-600'}
+                                tag={bonus.tag || ''}
+                                tagColor={bonus.tag_color || 'bg-sky-50 text-sky-600'}
+                                title={`${idx + 5}. ${bonus.title}`}
+                                description={bonus.description}
+                            >
+                                <div className="space-y-2">
+                                    {bonus.details?.map((detail, dIdx) => (
+                                        <DetailRow
+                                            key={dIdx}
+                                            label={detail.label}
+                                            value={detail.value}
+                                        />
                                     ))}
+                                    {bonus.title === 'Bonus Repeat Order' && (
+                                        <div className="mt-3 rounded-xl bg-sky-50 p-3 text-xs text-sky-700">
+                                            <strong>Contoh:</strong> Total RO downline G1–G7 = Rp 10.000.000 → Anda dapat <strong>Rp 500.000</strong> RO bonus.
+                                        </div>
+                                    )}
+                                    {bonus.title === 'Bonus Global Sharing' && (
+                                        <div className="space-y-2">
+                                            <div className="overflow-hidden rounded-xl border border-gray-100">
+                                                <div className="grid grid-cols-2 border-b border-gray-100 bg-gray-50 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                                                    <span>Level Karir</span>
+                                                    <span className="text-right">Share Pool</span>
+                                                </div>
+                                                {careerLevels.filter((l) => l.global_share_percent > 0).map((l, i) => (
+                                                    <div key={l.key} className={`grid grid-cols-2 px-4 py-2 text-xs border-t border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
+                                                        <span className={`font-medium ${l.text_color ?? 'text-gray-600'}`}>{l.label}</span>
+                                                        <span className={`text-right font-bold ${l.text_color ?? 'text-gray-600'}`}>{l.global_share_percent}%</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                        </BonusBlock>
+                            </BonusBlock>
+                        ))}
                     </div>
                 </div>
             </section>
@@ -386,13 +316,13 @@ export default function MarketingPlan({
                         </div>
 
                         {careerLevels.map((level, i) => {
-                            const dotColor = careerDotColors[level.value] ?? 'bg-gray-300';
-                            const textColor = careerTextColors[level.value] ?? 'text-gray-500';
+                            const dotColor = level.dot_color ?? 'bg-gray-300';
+                            const textColor = level.text_color ?? 'text-gray-500';
 
                             return (
                                 <div
-                                    key={level.value}
-                                    className={`grid grid-cols-12 items-center border-t border-gray-50 px-5 py-4 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'} ${level.value === 'EliteTeamGlobal' ? 'bg-amber-50/60' : ''}`}
+                                    key={level.key}
+                                    className={`grid grid-cols-12 items-center border-t border-gray-50 px-5 py-4 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'} ${level.key === 'EliteTeamGlobal' ? 'bg-amber-50/60' : ''}`}
                                 >
                                     <span className="col-span-1 text-center">
                                         <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black text-white ${dotColor}`}>

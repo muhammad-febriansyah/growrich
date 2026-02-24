@@ -1,7 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { ChevronDown, ChevronRight, Home, Plus, User as UserIcon } from 'lucide-react';
-import { createContext, useCallback, useContext, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChevronLeft, User as UserIcon } from 'lucide-react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { cn } from '@/lib/utils';
@@ -10,9 +9,12 @@ import { cn } from '@/lib/utils';
 
 interface TreeNode {
     id: number;
+    member_id: string;
     referral_code: string;
     name: string;
     package: string;
+    career_level: string;
+    avatar: string | null;
     left_pp: number;
     right_pp: number;
     left: TreeNode | null;
@@ -29,22 +31,9 @@ interface Props {
     ancestors: Ancestor[];
 }
 
-interface TooltipState {
-    node: TreeNode;
-    x: number;
-    y: number;
-}
-
-// ── Tooltip context (avoids prop drilling through recursive Node) ──────────────
-
-const TooltipContext = createContext<{
-    show: (node: TreeNode, x: number, y: number) => void;
-    hide: () => void;
-}>({ show: () => {}, hide: () => {} });
-
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Jaringan Saya', href: '/member/network' }];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Diagram Jaringan', href: '/member/network' }];
 
 // ── Navigation helpers ────────────────────────────────────────────────────────
 
@@ -56,191 +45,201 @@ function navigateHome() {
     router.get('/member/network', {}, { preserveScroll: false });
 }
 
-// ── Package colour helpers ────────────────────────────────────────────────────
+// ── Package style helpers ─────────────────────────────────────────────────────
 
-function circleClass(pkg: string): string {
+interface PkgStyle {
+    card: string;
+    text: string;
+    idText: string;
+    pkgText: string;
+    badge: string;
+    ppText: string;
+    ppLabel: string;
+    sep: string;
+}
+
+function pkgStyle(pkg: string): PkgStyle {
     const p = pkg.toLowerCase();
-    if (p.includes('platinum')) return 'bg-indigo-50 border-indigo-300';
-    if (p.includes('gold')) return 'bg-amber-50 border-amber-300';
-    return 'bg-slate-50 border-slate-200';
+
+    if (p.includes('platinum')) {
+        return {
+            card: 'bg-[#1B2B1B]',
+            text: 'text-white',
+            idText: 'text-gray-400',
+            pkgText: 'text-white',
+            badge: 'bg-white/20 text-white',
+            ppText: 'text-white',
+            ppLabel: 'text-white/55',
+            sep: 'border-white/20',
+        };
+    }
+
+    if (p.includes('gold')) {
+        return {
+            card: 'bg-amber-400',
+            text: 'text-amber-950',
+            idText: 'text-amber-700',
+            pkgText: 'text-amber-950',
+            badge: 'bg-white/60 text-amber-900',
+            ppText: 'text-amber-950',
+            ppLabel: 'text-amber-800/70',
+            sep: 'border-amber-600/30',
+        };
+    }
+
+    // Silver / default
+    return {
+        card: 'bg-gray-200',
+        text: 'text-gray-900',
+        idText: 'text-gray-500',
+        pkgText: 'text-gray-900',
+        badge: 'bg-white/70 text-gray-700',
+        ppText: 'text-gray-900',
+        ppLabel: 'text-gray-500',
+        sep: 'border-gray-400/40',
+    };
 }
 
-function iconClass(pkg: string): string {
-    const p = pkg.toLowerCase();
-    if (p.includes('platinum')) return 'text-indigo-600';
-    if (p.includes('gold')) return 'text-amber-600';
-    return 'text-slate-500';
-}
+// ── NodeCard ──────────────────────────────────────────────────────────────────
 
-// ── Empty slot ────────────────────────────────────────────────────────────────
-
-function EmptySlot() {
-    return (
-        <div className="flex flex-col items-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed border-slate-200 bg-slate-50">
-                <Plus className="h-4 w-4 text-slate-300" />
-            </div>
-            <div className="mt-2 text-[10px] font-medium text-slate-400">KOSONG</div>
-        </div>
-    );
-}
-
-// ── Floating tooltip (rendered at page level, never clipped) ──────────────────
-
-function FloatingTooltip({ tooltip }: { tooltip: TooltipState | null }) {
-    if (!tooltip) return null;
-
-    const { node, x, y } = tooltip;
-    const isClickable = true; // only shown for non-root nodes
-
-    // Offset: appear to the right of cursor; flip left if near right edge
-    const left = x + 14;
-    const top  = y - 10;
+function NodeCard({ node, isLeaf }: { node: TreeNode; isLeaf: boolean }) {
+    const s = pkgStyle(node.package);
 
     return (
         <div
-            className="pointer-events-none fixed z-50 w-52 rounded-lg border bg-white p-3 text-xs shadow-xl"
-            style={{ left, top }}
+            className={cn(
+                'w-36 overflow-hidden rounded-2xl shadow-md transition-all duration-150 select-none md:w-44',
+                s.card,
+                isLeaf && 'cursor-pointer hover:-translate-y-1 hover:shadow-xl',
+            )}
+            onClick={isLeaf ? () => navigateTo(node.id) : undefined}
         >
-            <p className="mb-1 border-b pb-1 font-bold">{node.name}</p>
-            <p>
-                <span className="text-muted-foreground">Kode: </span>
-                {node.referral_code}
-            </p>
-            <p>
-                <span className="text-muted-foreground">Paket: </span>
-                {node.package}
-            </p>
-            <div className="mt-1 grid grid-cols-2 border-t pt-1 text-[10px]">
+            {/* Top: avatar / name / id / package / rank */}
+            <div className="flex flex-col items-center p-3 text-center">
+                {/* Avatar */}
+                <div className="mb-2 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white/25 ring-2 ring-white/40">
+                    {node.avatar ? (
+                        <img src={node.avatar} alt={node.name} className="h-full w-full object-cover" />
+                    ) : (
+                        <UserIcon className={cn('h-6 w-6', s.text)} />
+                    )}
+                </div>
+
+                {/* Name */}
+                <p className={cn('max-w-full truncate px-1 text-xs font-semibold leading-tight', s.text)}>
+                    {node.name}
+                </p>
+
+                {/* Member ID */}
+                <p className={cn('mt-0.5 font-mono text-[10px]', s.idText)}>{node.member_id}</p>
+
+                {/* Package */}
+                <p className={cn('mt-1 text-xs font-bold', s.pkgText)}>({node.package.toUpperCase()})</p>
+
+                {/* Career level badge */}
+                <span className={cn('mt-1.5 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-medium', s.badge)}>
+                    {node.career_level}
+                </span>
+            </div>
+
+            {/* Dotted separator */}
+            <div className={cn('mx-3 border-t border-dashed', s.sep)} />
+
+            {/* L-PP / R-PP */}
+            <div className="grid grid-cols-2 px-3 py-2">
                 <div>
-                    <p className="text-muted-foreground">L-PP</p>
-                    <p className="font-bold">{node.left_pp}</p>
+                    <p className={cn('text-[10px]', s.ppLabel)}>L-PP</p>
+                    <p className={cn('text-xs font-bold', s.ppText)}>{node.left_pp.toLocaleString('id')}</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-muted-foreground">R-PP</p>
-                    <p className="font-bold">{node.right_pp}</p>
+                    <p className={cn('text-[10px]', s.ppLabel)}>R-PP</p>
+                    <p className={cn('text-xs font-bold', s.ppText)}>{node.right_pp.toLocaleString('id')}</p>
                 </div>
             </div>
-            {isClickable && (
-                <p className="mt-1.5 border-t pt-1.5 text-[10px] text-primary">
-                    Klik untuk lihat subtree →
-                </p>
-            )}
         </div>
     );
 }
 
-// ── Single node ───────────────────────────────────────────────────────────────
+// ── AvailableSlot ─────────────────────────────────────────────────────────────
 
-function Node({ node, level = 0 }: { node: TreeNode | null; level?: number }) {
-    const { show, hide } = useContext(TooltipContext);
+function AvailableSlot({ parentId, leg }: { parentId: number | null; leg: 'left' | 'right' }) {
+    function handleClick() {
+        if (!parentId) return;
+        router.get('/member/register', { parent_id: parentId, leg });
+    }
 
-    if (!node) return <EmptySlot />;
+    return (
+        <div
+            className={cn(
+                'w-36 overflow-hidden rounded-2xl border-2 border-dashed border-gray-300 bg-gray-100 shadow-sm md:w-44',
+                parentId && 'cursor-pointer transition-colors hover:border-primary/50 hover:bg-gray-200',
+            )}
+            onClick={handleClick}
+        >
+            <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
+                <p className="text-sm font-bold text-gray-500">Available</p>
+                {parentId && (
+                    <p className="mt-2 text-[10px] leading-snug text-gray-400">
+                        Klik untuk mendaftarkan member baru disini
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+}
 
-    const isRoot        = level === 0;
-    const isClickable   = !isRoot;
-    const hasChildren   = node.left !== null || node.right !== null;
-    const showDrillHint = level === 2 && hasChildren;
+// ── Node (recursive) ──────────────────────────────────────────────────────────
+
+function Node({
+    node,
+    level = 0,
+    parentId = null,
+    leg = 'left',
+}: {
+    node: TreeNode | null;
+    level?: number;
+    parentId?: number | null;
+    leg?: 'left' | 'right';
+}) {
+    const isLeaf = level === 2;
 
     return (
         <div className="flex flex-col items-center">
-            {/* Circle --------------------------------------------------------- */}
-            <div
-                className={cn('relative', isClickable && 'cursor-pointer')}
-                onClick={() => isClickable && navigateTo(node.id)}
-                onMouseEnter={(e) => show(node, e.clientX, e.clientY)}
-                onMouseMove={(e) => show(node, e.clientX, e.clientY)}
-                onMouseLeave={hide}
-            >
-                <div
-                    className={cn(
-                        'flex items-center justify-center rounded-full border-2 shadow-sm transition-all',
-                        isRoot ? 'h-16 w-16 md:h-20 md:w-20' : 'h-12 w-12 md:h-14 md:w-14',
-                        circleClass(node.package),
-                        isClickable && 'hover:ring-4 hover:ring-primary/20 hover:border-primary',
-                    )}
-                >
-                    <UserIcon
-                        className={cn(isRoot ? 'h-7 w-7' : 'h-5 w-5', iconClass(node.package))}
-                    />
-                </div>
-            </div>
+            {/* Box */}
+            {node ? <NodeCard node={node} isLeaf={isLeaf} /> : <AvailableSlot parentId={parentId} leg={leg} />}
 
-            {/* Labels ---------------------------------------------------------- */}
-            <div className="mt-2 text-center">
-                <p className="w-20 truncate text-[10px] font-bold text-slate-700 md:w-24">
-                    {node.referral_code}
-                </p>
-                <span className="mt-1 inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-tighter text-slate-600">
-                    {node.package}
-                </span>
-            </div>
+            {/* Children — only for filled non-leaf nodes */}
+            {node && !isLeaf && (
+                <>
+                    {/* Vertical: parent box bottom → crossbar */}
+                    <div className="h-12 w-[2px] bg-slate-300" />
 
-            {/* Drill-down hint ------------------------------------------------- */}
-            {showDrillHint && (
-                <button
-                    onClick={() => navigateTo(node.id)}
-                    className="mt-1 flex cursor-pointer items-center gap-0.5 text-[9px] font-medium text-primary/70 hover:text-primary"
-                >
-                    <ChevronDown className="h-3 w-3" />
-                    Lihat
-                </button>
-            )}
+                    {/* Children row — gap-6 between subtrees; crossbar extended by gap/2 */}
+                    <div className="flex gap-6">
+                        {/* Left child container */}
+                        <div className="relative flex flex-col items-center">
+                            {/* Horizontal crossbar: center → gap midpoint */}
+                            <div className="absolute -right-3 top-0 h-[2px] w-[calc(50%+0.75rem)] bg-slate-300" />
+                            {/* Vertical: crossbar → left child top */}
+                            <div className="absolute left-1/2 top-0 h-12 w-[2px] -translate-x-1/2 bg-slate-300" />
+                            {/* Spacer (same height as vertical above) */}
+                            <div className="h-12" />
+                            <Node node={node.left} level={level + 1} parentId={node.id} leg="left" />
+                        </div>
 
-            {/* Children -------------------------------------------------------- */}
-            {level < 2 && (
-                <div className="mt-4 flex w-full">
-                    {/* Left */}
-                    <div className="relative flex flex-1 flex-col items-center">
-                        <div className="absolute top-0 right-0 h-[2px] w-1/2 -translate-y-4 bg-slate-200" />
-                        <div className="absolute top-0 right-0 h-4 w-[2px] -translate-y-4 bg-slate-200" />
-                        <Node node={node.left} level={level + 1} />
+                        {/* Right child container */}
+                        <div className="relative flex flex-col items-center">
+                            {/* Horizontal crossbar: gap midpoint → center */}
+                            <div className="absolute -left-3 top-0 h-[2px] w-[calc(50%+0.75rem)] bg-slate-300" />
+                            {/* Vertical: crossbar → right child top */}
+                            <div className="absolute left-1/2 top-0 h-12 w-[2px] -translate-x-1/2 bg-slate-300" />
+                            {/* Spacer */}
+                            <div className="h-12" />
+                            <Node node={node.right} level={level + 1} parentId={node.id} leg="right" />
+                        </div>
                     </div>
-                    {/* Right */}
-                    <div className="relative flex flex-1 flex-col items-center">
-                        <div className="absolute top-0 left-0 h-[2px] w-1/2 -translate-y-4 bg-slate-200" />
-                        <div className="absolute top-0 left-0 h-4 w-[2px] -translate-y-4 bg-slate-200" />
-                        <Node node={node.right} level={level + 1} />
-                    </div>
-                </div>
+                </>
             )}
-        </div>
-    );
-}
-
-// ── Breadcrumb ────────────────────────────────────────────────────────────────
-
-function Breadcrumb({ ancestors, currentName }: { ancestors: Ancestor[]; currentName: string }) {
-    if (ancestors.length === 0) return null;
-
-    return (
-        <div className="mb-4 flex flex-wrap items-center gap-1 text-xs">
-            <button
-                onClick={navigateHome}
-                className="flex items-center gap-1 rounded px-1.5 py-0.5 text-muted-foreground transition hover:bg-accent hover:text-foreground"
-            >
-                <Home className="h-3 w-3" />
-                <span>Root</span>
-            </button>
-
-            {ancestors.map((a) => (
-                <span key={a.id} className="flex items-center gap-1">
-                    <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
-                    <button
-                        onClick={() => navigateTo(a.id)}
-                        className="rounded px-1.5 py-0.5 text-muted-foreground transition hover:bg-accent hover:text-foreground"
-                    >
-                        {a.name}
-                    </button>
-                </span>
-            ))}
-
-            <span className="flex items-center gap-1">
-                <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
-                <span className="rounded bg-primary/10 px-1.5 py-0.5 font-medium text-primary">
-                    {currentName}
-                </span>
-            </span>
         </div>
     );
 }
@@ -248,71 +247,75 @@ function Breadcrumb({ ancestors, currentName }: { ancestors: Ancestor[]; current
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function NetworkIndex({ tree, ancestors }: Props) {
-    const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+    const isSubTree = ancestors.length > 0;
 
-    const show = useCallback((node: TreeNode, x: number, y: number) => {
-        setTooltip({ node, x, y });
-    }, []);
-
-    const hide = useCallback(() => setTooltip(null), []);
+    function handleBack() {
+        if (ancestors.length >= 2) {
+            navigateTo(ancestors[ancestors.length - 2].id);
+        } else {
+            navigateHome();
+        }
+    }
 
     return (
-        <TooltipContext.Provider value={{ show, hide }}>
-            <AppLayout breadcrumbs={breadcrumbs}>
-                <Head title="Jaringan Visual" />
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Diagram Jaringan" />
 
-                <div className="flex min-h-[calc(100vh-200px)] flex-col gap-6 p-4 text-foreground md:p-6">
-                    <div className="flex flex-col gap-2">
-                        <h1 className="text-2xl font-bold">Jaringan Visual (Binary)</h1>
-                        <p className="text-muted-foreground">
-                            Visualisasi struktur jaringan dan poin pairing Anda.
-                        </p>
-                    </div>
-
-                    <Card className="flex-1 border-dashed bg-slate-50/50">
-                        <CardHeader className="border-b bg-white">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                <CardTitle className="text-sm font-medium">Pohon Jaringan</CardTitle>
-                                <div className="flex gap-4 text-[10px] text-muted-foreground">
-                                    <span className="flex items-center gap-1">
-                                        <span className="h-2 w-2 rounded-full bg-slate-200" /> Silver
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                        <span className="h-2 w-2 rounded-full bg-amber-300" /> Gold
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                        <span className="h-2 w-2 rounded-full bg-indigo-300" /> Platinum
-                                    </span>
-                                </div>
-                            </div>
-                        </CardHeader>
-
-                        <CardContent className="overflow-x-auto p-6 md:p-10">
-                            {tree ? (
-                                <>
-                                    <Breadcrumb ancestors={ancestors} currentName={tree.name} />
-                                    <div className="min-w-[520px]">
-                                        <div className="flex justify-center py-4">
-                                            <Node node={tree} />
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-                                    <UserIcon className="mb-3 h-10 w-10 opacity-30" />
-                                    <p className="font-medium">Profil jaringan belum tersedia.</p>
-                                    <p className="mt-1 text-sm">
-                                        Aktivasi akun Anda untuk melihat jaringan.
-                                    </p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+            <div className="flex flex-col gap-6 p-4 text-foreground md:p-6">
+                <div>
+                    <h1 className="text-2xl font-bold">Diagram Jaringan</h1>
+                    <p className="mt-1 text-sm text-muted-foreground">Visualisasi struktur jaringan binary Anda.</p>
                 </div>
 
-                {/* Tooltip rendered outside overflow containers ─────────────── */}
-                <FloatingTooltip tooltip={tooltip} />
-            </AppLayout>
-        </TooltipContext.Provider>
+                <Card className="overflow-hidden">
+                    <CardHeader className="border-b bg-white px-4 py-3 md:px-6">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            {/* Kembali ke atas / title */}
+                            {isSubTree ? (
+                                <button
+                                    onClick={handleBack}
+                                    className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                    Kembali ke atas
+                                </button>
+                            ) : (
+                                <span className="text-sm font-medium text-muted-foreground">Pohon Jaringan</span>
+                            )}
+
+                            {/* Legend */}
+                            <div className="flex gap-3 text-[11px] text-muted-foreground">
+                                <span className="flex items-center gap-1.5">
+                                    <span className="inline-block h-3 w-3 rounded bg-gray-300" />
+                                    Silver
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                    <span className="inline-block h-3 w-3 rounded bg-amber-400" />
+                                    Gold
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                    <span className="inline-block h-3 w-3 rounded bg-[#1B2B1B]" />
+                                    Platinum
+                                </span>
+                            </div>
+                        </div>
+                    </CardHeader>
+
+                    <CardContent className="overflow-x-auto bg-slate-50/50 p-6 md:p-10">
+                        {tree ? (
+                            <div className="flex min-w-[640px] justify-center py-6">
+                                <Node node={tree} />
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+                                <UserIcon className="mb-3 h-10 w-10 opacity-30" />
+                                <p className="font-medium">Profil jaringan belum tersedia.</p>
+                                <p className="mt-1 text-sm">Aktivasi akun Anda untuk melihat jaringan.</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        </AppLayout>
     );
 }

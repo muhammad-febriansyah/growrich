@@ -24,7 +24,7 @@ interface Props {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Riwayat Bonus', href: '/member/bonuses' },
+    { title: 'Bonus Statement', href: '/member/bonuses' },
 ];
 
 export default function BonusIndex({ bonuses }: Props) {
@@ -65,7 +65,7 @@ export default function BonusIndex({ bonuses }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Riwayat Bonus Anda" />
+            <Head title="Bonus Statement" />
 
             <div className="flex flex-col gap-6 p-4 md:p-6 text-foreground">
                 <div className="flex flex-col gap-2">

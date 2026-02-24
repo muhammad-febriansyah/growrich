@@ -13,7 +13,7 @@ interface Props {
 
 export default function ProfileEdit({ user }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Profil Saya', href: '/member/profile' },
+        { title: 'Profil', href: '/member/profile' },
         { title: 'Edit Profil', href: '/member/profile/edit' },
     ];
 

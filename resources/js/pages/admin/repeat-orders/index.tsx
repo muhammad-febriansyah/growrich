@@ -1,5 +1,5 @@
-import { Head, router } from '@inertiajs/react';
-import { CheckCircle2, Clock, Package, Search, ShoppingCart, XCircle } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { CheckCircle2, Clock, Eye, Package, Search, ShoppingCart, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,7 @@ interface RepeatOrder {
     member_profile: {
         user: { name: string; email: string };
     } | null;
+    payment_receipt: string | null;
 }
 
 interface Props {
@@ -50,14 +51,14 @@ interface Props {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Manajemen RO', href: '/admin/repeat-orders' },
+    { title: 'Transaksi RO', href: '/admin/repeat-orders' },
 ];
 
-const MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
 
 function StatusBadge({ status }: { status: string }) {
     if (status === 'completed') return <Badge className="bg-green-100 text-green-700 border border-green-300 hover:bg-green-100">Selesai</Badge>;
-    if (status === 'pending')   return <Badge className="bg-yellow-100 text-yellow-700 border border-yellow-300 hover:bg-yellow-100">Menunggu</Badge>;
+    if (status === 'pending') return <Badge className="bg-yellow-100 text-yellow-700 border border-yellow-300 hover:bg-yellow-100">Menunggu</Badge>;
     return <Badge variant="destructive">Ditolak</Badge>;
 }
 
@@ -89,11 +90,11 @@ export default function RepeatOrderIndex({ orders, filters, stats }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Manajemen Repeat Order" />
+            <Head title="Transaksi Repeat Order" />
 
             <div className="flex flex-col gap-6 p-4 md:p-6">
                 <div>
-                    <h1 className="text-xl font-bold text-gray-900">Manajemen Repeat Order</h1>
+                    <h1 className="text-xl font-bold text-gray-900">Transaksi Repeat Order</h1>
                     <p className="text-sm text-muted-foreground">Review dan konfirmasi repeat order dari member.</p>
                 </div>
 
@@ -202,30 +203,56 @@ export default function RepeatOrderIndex({ orders, filters, stats }: Props) {
                                             </td>
                                             <td className="px-4 py-3">
                                                 <StatusBadge status={order.status} />
-                                            </td>
-                                            <td className="px-4 py-3 text-right">
-                                                {order.status === 'pending' && (
-                                                    <div className="flex gap-2 justify-end">
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="h-7 text-xs text-green-700 border-green-300 hover:bg-green-50"
-                                                            onClick={() => handleApprove(order.id)}
+                                                {order.payment_receipt && (
+                                                    <div className="mt-1.5">
+                                                        <a
+                                                            href={`/storage/${order.payment_receipt}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline"
                                                         >
-                                                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                                                            Setujui
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="h-7 text-xs text-red-600 border-red-300 hover:bg-red-50"
-                                                            onClick={() => handleReject(order.id)}
-                                                        >
-                                                            <XCircle className="h-3.5 w-3.5 mr-1" />
-                                                            Tolak
-                                                        </Button>
+                                                            <Package className="h-3 w-3" />
+                                                            Lihat Bukti
+                                                        </a>
                                                     </div>
                                                 )}
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <div className="flex gap-2 justify-end">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-7 text-xs text-brand border-brand-200 hover:bg-brand-50"
+                                                        asChild
+                                                    >
+                                                        <Link href={`/admin/repeat-orders/${order.id}`}>
+                                                            <Eye className="h-3.5 w-3.5 mr-1" />
+                                                            Detail
+                                                        </Link>
+                                                    </Button>
+                                                    {order.status === 'pending' && (
+                                                        <>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-7 text-xs text-green-700 border-green-300 hover:bg-green-50"
+                                                                onClick={() => handleApprove(order.id)}
+                                                            >
+                                                                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                                                Setujui
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-7 text-xs text-red-600 border-red-300 hover:bg-red-50"
+                                                                onClick={() => handleReject(order.id)}
+                                                            >
+                                                                <XCircle className="h-3.5 w-3.5 mr-1" />
+                                                                Tolak
+                                                            </Button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

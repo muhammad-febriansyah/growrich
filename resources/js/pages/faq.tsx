@@ -78,12 +78,12 @@ export default function Faq({ faqs }: { faqs: FaqItem[] }) {
                         <p className="mb-1 text-sm font-semibold text-gray-900">Tidak menemukan jawaban yang dicari?</p>
                         <p className="mb-4 text-xs text-gray-500">Tim kami siap membantu Anda menjawab pertanyaan lebih lanjut.</p>
                         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-                            <a
-                                href="/#contact"
+                            <Link
+                                href="/contact"
                                 className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-white px-5 py-2.5 text-xs font-semibold text-primary transition-all hover:bg-primary hover:text-white"
                             >
                                 Hubungi Kami
-                            </a>
+                            </Link>
                             <Link
                                 href={register()}
                                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-primary/20 transition-all hover:bg-primary/90"

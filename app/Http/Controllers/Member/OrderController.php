@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\RepeatOrder;
 use App\Models\RepeatOrderItem;
+use App\Models\SiteSetting;
+use App\Services\DuitkuService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -17,7 +19,7 @@ class OrderController extends Controller
         $user = auth()->user();
         $profile = $user->memberProfile;
 
-        if (! $profile) {
+        if (!$profile) {
             return redirect()->route('dashboard')->with('error', 'Profil member tidak ditemukan.');
         }
 
@@ -51,7 +53,7 @@ class OrderController extends Controller
         $user = auth()->user();
         $profile = $user->memberProfile;
 
-        if (! $profile) {
+        if (!$profile) {
             return back()->with('error', 'Profil member tidak ditemukan.');
         }
 
@@ -59,16 +61,22 @@ class OrderController extends Controller
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
+            'payment_method' => 'required|in:duitku,manual_transfer',
+        ], [
+            'payment_method.required' => 'Metode pembayaran wajib dipilih.',
+            'payment_method.in' => 'Metode pembayaran tidak valid.',
         ]);
 
-        DB::transaction(function () use ($request, $profile) {
+        $order = null;
+
+        DB::transaction(function () use ($request, $profile, &$order) {
             $totalAmount = 0;
             $orderItems = [];
 
             foreach ($request->items as $item) {
                 $product = Product::findOrFail($item['product_id']);
 
-                if (! $product->is_active) {
+                if (!$product->is_active) {
                     throw new \RuntimeException("Produk {$product->name} tidak aktif.");
                 }
 
@@ -93,11 +101,12 @@ class OrderController extends Controller
 
             $order = RepeatOrder::create([
                 'member_profile_id' => $profile->id,
-                'order_number' => 'RO-'.strtoupper(uniqid()),
+                'order_number' => 'RO-' . strtoupper(uniqid()),
                 'total_amount' => $totalAmount,
                 'status' => 'pending',
                 'period_month' => now()->month,
                 'period_year' => now()->year,
+                'payment_method' => $request->payment_method,
             ]);
 
             foreach ($orderItems as $item) {
@@ -105,6 +114,93 @@ class OrderController extends Controller
             }
         });
 
-        return back()->with('success', 'Repeat Order berhasil dibuat. Menunggu konfirmasi admin.');
+        if ($request->payment_method === 'duitku') {
+            try {
+                $duitku = app(DuitkuService::class);
+                $user = auth()->user();
+                $result = $duitku->createTransaction(
+                    merchantOrderId: $order->order_number,
+                    amount: $order->total_amount,
+                    productDetails: "Repeat Order #{$order->order_number}",
+                    customerName: $user->name,
+                    email: $user->email,
+                    returnUrl: route('member.ro.index'),
+                    callbackUrl: route('payment.callback'),
+                );
+
+                $order->update([
+                    'payment_url' => $result['paymentUrl'],
+                    'duitku_reference' => $result['reference'],
+                ]);
+
+                return redirect($result['paymentUrl']);
+            } catch (\RuntimeException $e) {
+                // Rollback order items manually then delete order
+                $order->items()->delete();
+                $order->delete();
+                return back()->with('error', 'Gagal menghubungi Duitku: ' . $e->getMessage());
+            }
+        }
+
+        // Manual transfer
+        return redirect()->route('member.ro.payment', $order->id)
+            ->with('success', 'Repeat Order berhasil dibuat. Silakan selesaikan pembayaran transfer.');
+    }
+
+    public function show(RepeatOrder $order)
+    {
+        $user = auth()->user();
+        $profile = $user->memberProfile;
+
+        if (!$profile || $order->member_profile_id !== $profile->id) {
+            abort(403);
+        }
+
+        return Inertia::render('member/order/show', [
+            'order' => $order->load(['items.product']),
+        ]);
+    }
+
+    public function paymentPage(RepeatOrder $order)
+    {
+        $user = auth()->user();
+        $profile = $user->memberProfile;
+
+        if (!$profile || $order->member_profile_id !== $profile->id) {
+            abort(403);
+        }
+
+        if ($order->status !== 'pending') {
+            return redirect()->route('member.ro.index')
+                ->with('info', 'Order ini sudah tidak dalam status menunggu pembayaran.');
+        }
+
+        return Inertia::render('member/order/payment', [
+            'order' => $order->load('items.product'),
+            'banks' => \App\Models\Bank::where('is_active', true)->orderBy('sort_order')->get(),
+        ]);
+    }
+
+    public function uploadReceipt(Request $request, RepeatOrder $order)
+    {
+        $user = auth()->user();
+        $profile = $user->memberProfile;
+
+        if (!$profile || $order->member_profile_id !== $profile->id) {
+            abort(403);
+        }
+
+        $request->validate([
+            'image' => 'required|image|max:2048',
+        ]);
+
+        if ($order->payment_receipt) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($order->payment_receipt);
+        }
+
+        $path = $request->file('image')->store('receipts/ro', 'public');
+        $order->update(['payment_receipt' => $path]);
+
+        return redirect()->route('member.ro.index')->with('success', 'Bukti transfer berhasil diunggah. Admin akan segera memverifikasi.');
     }
 }

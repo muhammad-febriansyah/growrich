@@ -19,17 +19,17 @@ class DashboardController extends Controller
     public function index(): Response
     {
         $stats = [
-            'total_members'             => User::where('role', 'member')->count(),
-            'active_members'            => MemberProfile::where('package_status', 'active')->count(),
-            'new_members_30d'           => User::where('role', 'member')
+            'total_members' => User::where('role', 'member')->count(),
+            'active_members' => MemberProfile::where('package_status', 'active')->count(),
+            'new_members_30d' => User::where('role', 'member')
                 ->where('created_at', '>=', now()->subDays(30))
                 ->count(),
-            'pending_bonuses'           => Bonus::where('status', BonusStatus::Pending)->count(),
-            'total_bonus_approved'      => Bonus::whereIn('status', [BonusStatus::Approved, BonusStatus::Paid])->sum('amount'),
-            'pending_withdrawals'       => Withdrawal::where('status', 'pending')->count(),
+            'pending_bonuses' => Bonus::where('status', BonusStatus::Pending)->count(),
+            'total_bonus_approved' => Bonus::whereIn('status', [BonusStatus::Approved, BonusStatus::Paid])->sum('amount'),
+            'pending_withdrawals' => Withdrawal::where('status', 'pending')->count(),
             'pending_withdrawal_amount' => Withdrawal::where('status', 'pending')->sum('amount'),
-            'available_pins'            => RegistrationPin::where('status', 'available')->count(),
-            'total_ro'                  => RepeatOrder::count(),
+            'available_pins' => RegistrationPin::where('status', 'available')->count(),
+            'total_ro' => RepeatOrder::count(),
         ];
 
         $bonusByType = Bonus::whereIn('status', [BonusStatus::Approved, BonusStatus::Paid])
@@ -38,7 +38,7 @@ class DashboardController extends Controller
             ->orderByDesc('total')
             ->get()
             ->map(fn ($b) => [
-                'type'  => $b->bonus_type instanceof \BackedEnum ? $b->bonus_type->value : $b->bonus_type,
+                'type' => $b->bonus_type instanceof \BackedEnum ? $b->bonus_type->value : $b->bonus_type,
                 'total' => (int) $b->total,
                 'count' => $b->count,
             ]);
@@ -56,13 +56,14 @@ class DashboardController extends Controller
             ->limit(5)
             ->get()
             ->map(fn ($u) => [
-                'id'            => $u->id,
-                'name'          => $u->name,
+                'id' => $u->id,
+                'name' => $u->name,
+                'member_id' => $u->member_id ?? $u->referral_code,
                 'referral_code' => $u->referral_code,
-                'package_type'  => $u->memberProfile?->package_type instanceof \BackedEnum
+                'package_type' => $u->memberProfile?->package_type instanceof \BackedEnum
                     ? $u->memberProfile->package_type->value
                     : $u->memberProfile?->package_type,
-                'joined_at'     => $u->created_at->toDateString(),
+                'joined_at' => $u->created_at->toDateString(),
             ]);
 
         $recentWithdrawals = Withdrawal::with('user')
@@ -71,11 +72,11 @@ class DashboardController extends Controller
             ->limit(5)
             ->get()
             ->map(fn ($w) => [
-                'id'             => $w->id,
-                'amount'         => $w->amount,
-                'bank_name'      => $w->bank_name,
+                'id' => $w->id,
+                'amount' => $w->amount,
+                'bank_name' => $w->bank_name,
                 'account_number' => $w->account_number,
-                'user_name'      => $w->user?->name,
+                'user_name' => $w->user?->name,
             ]);
 
         return Inertia::render('admin/dashboard', compact(

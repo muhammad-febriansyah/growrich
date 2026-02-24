@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { CalendarDays, ShieldCheck, Sparkles } from 'lucide-react';
 import HomeLayout from '@/layouts/home-layout';
 import PageHeader from '@/components/page-header';
@@ -60,9 +60,9 @@ export default function Privacy({ page }: { page: LegalPage }) {
 
                     <div className="mt-14 rounded-2xl border border-gray-100 bg-gray-50 p-5 text-sm text-gray-500">
                         Masih ada pertanyaan?{' '}
-                        <a href="/#contact" className="font-semibold text-primary hover:underline">
+                        <Link href="/contact" className="font-semibold text-primary hover:underline">
                             Hubungi kami
-                        </a>
+                        </Link>
                     </div>
                 </div>
             </section>

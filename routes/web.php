@@ -3,7 +3,12 @@
 use App\Http\Controllers\Admin\ResellerProgramController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Laravel\Fortify\Features;
+
+// Override Fortify's registration routes with our custom full-form registration
+Route::middleware('guest')->group(function () {
+    Route::get('register', [App\Http\Controllers\Auth\GuestRegistrationController::class, 'create'])->name('register');
+    Route::post('register', [App\Http\Controllers\Auth\GuestRegistrationController::class, 'store'])->name('register.store');
+});
 
 Route::middleware('auth')->get('auth/redirect', function () {
     $role = auth()->user()?->role;
@@ -16,22 +21,57 @@ Route::middleware('auth')->get('auth/redirect', function () {
 
 Route::get('/', function () {
     $settings = \App\Models\SiteSetting::instance();
+    $marketingBonuses = \App\Models\MarketingBonus::where('is_active', true)
+        ->orderBy('sort_order')
+        ->get();
 
     return Inertia::render('welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
         'hero' => [
             'badge' => $settings->hero_badge ?: 'Solusi Pertumbuhan Akurat',
             'title' => $settings->hero_title ?: 'Wujudkan',
             'title_highlight' => $settings->hero_title_highlight ?: 'Kebebasan Finansial',
+            'title_suffix' => $settings->hero_title_suffix ?: '',
             'description' => $settings->hero_description ?: 'Platform ekosistem MLM modern yang dirancang untuk mempercepat karir dan pendapatan Anda dengan transparansi dan teknologi terkini.',
             'image_url' => $settings->hero_image ? \Illuminate\Support\Facades\Storage::url($settings->hero_image) : null,
             'stats_value' => $settings->hero_stats_value ?: '+128%',
             'stats_label' => $settings->hero_stats_label ?: 'Pertumbuhan',
         ],
+        'sections' => [
+            'features_badge' => $settings->features_section_badge,
+            'features_title' => $settings->features_section_title,
+            'features_highlight' => $settings->features_section_highlight,
+            'features_description' => $settings->features_section_description,
+
+            'packages_badge' => $settings->packages_section_badge,
+            'packages_title' => $settings->packages_section_title,
+            'packages_highlight' => $settings->packages_section_highlight,
+            'packages_description' => $settings->packages_section_description,
+
+            'marketing_badge' => $settings->marketing_section_badge,
+            'marketing_title' => $settings->marketing_section_title,
+            'marketing_highlight' => $settings->marketing_section_highlight,
+            'marketing_description' => $settings->marketing_section_description,
+
+            'career_title' => $settings->career_section_title,
+            'career_highlight' => $settings->career_section_highlight,
+            'career_description' => $settings->career_section_description,
+
+            'steps_badge' => $settings->steps_section_badge,
+            'steps_title' => $settings->steps_section_title,
+            'steps_highlight' => $settings->steps_section_highlight,
+            'steps_description' => $settings->steps_section_description,
+        ],
         'features' => \App\Models\Feature::where('is_active', true)
             ->orderBy('sort_order')
             ->get(['id', 'icon', 'title', 'description']),
-        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn ($p) => [
+        'marketingBonuses' => $marketingBonuses,
+        'careerLevels' => collect(\App\Enums\Mlm\CareerLevel::cases())->map(fn($l) => [
+            'value' => $l->value,
+            'label' => $l->label(),
+            'required_pp' => $l->requiredPp(),
+            'global_share_percent' => $l->globalSharePercent(),
+        ]),
+        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn($p) => [
             'name' => $p->value,
             'price' => $p->registrationPrice(),
             'pairing_point' => $p->pairingPoint(),
@@ -85,7 +125,7 @@ Route::get('/blog', function (\Illuminate\Http\Request $request) {
         ->orderByDesc('published_at')
         ->paginate(6)
         ->withQueryString()
-        ->through(fn ($p) => [
+        ->through(fn($p) => [
             'id' => $p->id,
             'title' => $p->title,
             'slug' => $p->slug,
@@ -112,7 +152,7 @@ Route::get('/blog/{slug}', function (string $slug) {
         ->orderByDesc('published_at')
         ->limit(3)
         ->get()
-        ->map(fn ($p) => [
+        ->map(fn($p) => [
             'id' => $p->id,
             'title' => $p->title,
             'slug' => $p->slug,
@@ -141,12 +181,12 @@ Route::get('/produk', function () {
         ->get(['id', 'name', 'description', 'sku', 'unit', 'image', 'regular_price', 'ro_price', 'member_discount', 'stock', 'bpom_number']);
 
     return Inertia::render('produk', [
-        'products' => $products->map(fn (\App\Models\Product $p) => array_merge($p->toArray(), ['image_url' => $p->image_url])),
+        'products' => $products->map(fn(\App\Models\Product $p) => array_merge($p->toArray(), ['image_url' => $p->image_url])),
     ]);
 })->name('produk');
 
 Route::get('/produk/{product}', function (\App\Models\Product $product) {
-    abort_if(! $product->is_active, 404);
+    abort_if(!$product->is_active, 404);
 
     return Inertia::render('produk/show', [
         'product' => array_merge($product->toArray(), ['image_url' => $product->image_url]),
@@ -155,9 +195,8 @@ Route::get('/produk/{product}', function (\App\Models\Product $product) {
 
 Route::get('/paket', function () {
     return Inertia::render('paket', [
-        'canRegister' => Features::enabled(Features::registration()),
         'pairingBonusAmount' => \App\Models\Package::pairingBonusAmount(),
-        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn ($p) => [
+        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn($p) => [
             'name' => $p->value,
             'price' => $p->registrationPrice(),
             'pairing_point' => $p->pairingPoint(),
@@ -170,6 +209,36 @@ Route::get('/paket', function () {
         ]),
     ]);
 })->name('paket');
+
+Route::get('/find-a-mentor', function () {
+    $settings = \App\Models\SiteSetting::instance();
+
+    return Inertia::render('find-a-mentor', [
+        'contact_whatsapp' => $settings->contact_whatsapp,
+    ]);
+})->name('find-a-mentor');
+
+Route::get('/contact', function () {
+    $settings = \App\Models\SiteSetting::instance();
+
+    return Inertia::render('contact', [
+        'contact' => [
+            'email' => $settings->contact_email,
+            'phone' => $settings->contact_phone,
+            'whatsapp' => $settings->contact_whatsapp,
+            'address' => $settings->contact_address,
+            'google_maps_embed' => $settings->google_maps_embed,
+        ],
+        'socials' => [
+            'facebook' => $settings->social_facebook,
+            'instagram' => $settings->social_instagram,
+            'twitter' => $settings->social_twitter,
+            'youtube' => $settings->social_youtube,
+            'tiktok' => $settings->social_tiktok,
+        ],
+    ]);
+})->name('contact');
+
 Route::get('/reseller-program', function () {
     $settings = \App\Models\ResellerProgramSetting::instance();
     $data = $settings->toArray();
@@ -188,7 +257,7 @@ Route::get('/reseller-program', function () {
 
     if (isset($data['trip_images']) && is_array($data['trip_images'])) {
         $data['trip_images_urls'] = collect($data['trip_images'])
-            ->map(fn ($path) => \Illuminate\Support\Facades\Storage::url($path))
+            ->map(fn($path) => \Illuminate\Support\Facades\Storage::url($path))
             ->toArray();
     }
 
@@ -198,20 +267,20 @@ Route::get('/reseller-program', function () {
 })->name('reseller-program');
 
 Route::get('/marketing-plan', function () {
+    $marketingBonuses = \App\Models\MarketingBonus::where('is_active', true)
+        ->orderBy('sort_order')
+        ->get();
+
     return Inertia::render('marketing-plan', [
-        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn ($p) => [
-            'name' => $p->value,
-            'price' => $p->registrationPrice(),
-            'pairing_point' => $p->pairingPoint(),
-            'max_pairing' => $p->maxPairingPerDay(),
-            'sponsor_bonus' => $p->sponsorBonus(),
+        'packages' => \App\Models\Package::orderBy('sort_order')->get()->map(fn($p) => [
+            'name' => $p->name,
+            'price' => $p->registration_price,
+            'pairing_point' => $p->pairing_point,
+            'max_pairing' => $p->max_pairing_per_day,
+            'sponsor_bonus' => $p->sponsor_bonus_unit, // This might need logic if we want to show a range, but for now we use the base unit
         ]),
-        'careerLevels' => collect(\App\Enums\Mlm\CareerLevel::cases())->map(fn ($l) => [
-            'value' => $l->value,
-            'label' => $l->label(),
-            'required_pp' => $l->requiredPp(),
-            'global_share_percent' => $l->globalSharePercent(),
-        ]),
+        'careerLevels' => \App\Models\CareerLevel::where('is_active', true)->orderBy('sort_order')->get(),
+        'marketingBonuses' => $marketingBonuses,
     ]);
 })->name('marketing-plan');
 
@@ -221,7 +290,7 @@ Route::get('/terms', function () {
     return Inertia::render('legal/terms', ['page' => $page]);
 })->name('terms');
 
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';
 
 Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('admin/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('admin.dashboard');
@@ -251,6 +320,10 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
 
     Route::get('admin/settings', [App\Http\Controllers\Admin\SiteSettingController::class, 'index'])->name('admin.settings.index');
     Route::put('admin/settings', [App\Http\Controllers\Admin\SiteSettingController::class, 'update'])->name('admin.settings.update');
+
+    Route::resource('admin/marketing-bonuses', App\Http\Controllers\Admin\MarketingBonusController::class)->names('admin.marketing-bonuses');
+    Route::resource('admin/career-levels', App\Http\Controllers\Admin\CareerLevelController::class)->names('admin.career-levels');
+    Route::resource('admin/banks', App\Http\Controllers\Admin\BankController::class)->names('admin.banks');
 
     Route::resource('admin/faqs', App\Http\Controllers\Admin\FaqController::class)->names('admin.faqs');
 
@@ -287,8 +360,21 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
 
     // Repeat Order Management
     Route::get('admin/repeat-orders', [App\Http\Controllers\Admin\RepeatOrderController::class, 'index'])->name('admin.repeat-orders.index');
+    Route::get('admin/repeat-orders/{repeatOrder}', [App\Http\Controllers\Admin\RepeatOrderController::class, 'show'])->name('admin.repeat-orders.show');
     Route::post('admin/repeat-orders/{repeatOrder}/approve', [App\Http\Controllers\Admin\RepeatOrderController::class, 'approve'])->name('admin.repeat-orders.approve');
     Route::post('admin/repeat-orders/{repeatOrder}/reject', [App\Http\Controllers\Admin\RepeatOrderController::class, 'reject'])->name('admin.repeat-orders.reject');
+
+    // PIN Order Management
+    Route::get('admin/pin-orders', [App\Http\Controllers\Admin\PinOrderController::class, 'index'])->name('admin.pin-orders.index');
+    Route::post('admin/pin-orders/{pinOrder}/complete', [App\Http\Controllers\Admin\PinOrderController::class, 'complete'])->name('admin.pin-orders.complete');
+    Route::post('admin/pin-orders/{pinOrder}/cancel', [App\Http\Controllers\Admin\PinOrderController::class, 'cancel'])->name('admin.pin-orders.cancel');
+    Route::get('admin/pin-orders/export', [App\Http\Controllers\Admin\PinOrderController::class, 'export'])->name('admin.pin-orders.export');
+
+    // Database Backup
+    Route::get('admin/database-backups', [App\Http\Controllers\Admin\DatabaseBackupController::class, 'index'])->name('admin.database-backups.index');
+    Route::post('admin/database-backups', [App\Http\Controllers\Admin\DatabaseBackupController::class, 'store'])->name('admin.database-backups.store');
+    Route::get('admin/database-backups/{filename}/download', [App\Http\Controllers\Admin\DatabaseBackupController::class, 'download'])->name('admin.database-backups.download');
+    Route::delete('admin/database-backups/{filename}', [App\Http\Controllers\Admin\DatabaseBackupController::class, 'destroy'])->name('admin.database-backups.destroy');
 });
 
 Route::middleware(['auth', 'verified', 'role:member'])->group(function () {
@@ -312,6 +398,19 @@ Route::middleware(['auth', 'verified', 'role:member'])->group(function () {
 
     Route::get('member/pins', [App\Http\Controllers\Member\PinController::class, 'index'])->name('member.pins.index');
 
+    // PIN Orders
+    Route::get('member/pin-orders', [App\Http\Controllers\Member\PinOrderController::class, 'index'])->name('member.pin-orders.index');
+    Route::post('member/pin-orders', [App\Http\Controllers\Member\PinOrderController::class, 'store'])->name('member.pin-orders.store');
+    Route::get('member/pin-orders/{order}', [App\Http\Controllers\Member\PinOrderController::class, 'show'])->name('member.pin-orders.show');
+    Route::get('member/pin-orders/{order}/payment', [App\Http\Controllers\Member\PinOrderController::class, 'paymentPage'])->name('member.pin-orders.payment');
+    Route::post('member/pin-orders/{order}/upload-receipt', [App\Http\Controllers\Member\PinOrderController::class, 'uploadReceipt'])->name('member.pin-orders.upload-receipt');
+
+    Route::get('member/ro', [App\Http\Controllers\Member\OrderController::class, 'index'])->name('member.ro.index');
+    Route::post('member/ro', [App\Http\Controllers\Member\OrderController::class, 'store'])->name('member.ro.store');
+    Route::get('member/ro/{order}', [App\Http\Controllers\Member\OrderController::class, 'show'])->name('member.ro.show');
+    Route::get('member/ro/{order}/payment', [App\Http\Controllers\Member\OrderController::class, 'paymentPage'])->name('member.ro.payment');
+    Route::post('member/ro/{order}/upload-receipt', [App\Http\Controllers\Member\OrderController::class, 'uploadReceipt'])->name('member.ro.upload-receipt');
+
     // Upgrade Paket
     Route::get('member/upgrade', [App\Http\Controllers\Member\UpgradeController::class, 'index'])->name('member.upgrade.index');
     Route::post('member/upgrade', [App\Http\Controllers\Member\UpgradeController::class, 'store'])->name('member.upgrade.store');
@@ -322,3 +421,9 @@ Route::middleware(['auth', 'verified', 'role:member'])->group(function () {
     // Progress Reward
     Route::get('member/rewards', [App\Http\Controllers\Member\RewardController::class, 'index'])->name('member.rewards.index');
 });
+
+
+// ── Duitku Payment Callbacks (no auth, CSRF exempted via bootstrap/app.php) ──
+Route::post('payment/callback', [App\Http\Controllers\Payment\DuitkuCallbackController::class, 'handle'])->name('payment.callback');
+Route::post('payment/callback/pin-order', [App\Http\Controllers\Payment\DuitkuCallbackController::class, 'pinOrder'])->name('payment.callback.pin-order');
+Route::post('payment/callback/repeat-order', [App\Http\Controllers\Payment\DuitkuCallbackController::class, 'repeatOrder'])->name('payment.callback.repeat-order');

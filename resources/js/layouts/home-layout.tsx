@@ -40,13 +40,14 @@ const navItems = [
             { name: 'Tentang Kami', link: '/about' },
             { name: 'Marketing Plan', link: '/marketing-plan' },
             { name: 'FAQ', link: '/faq' },
+            { name: 'Hubungi Kami', link: '/contact' },
             { name: 'Syarat & Ketentuan', link: '/terms' },
             { name: 'Kebijakan Privasi', link: '/privacy' },
         ],
     },
     { name: 'Paket', link: '/paket' },
     { name: 'Produk', link: '/produk' },
-    { name: 'Blog', link: '/blog' },
+    // { name: 'Blog', link: '/blog' },
 ];
 
 interface SharedProps {
@@ -150,7 +151,7 @@ export default function HomeLayout({ children, transparentNavbar }: Props) {
                                                 <a
                                                     key={child.name}
                                                     href={child.link}
-                                                    className={`flex items-center justify-between py-1.5 text-sm transition-colors ${childActive ? 'font-semibold text-primary' : 'font-medium text-neutral-700 hover:text-primary'}`}
+                                                    className={`flex items-center justify-between py-2.5 text-sm transition-colors ${childActive ? 'font-semibold text-primary' : 'font-medium text-neutral-700 hover:text-primary'}`}
                                                     onClick={() => setMobileOpen(false)}
                                                 >
                                                     {child.name}
@@ -166,7 +167,7 @@ export default function HomeLayout({ children, transparentNavbar }: Props) {
                                 <a
                                     key={item.name}
                                     href={item.link}
-                                    className={`flex w-full items-center justify-between py-2 text-sm transition-colors ${parentActive ? 'font-semibold text-primary' : 'font-medium text-neutral-700 hover:text-primary'}`}
+                                    className={`flex w-full items-center justify-between py-3 text-sm transition-colors ${parentActive ? 'font-semibold text-primary' : 'font-medium text-neutral-700 hover:text-primary'}`}
                                     onClick={() => setMobileOpen(false)}
                                 >
                                     {item.name}
@@ -242,10 +243,11 @@ export default function HomeLayout({ children, transparentNavbar }: Props) {
                                 {[
                                     { label: 'Home', href: '/' },
                                     { label: 'Tentang Kami', href: '/about' },
-                                    { label: 'Paket Bergabung', href: '/paket' },
-                                    { label: 'Marketing Plan', href: '/marketing-plan' },
+                                    // { label: 'Paket Bergabung', href: '/paket' },
+                                    // { label: 'Marketing Plan', href: '/marketing-plan' },
                                     { label: 'Blog', href: '/blog' },
-                                    { label: 'FAQ', href: '/faq' },
+                                    // { label: 'FAQ', href: '/faq' },
+                                    { label: 'Hubungi Kami', href: '/contact' },
                                     { label: 'Login', href: login() },
                                 ].map((item) => (
                                     <li key={item.label}>

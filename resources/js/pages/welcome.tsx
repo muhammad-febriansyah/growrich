@@ -1,19 +1,20 @@
 import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import * as LucideIcons from 'lucide-react';
-import { ArrowRight, CheckCircle, DollarSign, LucideIcon, Star, TrendingUp, Users, Zap } from 'lucide-react';
+import { LucideIcon, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedShinyText } from '@/components/ui/animated-shiny-text';
 import { Marquee } from '@/components/ui/marquee';
-import { NumberTicker } from '@/components/ui/number-ticker';
+
 import { Button } from '@/components/ui/button';
 import HomeLayout from '@/layouts/home-layout';
-import { register } from '@/routes';
+
 
 interface HeroData {
     badge: string;
     title: string;
     title_highlight: string;
+    title_suffix: string;
     description: string;
     image_url: string | null;
     stats_value: string;
@@ -49,6 +50,25 @@ interface PackageItem {
     max_pairing: number;
     sponsor_bonus: number;
     is_popular: boolean;
+}
+
+interface MarketingBonusItem {
+    id: number;
+    category: 'daily' | 'monthly';
+    icon: string;
+    icon_color: string | null;
+    tag: string | null;
+    tag_color: string | null;
+    title: string;
+    description: string;
+    details: { label: string; value: string }[] | null;
+}
+
+interface CareerLevelItem {
+    value: string;
+    label: string;
+    required_pp: number;
+    global_share_percent: number;
 }
 
 // ── Animation variants ────────────────────────────────────────────────────────
@@ -145,6 +165,28 @@ const packageBenefits: Record<string, string[]> = {
     ],
 };
 
+const careerDotColors: Record<string, string> = {
+    Member: 'bg-gray-300',
+    CoreLoader: 'bg-blue-400',
+    SapphireManager: 'bg-cyan-400',
+    RubyManager: 'bg-rose-400',
+    EmeraldManager: 'bg-emerald-400',
+    DiamondManager: 'bg-violet-400',
+    BlueDiamondManager: 'bg-indigo-400',
+    EliteTeamGlobal: 'bg-amber-400',
+};
+
+const careerTextColors: Record<string, string> = {
+    Member: 'text-gray-400',
+    CoreLoader: 'text-blue-600',
+    SapphireManager: 'text-cyan-600',
+    RubyManager: 'text-rose-600',
+    EmeraldManager: 'text-emerald-600',
+    DiamondManager: 'text-violet-600',
+    BlueDiamondManager: 'text-indigo-600',
+    EliteTeamGlobal: 'text-amber-600',
+};
+
 const packageColors: Record<string, { badge: string; border: string; icon: string; glow: string }> = {
     Silver: {
         badge: 'bg-gray-100 text-gray-600',
@@ -209,20 +251,22 @@ function SectionHeader({
     );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
 export default function Welcome({
-    canRegister = true,
     hero,
+    sections = {},
     features = [],
+    marketingBonuses = [],
     packages = [],
+    careerLevels = [],
     testimonials = [],
     faqs = [],
 }: {
-    canRegister?: boolean;
     hero: HeroData;
+    sections?: Record<string, string>;
     features?: FeatureItem[];
+    marketingBonuses?: MarketingBonusItem[];
     packages?: PackageItem[];
+    careerLevels?: CareerLevelItem[];
     testimonials?: TestimonialItem[];
     faqs?: FaqItem[];
 }) {
@@ -231,197 +275,85 @@ export default function Welcome({
             <Head title="GrowRich - Accelerate Your Growth" />
 
             {/* ── Hero ─────────────────────────────────────────────── */}
-            <section className="relative overflow-hidden bg-white pt-32 pb-0 lg:pt-40">
-                {/* blur blobs */}
-                <div className="pointer-events-none absolute -top-32 -left-40 h-[500px] w-[500px] rounded-full bg-primary/20 blur-[120px]" />
-                <div className="pointer-events-none absolute top-10 -right-32 h-[400px] w-[400px] rounded-full bg-primary/15 blur-[100px]" />
-                <div className="pointer-events-none absolute top-[40%] left-1/2 h-[300px] w-[600px] -translate-x-1/2 rounded-full bg-primary/10 blur-[80px]" />
+            <section
+                className="relative flex min-h-screen items-center overflow-hidden bg-cover bg-center bg-no-repeat"
+                style={{ backgroundImage: `url(${hero.image_url ?? defaultImage})` }}
+            >
+                {/* Gradient overlay — opaque on left, fades to transparent on right */}
+                <div className="absolute inset-0 bg-gradient-to-r from-white via-white/85 to-white/10" />
+                {/* Top & bottom fade */}
+                <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-white to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white to-transparent" />
 
-                <div className="relative mx-auto max-w-4xl px-4 text-center md:px-6">
-                    {/* Badge */}
-                    <motion.div
-                        initial="hidden"
-                        animate="visible"
-                        variants={fadeDown}
-                        transition={{ duration: 0.5, ease: easing }}
-                        className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-semibold text-primary"
-                    >
-                        <span className="relative flex h-2 w-2 shrink-0">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-                        </span>
-                        <AnimatedShinyText className="text-sm font-semibold text-primary via-primary/80">
-                            {hero.badge}
-                        </AnimatedShinyText>
-                    </motion.div>
+                <div className="relative z-10 mx-auto w-full max-w-7xl px-4 py-32 md:px-6 lg:py-40">
+                    <div className="max-w-xl lg:max-w-2xl">
+                        {/* Badge */}
+                        <motion.div
+                            initial="hidden"
+                            animate="visible"
+                            variants={fadeDown}
+                            transition={{ duration: 0.5, ease: easing }}
+                            className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white/80 px-4 py-1.5 text-sm font-semibold text-primary backdrop-blur-sm"
+                        >
+                            <span className="relative flex h-2 w-2 shrink-0">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+                                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                            </span>
+                            <AnimatedShinyText className="text-sm font-semibold text-primary via-primary/80">
+                                {hero.badge}
+                            </AnimatedShinyText>
+                        </motion.div>
 
-                    {/* Heading */}
-                    <motion.h1
-                        initial="hidden"
-                        animate="visible"
-                        variants={fadeUp}
-                        transition={{ duration: 0.65, ease: easing, delay: 0.1 }}
-                        className="mb-6 text-5xl font-extrabold leading-tight tracking-tight text-gray-900 md:text-6xl lg:text-7xl"
-                    >
-                        {hero.title}{' '}
-                        <span className="text-primary">{hero.title_highlight}</span>
-                        <br className="hidden sm:block" />
-                        {' '}Bersama Kami
-                    </motion.h1>
+                        {/* Heading */}
+                        <motion.h1
+                            initial="hidden"
+                            animate="visible"
+                            variants={fadeUp}
+                            transition={{ duration: 0.65, ease: easing, delay: 0.1 }}
+                            className="mb-6 text-4xl font-extrabold leading-tight tracking-tight text-gray-900 md:text-5xl lg:text-6xl"
+                        >
+                            {hero.title}{' '}
+                            <span className="text-primary">{hero.title_highlight}</span>{' '}
+                            {hero.title_suffix}
+                        </motion.h1>
 
-                    {/* Description */}
-                    <motion.p
-                        initial="hidden"
-                        animate="visible"
-                        variants={fadeUp}
-                        transition={{ duration: 0.6, ease: easing, delay: 0.2 }}
-                        className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-gray-500 md:text-xl"
-                    >
-                        {hero.description}
-                    </motion.p>
+                        {/* Description */}
+                        <motion.p
+                            initial="hidden"
+                            animate="visible"
+                            variants={fadeUp}
+                            transition={{ duration: 0.6, ease: easing, delay: 0.2 }}
+                            className="mb-10 max-w-lg text-lg leading-relaxed text-gray-600"
+                        >
+                            {hero.description}
+                        </motion.p>
 
-                    {/* CTA */}
-                    {canRegister && (
+                        {/* CTA */}
                         <motion.div
                             initial="hidden"
                             animate="visible"
                             variants={fadeUp}
                             transition={{ duration: 0.6, ease: easing, delay: 0.3 }}
-                            className="flex flex-col items-center justify-center gap-4 sm:flex-row"
+                            className="flex flex-col gap-4 sm:flex-row"
                         >
                             <Button
                                 asChild
                                 size="lg"
                                 className="h-14 rounded-full bg-primary px-10 text-base font-bold shadow-lg shadow-primary/25 transition-all hover:scale-105 hover:bg-primary/90 active:scale-95"
                             >
-                                <Link href={register()}>
-                                    Mulai Sekarang
-                                    <ArrowRight className="ml-2 h-5 w-5" />
-                                </Link>
+                                <Link href="/login">Login</Link>
                             </Button>
                             <Button
                                 asChild
                                 size="lg"
                                 variant="outline"
-                                className="h-14 rounded-full border-gray-200 px-10 text-base font-semibold text-gray-600 hover:border-primary/30 hover:text-primary"
+                                className="h-14 rounded-full border-gray-200 bg-white/70 px-10 text-base font-semibold text-gray-600 backdrop-blur-sm hover:border-primary/30 hover:text-primary"
                             >
-                                <a href="/#marketing-plan">Lihat Marketing Plan</a>
+                                <Link href="/find-a-mentor">Find a Mentor</Link>
                             </Button>
                         </motion.div>
-                    )}
-
-                    {/* Trust indicators */}
-                    <motion.div
-                        initial="hidden"
-                        animate="visible"
-                        variants={fadeUp}
-                        transition={{ duration: 0.6, ease: easing, delay: 0.4 }}
-                        className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-gray-400"
-                    >
-                        {['Bonus transparan & real-time', 'Jaringan binary terstruktur', 'Support komunitas aktif'].map((item) => (
-                            <span key={item} className="flex items-center gap-1.5">
-                                <CheckCircle className="h-4 w-4 text-primary" />
-                                {item}
-                            </span>
-                        ))}
-                    </motion.div>
+                    </div>
                 </div>
-
-                {/* Hero Image */}
-                <motion.div
-                    initial="hidden"
-                    animate="visible"
-                    variants={scaleUp}
-                    transition={{ duration: 0.8, ease: easing, delay: 0.5 }}
-                    className="relative mx-auto mt-16 max-w-5xl px-4 md:px-6"
-                >
-                    <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-2xl shadow-gray-200/80">
-                        <div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50 px-4 py-3">
-                            <span className="h-3 w-3 rounded-full bg-red-400" />
-                            <span className="h-3 w-3 rounded-full bg-yellow-400" />
-                            <span className="h-3 w-3 rounded-full bg-green-400" />
-                            <div className="mx-auto flex items-center gap-2 rounded-full bg-white px-4 py-1 text-xs text-gray-400 border border-gray-200">
-                                <span className="h-2 w-2 rounded-full bg-primary/60" />
-                                growrich.id
-                            </div>
-                        </div>
-                        <img
-                            src={hero.image_url ?? defaultImage}
-                            alt="GrowRich Dashboard"
-                            className="w-full object-cover"
-                            style={{ maxHeight: '480px', objectPosition: 'top' }}
-                        />
-                    </div>
-
-                    {/* Floating stats cards */}
-                    <motion.div
-                        initial="hidden"
-                        animate="visible"
-                        variants={fadeLeft}
-                        transition={{ duration: 0.6, ease: easing, delay: 0.9 }}
-                        className="absolute -left-2 bottom-12 hidden rounded-2xl bg-white p-4 shadow-xl ring-1 ring-gray-100 md:flex items-center gap-3"
-                    >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                            <TrendingUp className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{hero.stats_label}</p>
-                            <p className="text-xl font-black text-gray-900">{hero.stats_value}</p>
-                        </div>
-                    </motion.div>
-
-                    <motion.div
-                        initial="hidden"
-                        animate="visible"
-                        variants={fadeRight}
-                        transition={{ duration: 0.6, ease: easing, delay: 0.9 }}
-                        className="absolute -right-2 bottom-12 hidden rounded-2xl bg-white p-4 shadow-xl ring-1 ring-gray-100 md:flex items-center gap-3"
-                    >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                            <DollarSign className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Bonus Dibayarkan</p>
-                            <p className="text-xl font-black text-gray-900">Rp 2M+</p>
-                        </div>
-                    </motion.div>
-                </motion.div>
-
-                {/* Stats bar */}
-                <motion.div
-                    {...inView}
-                    variants={stagger}
-                    className="mt-12 border-t border-gray-100 bg-gray-50/60"
-                >
-                    <div className="mx-auto max-w-5xl px-4 py-8 md:px-6">
-                        <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-                            {[
-                                { icon: <Users className="h-5 w-5" />, prefix: '', number: 1200, suffix: '+', label: 'Member Aktif' },
-                                { icon: <DollarSign className="h-5 w-5" />, prefix: 'Rp ', number: 2, suffix: 'M+', label: 'Total Bonus' },
-                                { icon: <Star className="h-5 w-5" />, prefix: '', number: 6, suffix: ' Tipe', label: 'Jenis Bonus' },
-                                { icon: <Zap className="h-5 w-5" />, prefix: '', number: 3, suffix: ' Paket', label: 'Pilihan Bergabung' },
-                            ].map((stat) => (
-                                <motion.div
-                                    key={stat.label}
-                                    variants={fadeUp}
-                                    className="flex items-center gap-3"
-                                >
-                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                        {stat.icon}
-                                    </div>
-                                    <div>
-                                        <p className="text-xl font-black text-gray-900">
-                                            {stat.prefix}
-                                            <NumberTicker value={stat.number} />
-                                            {stat.suffix}
-                                        </p>
-                                        <p className="text-xs text-gray-500">{stat.label}</p>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </div>
-                </motion.div>
             </section>
 
             {/* ── Features ─────────────────────────────────────────── */}
@@ -432,10 +364,10 @@ export default function Welcome({
                 <div className="relative mx-auto max-w-6xl px-4 md:px-6">
                     <SectionHeader
                         icon={<LucideIcons.Sparkles className="h-3.5 w-3.5" />}
-                        badge="Fitur Unggulan"
-                        title="Mengapa Memilih"
-                        highlight="GrowRich?"
-                        description="Platform lengkap yang dirancang untuk mempercepat pertumbuhan bisnis MLM Anda."
+                        badge={sections.features_badge || "Fitur Unggulan"}
+                        title={sections.features_title || "Mengapa Memilih"}
+                        highlight={sections.features_highlight || "GrowRich?"}
+                        description={sections.features_description || "Platform lengkap yang dirancang untuk mempercepat pertumbuhan bisnis MLM Anda."}
                     />
 
                     <motion.div
@@ -466,10 +398,10 @@ export default function Welcome({
                 <div className="mx-auto max-w-6xl px-4 md:px-6">
                     <SectionHeader
                         icon={<LucideIcons.Package className="h-3.5 w-3.5" />}
-                        badge="Paket Bergabung"
-                        title="Pilih Paket"
-                        highlight="Terbaik Anda"
-                        description="Mulai perjalanan bisnis Anda dengan paket yang sesuai. Upgrade kapan saja seiring pertumbuhan jaringan Anda."
+                        badge={sections.packages_badge || "Paket Bergabung"}
+                        title={sections.packages_title || "Pilih Paket"}
+                        highlight={sections.packages_highlight || "Terbaik Anda"}
+                        description={sections.packages_description || "Mulai perjalanan bisnis Anda dengan paket yang sesuai. Upgrade kapan saja seiring pertumbuhan jaringan Anda."}
                     />
 
                     <motion.div
@@ -534,23 +466,15 @@ export default function Welcome({
                                         ))}
                                     </ul>
 
-                                    {canRegister ? (
-                                        <Link
-                                            href={register()}
-                                            className={`flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
-                                                pkg.is_popular
-                                                    ? 'bg-primary text-white shadow-lg shadow-primary/25 hover:bg-primary/90'
-                                                    : 'border-2 border-gray-200 text-gray-700 hover:border-primary/40 hover:text-primary'
+                                    <Link
+                                        href="/login"
+                                        className={`flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${pkg.is_popular
+                                            ? 'bg-primary text-white shadow-lg shadow-primary/25 hover:bg-primary/90'
+                                            : 'border-2 border-gray-200 text-gray-700 hover:border-primary/40 hover:text-primary'
                                             }`}
-                                        >
-                                            Daftar Paket {pkg.name}
-                                            <ArrowRight className="h-4 w-4" />
-                                        </Link>
-                                    ) : (
-                                        <div className={`flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold ${pkg.is_popular ? 'bg-primary/10 text-primary' : 'bg-gray-50 text-gray-400'}`}>
-                                            Registrasi Ditutup
-                                        </div>
-                                    )}
+                                    >
+                                        Login untuk Bergabung
+                                    </Link>
                                 </motion.div>
                             );
                         })}
@@ -574,10 +498,10 @@ export default function Welcome({
                 <div className="relative mx-auto max-w-6xl px-4 md:px-6">
                     <SectionHeader
                         icon={<LucideIcons.BarChart3 className="h-3.5 w-3.5" />}
-                        badge="Marketing Plan"
-                        title="6 Jenis"
-                        highlight="Bonus Menggiurkan"
-                        description="Sistem jaringan binary dengan 6 jalur bonus transparan yang mengalir setiap hari dan setiap bulan."
+                        badge={sections.marketing_badge || "Marketing Plan"}
+                        title={sections.marketing_title || "6 Jenis"}
+                        highlight={sections.marketing_highlight || "Bonus Menggiurkan"}
+                        description={sections.marketing_description || "Sistem jaringan binary dengan 6 jalur bonus transparan yang mengalir setiap hari dan setiap bulan."}
                     />
 
                     {/* Daily Bonuses */}
@@ -590,62 +514,17 @@ export default function Welcome({
                             <div className="h-px flex-1 bg-gray-200" />
                         </motion.div>
                         <motion.div variants={staggerSlow} className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                            {[
-                                {
-                                    icon: <LucideIcons.UserPlus className="h-6 w-6" />,
-                                    iconColor: 'bg-primary/10 text-primary',
-                                    title: 'Bonus Sponsor',
-                                    tag: 'Instan',
-                                    tagColor: 'bg-primary/10 text-primary',
-                                    description: 'Diterima langsung saat berhasil merekrut member baru ke jaringan Anda.',
-                                    details: [
-                                        { label: 'Silver × Siapapun', value: 'Rp 200.000' },
-                                        { label: 'Gold × Gold/Platinum', value: 'Rp 400.000' },
-                                        { label: 'Platinum × Platinum', value: 'Rp 600.000' },
-                                    ],
-                                },
-                                {
-                                    icon: <LucideIcons.GitBranch className="h-6 w-6" />,
-                                    iconColor: 'bg-emerald-50 text-emerald-600',
-                                    title: 'Bonus Pairing',
-                                    tag: 'Setiap Hari',
-                                    tagColor: 'bg-emerald-50 text-emerald-600',
-                                    description: 'Rp 100.000 per pasang dari pencocokan jaringan binary kiri & kanan.',
-                                    details: [
-                                        { label: 'Silver', value: 'Maks. 10 pasang/hari' },
-                                        { label: 'Gold', value: 'Maks. 20 pasang/hari' },
-                                        { label: 'Platinum', value: 'Maks. 30 pasang/hari' },
-                                    ],
-                                },
-                                {
-                                    icon: <LucideIcons.Share2 className="h-6 w-6" />,
-                                    iconColor: 'bg-violet-50 text-violet-600',
-                                    title: 'Bonus Matching',
-                                    tag: 'Setiap Hari',
-                                    tagColor: 'bg-violet-50 text-violet-600',
-                                    description: 'Persentase dari pairing bonus downline hingga 10 generasi ke bawah.',
-                                    details: [
-                                        { label: 'Generasi 1–4', value: '15%' },
-                                        { label: 'Generasi 5–6', value: '10%' },
-                                        { label: 'Generasi 7–10', value: '5%' },
-                                    ],
-                                },
-                                {
-                                    icon: <LucideIcons.Layers className="h-6 w-6" />,
-                                    iconColor: 'bg-amber-50 text-amber-600',
-                                    title: 'Bonus Leveling',
-                                    tag: 'Setiap Hari',
-                                    tagColor: 'bg-amber-50 text-amber-600',
-                                    description: 'Berdasarkan kombinasi paket kiri & kanan direct downline Anda.',
-                                    details: [
-                                        { label: 'Silver + Silver', value: 'Rp 250.000' },
-                                        { label: 'Gold + Gold', value: 'Rp 500.000' },
-                                        { label: 'Platinum + Platinum', value: 'Rp 750.000' },
-                                    ],
-                                },
-                            ].map((card) => (
-                                <motion.div key={card.title} variants={fadeUp}>
-                                    <BonusCard {...card} />
+                            {marketingBonuses.filter(b => b.category === 'daily').map((bonus) => (
+                                <motion.div key={bonus.id} variants={fadeUp}>
+                                    <BonusCard
+                                        icon={<DynamicIcon name={bonus.icon} className="h-6 w-6" />}
+                                        iconColor={bonus.icon_color || 'bg-primary/10 text-primary'}
+                                        title={bonus.title}
+                                        tag={bonus.tag || ''}
+                                        tagColor={bonus.tag_color || 'bg-primary/10 text-primary'}
+                                        description={bonus.description}
+                                        details={bonus.details || []}
+                                    />
                                 </motion.div>
                             ))}
                         </motion.div>
@@ -661,36 +540,17 @@ export default function Welcome({
                             <div className="h-px flex-1 bg-gray-200" />
                         </motion.div>
                         <motion.div variants={staggerSlow} className="grid gap-4 md:grid-cols-2">
-                            {[
-                                {
-                                    icon: <LucideIcons.RefreshCw className="h-6 w-6" />,
-                                    iconColor: 'bg-sky-50 text-sky-600',
-                                    title: 'Bonus Repeat Order',
-                                    tag: 'Per Bulan',
-                                    tagColor: 'bg-sky-50 text-sky-600',
-                                    description: '5% dari total omset Repeat Order downline G1–G7 dalam satu bulan.',
-                                    details: [
-                                        { label: 'Syarat Pribadi', value: 'RO ≥ Rp 1 jt/bulan' },
-                                        { label: 'Komisi Downline', value: '5% dari total RO' },
-                                        { label: 'Jangkauan', value: 'Generasi 1–7' },
-                                    ],
-                                },
-                                {
-                                    icon: <LucideIcons.Globe className="h-6 w-6" />,
-                                    iconColor: 'bg-rose-50 text-rose-600',
-                                    title: 'Bonus Global Sharing',
-                                    tag: 'Per Bulan',
-                                    tagColor: 'bg-rose-50 text-rose-600',
-                                    description: 'Bagian dari pool omset nasional yang dibagi rata ke seluruh member per level karir.',
-                                    details: [
-                                        { label: 'Syarat Pribadi', value: 'RO ≥ Rp 1 jt/bulan' },
-                                        { label: 'Sumber Pool', value: 'Omset RO Nasional' },
-                                        { label: 'Share per Level', value: '1% – 3%' },
-                                    ],
-                                },
-                            ].map((card) => (
-                                <motion.div key={card.title} variants={fadeUp}>
-                                    <BonusCard {...card} />
+                            {marketingBonuses.filter(b => b.category === 'monthly').map((bonus) => (
+                                <motion.div key={bonus.id} variants={fadeUp}>
+                                    <BonusCard
+                                        icon={<DynamicIcon name={bonus.icon} className="h-6 w-6" />}
+                                        iconColor={bonus.icon_color || 'bg-sky-50 text-sky-600'}
+                                        title={bonus.title}
+                                        tag={bonus.tag || ''}
+                                        tagColor={bonus.tag_color || 'bg-sky-50 text-sky-600'}
+                                        description={bonus.description}
+                                        details={bonus.details || []}
+                                    />
                                 </motion.div>
                             ))}
                         </motion.div>
@@ -700,10 +560,10 @@ export default function Welcome({
                     <motion.div {...inView} variants={stagger}>
                         <motion.div variants={fadeUp} className="mb-8 text-center space-y-3">
                             <h3 className="text-2xl font-bold text-gray-900">
-                                Jalur Karir & <span className="text-primary">Global Sharing</span>
+                                {sections.career_title || "Jalur Karir"} & <span className="text-primary">{sections.career_highlight || "Global Sharing"}</span>
                             </h3>
                             <p className="text-sm text-gray-500">
-                                Level karir naik otomatis saat syarat Pairing Point terpenuhi pada kedua kaki jaringan Anda.
+                                {sections.career_description || "Level karir naik otomatis saat syarat Pairing Point terpenuhi pada kedua kaki jaringan Anda."}
                             </p>
                         </motion.div>
 
@@ -716,28 +576,28 @@ export default function Welcome({
                                 <span className="text-center">Min. PP (Leg Terkecil)</span>
                                 <span className="text-right">Global Sharing</span>
                             </div>
-                            {[
-                                { level: 'Member', pp: '—', share: '0%', color: 'text-gray-400', dot: 'bg-gray-300' },
-                                { level: 'Core Loader', pp: '25 PP', share: '1%', color: 'text-blue-600', dot: 'bg-blue-400' },
-                                { level: 'Sapphire Manager', pp: '100 PP', share: '1%', color: 'text-cyan-600', dot: 'bg-cyan-400' },
-                                { level: 'Ruby Manager', pp: '500 PP', share: '1%', color: 'text-rose-600', dot: 'bg-rose-400' },
-                                { level: 'Emerald Manager', pp: '1.000 PP', share: '1.5%', color: 'text-emerald-600', dot: 'bg-emerald-400' },
-                                { level: 'Diamond Manager', pp: '5.000 PP', share: '2%', color: 'text-violet-600', dot: 'bg-violet-400' },
-                                { level: 'Blue Diamond Manager', pp: '10.000 PP', share: '2.5%', color: 'text-indigo-600', dot: 'bg-indigo-400' },
-                                { level: 'Elite Team Global', pp: '25.000 PP', share: '3%', color: 'text-amber-600', dot: 'bg-amber-400' },
-                            ].map((row, i) => (
-                                <div
-                                    key={row.level}
-                                    className={`grid grid-cols-3 items-center border-t border-gray-50 px-6 py-3.5 text-sm ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}
-                                >
-                                    <span className="flex items-center gap-2 font-semibold">
-                                        <span className={`h-2 w-2 rounded-full ${row.dot}`} />
-                                        <span className={row.color}>{row.level}</span>
-                                    </span>
-                                    <span className="text-center text-gray-600">{row.pp}</span>
-                                    <span className={`text-right font-bold ${row.share === '0%' ? 'text-gray-400' : row.color}`}>{row.share}</span>
-                                </div>
-                            ))}
+                            {careerLevels.map((row, i) => {
+                                const dotColor = (careerDotColors as any)[row.value] || 'bg-gray-300';
+                                const textColor = (careerTextColors as any)[row.value] || 'text-gray-500';
+
+                                return (
+                                    <div
+                                        key={row.value}
+                                        className={`grid grid-cols-3 items-center border-t border-gray-50 px-6 py-3.5 text-sm ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}
+                                    >
+                                        <span className="flex items-center gap-2 font-semibold">
+                                            <span className={`h-2 w-2 rounded-full ${dotColor}`} />
+                                            <span className={textColor}>{row.label}</span>
+                                        </span>
+                                        <span className="text-center text-gray-600">
+                                            {row.required_pp === 0 ? '—' : `${row.required_pp.toLocaleString('id')} PP`}
+                                        </span>
+                                        <span className={`text-right font-bold ${row.global_share_percent === 0 ? 'text-gray-400' : textColor}`}>
+                                            {row.global_share_percent === 0 ? '0%' : `${row.global_share_percent}%`}
+                                        </span>
+                                    </div>
+                                );
+                            })}
                         </motion.div>
 
                         <motion.p
@@ -757,10 +617,10 @@ export default function Welcome({
                 <div className="relative mx-auto max-w-5xl px-4 md:px-6">
                     <SectionHeader
                         icon={<LucideIcons.MapPin className="h-3.5 w-3.5" />}
-                        badge="Cara Bergabung"
-                        title="Mulai dalam"
-                        highlight="4 Langkah"
-                        description="Proses bergabung yang mudah dan cepat. Dalam hitungan menit, akun Anda sudah aktif dan siap membangun jaringan."
+                        badge={sections.steps_badge || "Cara Bergabung"}
+                        title={sections.steps_title || "Mulai dalam"}
+                        highlight={sections.steps_highlight || "4 Langkah"}
+                        description={sections.steps_description || "Proses bergabung yang mudah dan cepat. Dalam hitungan menit, akun Anda sudah aktif dan siap membangun jaringan."}
                     />
 
                     <div className="relative">
@@ -793,21 +653,6 @@ export default function Welcome({
                         </motion.div>
                     </div>
 
-                    {canRegister && (
-                        <motion.div
-                            {...inView}
-                            variants={fadeUp}
-                            className="mt-14 text-center"
-                        >
-                            <Link
-                                href={register()}
-                                className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/25 transition-all hover:scale-105 hover:bg-primary/90 active:scale-95"
-                            >
-                                Mulai Sekarang — Gratis
-                                <ArrowRight className="h-4 w-4" />
-                            </Link>
-                        </motion.div>
-                    )}
                 </div>
             </section>
 
@@ -874,9 +719,9 @@ export default function Welcome({
                             className="mt-10 text-center text-sm text-gray-400"
                         >
                             Masih ada pertanyaan?{' '}
-                            <a href="/#contact" className="font-semibold text-primary hover:underline">
+                            <Link href="/contact" className="font-semibold text-primary hover:underline">
                                 Hubungi kami
-                            </a>
+                            </Link>
                         </motion.p>
                     </div>
                 </section>

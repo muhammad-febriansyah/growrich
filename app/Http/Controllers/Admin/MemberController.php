@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
-use App\Models\User;
 use App\Enums\Mlm\UserRole;
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 
@@ -38,6 +37,7 @@ class MemberController extends Controller
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
                     ->orWhere('email', 'like', "%{$request->search}%")
+                    ->orWhere('member_id', 'like', "%{$request->search}%")
                     ->orWhere('referral_code', 'like', "%{$request->search}%");
             });
         }
@@ -64,6 +64,7 @@ class MemberController extends Controller
     public function edit(User $user)
     {
         $user->load('memberProfile');
+
         return Inertia::render('admin/members/edit', [
             'member' => $user,
         ]);

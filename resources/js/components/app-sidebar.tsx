@@ -21,6 +21,8 @@ import {
     ArrowUpCircle,
     Trophy,
     Star,
+    Database,
+    Banknote,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -50,7 +52,9 @@ export const adminNavGroups: NavGroup[] = [
         items: [
             { title: 'Manajemen Member', href: '/admin/members', icon: Users },
             { title: 'Registration PIN', href: '/admin/pins', icon: Key },
+            { title: 'Order PIN', href: '/admin/pin-orders', icon: ShoppingCart },
             { title: 'Manajemen Paket', href: '/admin/packages', icon: Package },
+            { title: 'Manajemen Bank', href: '/admin/banks', icon: Banknote },
         ],
     },
     {
@@ -58,7 +62,7 @@ export const adminNavGroups: NavGroup[] = [
         items: [
             { title: 'Riwayat Bonus', href: '/admin/bonuses', icon: DollarSign },
             { title: 'Penarikan Dana', href: '/admin/withdrawals', icon: Wallet },
-            { title: 'Manajemen RO', href: '/admin/repeat-orders', icon: ShoppingCart },
+            { title: 'Transaksi RO', href: '/admin/repeat-orders', icon: ShoppingCart },
         ],
     },
     {
@@ -77,6 +81,8 @@ export const adminNavGroups: NavGroup[] = [
             { title: 'Manajemen Admin', href: '/admin/users', icon: Users },
             { title: 'Manajemen FAQ', href: '/admin/faqs', icon: HelpCircle },
             { title: 'Reseller Program', href: '/admin/reseller-program', icon: LayoutGrid },
+            { title: 'Marketing Bonus', href: '/admin/marketing-bonuses', icon: Star },
+            { title: 'Jenjang Karir', href: '/admin/career-levels', icon: Trophy },
             { title: 'Fitur Unggulan', href: '/admin/features', icon: Star },
         ],
     },
@@ -92,6 +98,7 @@ export const adminNavGroups: NavGroup[] = [
         label: 'Konfigurasi',
         items: [
             { title: 'Pengaturan Situs', href: '/admin/settings', icon: Settings },
+            { title: 'Backup Database', href: '/admin/database-backups', icon: Database },
         ],
     },
 ];
@@ -101,14 +108,15 @@ export const memberNavGroups: NavGroup[] = [
         label: 'Utama',
         items: [
             { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
-            { title: 'Profil Saya', href: '/member/profile', icon: UserIcon },
+            { title: 'Profil', href: '/member/profile', icon: UserIcon },
         ],
     },
     {
-        label: 'Jaringan MLM',
+        label: 'Jaringan',
         items: [
-            { title: 'PIN Saya', href: '/member/pins', icon: Key },
-            { title: 'Jaringan Saya', href: '/member/network', icon: Network },
+            { title: 'Order PIN', href: '/member/pin-orders', icon: ShoppingCart },
+            { title: 'Stok PIN', href: '/member/pins', icon: Key },
+            { title: 'Diagram Jaringan', href: '/member/network', icon: Network },
             { title: 'Registrasi Member', href: '/member/register', icon: UserPlus },
         ],
     },
@@ -121,7 +129,7 @@ export const memberNavGroups: NavGroup[] = [
         ],
     },
     {
-        label: 'Keuangan',
+        label: 'Bonus Statement',
         items: [
             { title: 'Riwayat Bonus', href: '/member/bonuses', icon: DollarSign },
             { title: 'Wallet & Withdraw', href: '/member/wallet', icon: Wallet },

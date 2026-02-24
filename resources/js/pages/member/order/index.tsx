@@ -1,6 +1,6 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ColumnDef } from '@tanstack/react-table';
-import { Package, Plus, ShoppingBag, ShoppingCart } from 'lucide-react';
+import { Banknote, CreditCard, Eye, Package, Plus, ShoppingBag, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,9 @@ interface Order {
         quantity: number;
         unit_price: number;
     }[];
+    payment_method: string | null;
+    payment_receipt: string | null;
+    paid_at: string | null;
 }
 
 interface Props {
@@ -51,6 +54,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function OrderIndex({ products, orders }: Props) {
     const [cart, setCart] = useState<{ product_id: number; quantity: number }[]>([]);
+    const [paymentMethod, setPaymentMethod] = useState<'manual_transfer' | 'duitku'>('manual_transfer');
 
     const { post, processing } = useForm({
         items: [] as { product_id: number; quantity: number }[],
@@ -93,13 +97,44 @@ export default function OrderIndex({ products, orders }: Props) {
             accessorKey: 'status',
             header: 'Status',
             cell: ({ row }) => (
-                <Badge variant={
-                    row.original.status === 'completed' ? 'default' :
-                        row.original.status === 'pending' ? 'secondary' : 'destructive'
-                }>
-                    {row.original.status === 'completed' ? 'Selesai' :
-                        row.original.status === 'pending' ? 'Diproses' : 'Dibatalkan'}
-                </Badge>
+                <div className="flex flex-col gap-1">
+                    <Badge variant={
+                        row.original.status === 'completed' ? 'default' :
+                            row.original.status === 'paid' ? 'outline' :
+                                row.original.status === 'pending' ? 'secondary' : 'destructive'
+                    } className={row.original.status === 'paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : ''}>
+                        {row.original.status === 'completed' ? 'Selesai' :
+                            row.original.status === 'paid' ? 'Sudah Bayar' :
+                                row.original.status === 'pending' ? 'Diproses' : 'Dibatalkan'}
+                    </Badge>
+                    {row.original.payment_receipt && (
+                        <div className="mt-1">
+                            <a
+                                href={`/storage/${row.original.payment_receipt}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                            >
+                                <Package className="h-3 w-3" />
+                                Lihat Bukti
+                            </a>
+                        </div>
+                    )}
+                </div>
+            ),
+        },
+        {
+            id: 'actions',
+            header: 'Aksi',
+            cell: ({ row }) => (
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" asChild className="h-8">
+                        <Link href={`/member/ro/${row.original.id}`}>
+                            <Eye className="h-3.5 w-3.5 mr-1" />
+                            Detail
+                        </Link>
+                    </Button>
+                </div>
             ),
         },
     ];
@@ -124,7 +159,10 @@ export default function OrderIndex({ products, orders }: Props) {
 
     const submitOrder = () => {
         if (cart.length === 0) return;
-        router.post('/member/ro', { items: cart }, {
+        router.post('/member/ro', {
+            items: cart,
+            payment_method: paymentMethod,
+        }, {
             onSuccess: () => setCart([]),
         });
     };
@@ -253,8 +291,44 @@ export default function OrderIndex({ products, orders }: Props) {
                                             <span>Total Estimasi</span>
                                             <span className="text-primary text-lg">Rp {new Intl.NumberFormat('id-ID').format(calculateTotal())}</span>
                                         </div>
-                                        <Button className="w-full h-11 font-bold" onClick={submitOrder} disabled={processing}>
-                                            <ShoppingBag className="mr-2 h-4 w-4" /> Proses Pesanan
+
+                                        <div className="space-y-4 pt-4 border-t">
+                                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Metode Pembayaran</p>
+                                            <div className="grid grid-cols-1 gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPaymentMethod('manual_transfer')}
+                                                    className={`flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all ${paymentMethod === 'manual_transfer'
+                                                        ? 'border-primary bg-primary/5'
+                                                        : 'border-muted hover:border-primary/30'
+                                                        }`}
+                                                >
+                                                    <Banknote className="h-5 w-5 shrink-0 text-emerald-600" />
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-bold leading-none">Transfer Manual</p>
+                                                        <p className="text-[10px] text-muted-foreground mt-1 leading-tight">Konfirmasi admin</p>
+                                                    </div>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPaymentMethod('duitku')}
+                                                    className={`flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all ${paymentMethod === 'duitku'
+                                                        ? 'border-primary bg-primary/5'
+                                                        : 'border-muted hover:border-primary/30'
+                                                        }`}
+                                                >
+                                                    <CreditCard className="h-5 w-5 shrink-0 text-blue-500" />
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-bold leading-none">Duitku (Otomatis)</p>
+                                                        <p className="text-[10px] text-muted-foreground mt-1 leading-tight">QRIS, VA, E-Wallet</p>
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <Button className="w-full h-11 font-bold mt-2" onClick={submitOrder} disabled={processing}>
+                                            <ShoppingBag className="mr-2 h-4 w-4" />
+                                            {paymentMethod === 'duitku' ? 'Bayar Sekarang' : 'Buat Pesanan'}
                                         </Button>
                                     </div>
                                 )}

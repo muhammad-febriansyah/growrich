@@ -54,6 +54,8 @@ class SiteSettingController extends Controller
             'nocaptcha_sitekey' => 'nullable|string|max:255',
             'nocaptcha_secret' => 'nullable|string|max:255',
             'contact_address' => 'nullable|string',
+            'google_maps_url' => 'nullable|string|max:500',
+            'google_maps_embed' => 'nullable|string',
             // Social Media
             'social_facebook' => 'nullable|url|max:255',
             'social_instagram' => 'nullable|url|max:255',
@@ -75,8 +77,42 @@ class SiteSettingController extends Controller
             'hero_image' => 'nullable|image|max:4096',
             'hero_stats_value' => 'nullable|string|max:50',
             'hero_stats_label' => 'nullable|string|max:100',
+            'hero_title_suffix' => 'nullable|string|max:255',
+
+            // Features Section
+            'features_section_badge' => 'nullable|string|max:255',
+            'features_section_title' => 'nullable|string|max:255',
+            'features_section_highlight' => 'nullable|string|max:255',
+            'features_section_description' => 'nullable|string',
+
+            // Packages Section
+            'packages_section_badge' => 'nullable|string|max:255',
+            'packages_section_title' => 'nullable|string|max:255',
+            'packages_section_highlight' => 'nullable|string|max:255',
+            'packages_section_description' => 'nullable|string',
+
+            // Marketing Section
+            'marketing_section_badge' => 'nullable|string|max:255',
+            'marketing_section_title' => 'nullable|string|max:255',
+            'marketing_section_highlight' => 'nullable|string|max:255',
+            'marketing_section_description' => 'nullable|string',
+
+            // Career Section
+            'career_section_title' => 'nullable|string|max:255',
+            'career_section_highlight' => 'nullable|string|max:255',
+            'career_section_description' => 'nullable|string',
+
+            // Steps Section
+            'steps_section_badge' => 'nullable|string|max:255',
+            'steps_section_title' => 'nullable|string|max:255',
+            'steps_section_highlight' => 'nullable|string|max:255',
+            'steps_section_description' => 'nullable|string',
             // Bonus
             'pairing_bonus_amount' => 'nullable|integer|min:0',
+            // Bank Transfer
+            'bank_name' => 'nullable|string|max:255',
+            'bank_account_number' => 'nullable|string|max:50',
+            'bank_account_name' => 'nullable|string|max:255',
         ]);
 
         foreach (['logo', 'favicon', 'hero_image'] as $fileKey) {
