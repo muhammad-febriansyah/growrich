@@ -85,6 +85,14 @@ class Package extends Model
     // ── Business logic ─────────────────────────────────────────────────────────
 
     /**
+     * Total alokasi sponsor bonus untuk paket ini: sort_order × sponsor_bonus_unit
+     */
+    public function sponsorAlokasi(): int
+    {
+        return $this->sort_order * $this->sponsor_bonus_unit;
+    }
+
+    /**
      * Sponsor bonus: min(sponsor level, new member level) × sponsor_bonus_unit
      * Matrix (sponsor \ new member):
      *   Silver×Any      = Rp 200.000

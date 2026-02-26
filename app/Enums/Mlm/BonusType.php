@@ -5,6 +5,7 @@ namespace App\Enums\Mlm;
 enum BonusType: string
 {
     case Sponsor = 'Sponsor';
+    case PassUpSponsor = 'PassUpSponsor';
     case Pairing = 'Pairing';
     case Matching = 'Matching';
     case Leveling = 'Leveling';
@@ -15,6 +16,7 @@ enum BonusType: string
     {
         return match ($this) {
             self::Sponsor => 'Sponsor Bonus',
+            self::PassUpSponsor => 'Pass Up Sponsor Bonus',
             self::Pairing => 'Pairing Bonus',
             self::Matching => 'Matching Bonus',
             self::Leveling => 'Leveling Bonus',
@@ -25,7 +27,7 @@ enum BonusType: string
 
     public function isDaily(): bool
     {
-        return in_array($this, [self::Pairing, self::Matching, self::Leveling]);
+        return in_array($this, [self::Sponsor, self::PassUpSponsor, self::Pairing, self::Matching, self::Leveling]);
     }
 
     public function isMonthly(): bool

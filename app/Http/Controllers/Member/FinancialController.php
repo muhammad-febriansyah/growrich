@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Member;
 
+use App\Enums\Mlm\BonusType;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendWithdrawalSubmittedEmail;
 use App\Models\Bonus;
@@ -25,18 +26,94 @@ class FinancialController extends Controller
         ]);
     }
 
-    public function bonuses()
+    public function bonuses(Request $request)
     {
         $profile = auth()->user()->memberProfile;
 
-        $bonuses = $profile
-            ? Bonus::where('member_profile_id', $profile->id)
-                ->orderBy('created_at', 'desc')
-                ->paginate(15)
-            : Bonus::where('member_profile_id', 0)->paginate(15);
+        $dailyTypes = [
+            BonusType::Sponsor->value,
+            BonusType::PassUpSponsor->value,
+            BonusType::Pairing->value,
+            BonusType::Matching->value,
+            BonusType::Leveling->value,
+        ];
+
+        $monthlyTypes = [
+            BonusType::RepeatOrder->value,
+            BonusType::GlobalSharing->value,
+        ];
+
+        if (! $profile) {
+            return Inertia::render('member/financial/bonuses', [
+                'dailyBonuses' => [],
+                'monthlyBonuses' => [],
+                'dailyTotal' => 0,
+                'monthlyTotal' => 0,
+                'dailyFilteredTotal' => null,
+                'monthlyFilteredTotal' => null,
+                'filters' => [],
+            ]);
+        }
+
+        $dailyQuery = Bonus::where('member_profile_id', $profile->id)
+            ->whereIn('bonus_type', $dailyTypes);
+
+        if ($request->tanggal) {
+            $dailyQuery->whereDate('bonus_date', $request->tanggal);
+        }
+
+        $dailyBonuses = $dailyQuery->orderBy('bonus_date', 'desc')
+            ->paginate(15, ['*'], 'daily_page')
+            ->withQueryString();
+
+        $monthlyQuery = Bonus::where('member_profile_id', $profile->id)
+            ->whereIn('bonus_type', $monthlyTypes);
+
+        if ($request->bulan) {
+            [$year, $month] = explode('-', $request->bulan);
+            $monthlyQuery->where('period_year', $year)->where('period_month', (int) $month);
+        }
+
+        $monthlyBonuses = $monthlyQuery->orderByDesc('period_year')->orderByDesc('period_month')
+            ->paginate(15, ['*'], 'monthly_page')
+            ->withQueryString();
+
+        $dailyTotal = Bonus::where('member_profile_id', $profile->id)
+            ->whereIn('bonus_type', $dailyTypes)
+            ->whereDate('bonus_date', now()->toDateString())
+            ->sum('amount');
+
+        $monthlyTotal = Bonus::where('member_profile_id', $profile->id)
+            ->whereIn('bonus_type', $monthlyTypes)
+            ->where('period_year', now()->year)
+            ->where('period_month', now()->month)
+            ->sum('amount');
+
+        $dailyFilteredTotal = $request->tanggal
+            ? (int) Bonus::where('member_profile_id', $profile->id)
+                ->whereIn('bonus_type', $dailyTypes)
+                ->whereDate('bonus_date', $request->tanggal)
+                ->sum('amount')
+            : null;
+
+        $monthlyFilteredTotal = null;
+        if ($request->bulan) {
+            [$yearF, $monthF] = explode('-', $request->bulan);
+            $monthlyFilteredTotal = (int) Bonus::where('member_profile_id', $profile->id)
+                ->whereIn('bonus_type', $monthlyTypes)
+                ->where('period_year', $yearF)
+                ->where('period_month', (int) $monthF)
+                ->sum('amount');
+        }
 
         return Inertia::render('member/financial/bonuses', [
-            'bonuses' => $bonuses,
+            'dailyBonuses' => $dailyBonuses,
+            'monthlyBonuses' => $monthlyBonuses,
+            'dailyTotal' => (int) $dailyTotal,
+            'monthlyTotal' => (int) $monthlyTotal,
+            'dailyFilteredTotal' => $dailyFilteredTotal,
+            'monthlyFilteredTotal' => $monthlyFilteredTotal,
+            'filters' => $request->only(['tanggal', 'bulan']),
         ]);
     }
 

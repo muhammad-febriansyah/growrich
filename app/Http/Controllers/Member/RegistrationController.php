@@ -47,8 +47,10 @@ class RegistrationController extends Controller
         $newUser = null;
         $newProfile = null;
         $sponsorBonus = null;
+        $passUpRecipient = null;
+        $passUpBonus = null;
 
-        DB::transaction(function () use ($request, $sponsor, $pin, &$newUser, &$newProfile, &$sponsorBonus) {
+        DB::transaction(function () use ($request, $sponsor, $pin, &$newUser, &$newProfile, &$sponsorBonus, &$passUpRecipient, &$passUpBonus) {
             $sponsorProfile = $sponsor->memberProfile;
 
             if (! $sponsorProfile) {
@@ -156,7 +158,39 @@ class RegistrationController extends Controller
                 'meta' => ['new_member_id' => $newUser->id, 'new_member_package' => $newMemberPackage->value, 'sponsor_package' => $sponsorPackage->value],
             ]);
 
-            // 7. Propagate Pairing Points up the tree
+            // 7. Pass Up Sponsor Bonus
+            $alokasi = $newMemberPackage->sponsorAlokasi();
+            $sisa = $alokasi - $bonusAmount;
+
+            if ($sisa > 0) {
+                $passUpRecipient = $this->findPassUpRecipient($sponsor, $sponsorPackage);
+
+                if ($passUpRecipient) {
+                    $passUpProfile = $passUpRecipient->memberProfile;
+                    $passUpEwallet = (int) ($sisa * 0.2);
+                    $passUpCash = $sisa - $passUpEwallet;
+
+                    $passUpBonus = Bonus::create([
+                        'member_profile_id' => $passUpProfile->id,
+                        'bonus_type' => BonusType::PassUpSponsor->value,
+                        'amount' => $sisa,
+                        'ewallet_amount' => $passUpEwallet,
+                        'cash_amount' => $passUpCash,
+                        'status' => BonusStatus::Pending->value,
+                        'bonus_date' => now()->toDateString(),
+                        'period_month' => (int) now()->format('n'),
+                        'period_year' => (int) now()->format('Y'),
+                        'meta' => [
+                            'new_member_id' => $newUser->id,
+                            'new_member_package' => $newMemberPackage->value,
+                            'sponsor_id' => $sponsor->id,
+                            'sponsor_package' => $sponsorPackage->value,
+                        ],
+                    ]);
+                }
+            }
+
+            // 8. Propagate Pairing Points up the tree
             $this->propagatePairingPoints($newProfile, $newMemberPackage);
         });
 
@@ -164,6 +198,10 @@ class RegistrationController extends Controller
         Mail::to($newUser->email)->queue(new WelcomeNewMember($newUser, $newProfile));
         Mail::to($sponsor->email)->queue(new SponsorNewMemberRegistered($sponsor, $newUser, $pin->package_type->value));
         Mail::to($sponsor->email)->queue(new BonusAvailable($sponsor, $sponsorBonus));
+
+        if ($passUpRecipient && $passUpBonus) {
+            Mail::to($passUpRecipient->email)->queue(new BonusAvailable($passUpRecipient, $passUpBonus));
+        }
 
         return redirect()->route('member.network.index')
             ->with('success', 'Member baru berhasil didaftarkan.');
@@ -209,6 +247,39 @@ class RegistrationController extends Controller
 
             $current = $parent;
         }
+    }
+
+    /**
+     * Walk up the sponsor chain and return the first upline whose package sort_order
+     * is strictly greater than the sponsor's package sort_order.
+     * Uplines without a memberProfile (admin, etc.) are skipped.
+     */
+    private function findPassUpRecipient(User $sponsor, PackageType $sponsorPackage): ?User
+    {
+        $sponsorSortOrder = \App\Models\Package::findByKey($sponsorPackage->value)->sort_order;
+        $current = $sponsor;
+
+        while ($current->sponsor_id) {
+            $upline = User::find($current->sponsor_id);
+
+            if (! $upline) {
+                break;
+            }
+
+            $uplineProfile = $upline->memberProfile;
+
+            if ($uplineProfile) {
+                $uplineSortOrder = \App\Models\Package::findByKey($uplineProfile->package_type->value)->sort_order;
+
+                if ($uplineSortOrder > $sponsorSortOrder) {
+                    return $upline;
+                }
+            }
+
+            $current = $upline;
+        }
+
+        return null;
     }
 
     /**

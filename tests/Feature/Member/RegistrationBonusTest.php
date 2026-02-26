@@ -11,6 +11,8 @@ use App\Models\PairingPointLedger;
 use App\Models\RegistrationPin;
 use App\Models\User;
 use App\Models\Wallet;
+use Database\Seeders\PackageSeeder;
+use Database\Seeders\SiteSettingSeeder;
 use Illuminate\Support\Facades\Mail;
 
 use function Pest\Laravel\actingAs;
@@ -22,21 +24,41 @@ function makeBonusPin(PackageType $package = PackageType::Silver, ?int $assigned
     return RegistrationPin::factory()->forPackage($package)->create(['assigned_to' => $assignedTo]);
 }
 
-function bonusRegisterPayload(RegistrationPin $pin, string $leg = 'left'): array
+function bonusRegisterPayload(RegistrationPin $pin, string $leg = 'left', string $email = 'newbonus@member.test'): array
 {
     return [
         'pin_code' => $pin->pin_code,
         'name' => 'New Bonus Member',
-        'email' => 'newbonus@member.test',
+        'email' => $email,
+        'phone' => '081234567890',
         'password' => 'password123',
         'password_confirmation' => 'password123',
         'leg_position' => $leg,
+        'birth_date' => '1990-01-01',
+        'birth_place' => 'Jakarta',
+        'gender' => 'Laki-laki',
+        'marital_status' => 'Belum Menikah',
+        'nationality' => 'Indonesia',
+        'id_number' => '3201010101900001',
+        'address' => 'Jl. Test No. 1',
+        'province' => 'Jawa Barat',
+        'city' => 'Bandung',
+        'district' => 'Coblong',
+        'village' => 'Dago',
+        'postal_code' => '40135',
+        'bank_name' => 'BCA',
+        'bank_account_number' => '1234567890',
+        'bank_account_name' => 'New Bonus Member',
+        'beneficiary_name' => 'Ahli Waris',
+        'beneficiary_relationship' => 'Orang Tua',
     ];
 }
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
 beforeEach(function () {
+    $this->seed([PackageSeeder::class, SiteSettingSeeder::class]);
+
     Mail::fake();
 
     $this->sponsor = User::factory()->create();
@@ -70,14 +92,7 @@ it('sponsor_bonus_amount_matches_package_type', function (PackageType $newMember
     $pin = makeBonusPin($newMemberPackage, $this->sponsor->id);
 
     actingAs($this->sponsor)
-        ->post('/member/register', [
-            'pin_code' => $pin->pin_code,
-            'name' => 'Test Member',
-            'email' => "test_{$newMemberPackage->value}@member.test",
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
-            'leg_position' => 'left',
-        ]);
+        ->post('/member/register', bonusRegisterPayload($pin, 'left', "test_{$newMemberPackage->value}@member.test"));
 
     $bonus = Bonus::where('member_profile_id', $this->sponsorProfile->id)
         ->where('bonus_type', BonusType::Sponsor->value)
@@ -182,5 +197,197 @@ it('bonus_available_email_is_queued_for_sponsor', function () {
 
     Mail::assertQueued(BonusAvailable::class, function (BonusAvailable $mail) {
         return $mail->hasTo($this->sponsor->email);
+    });
+});
+
+// ── Pass Up Sponsor Bonus ──────────────────────────────────────────────────────
+
+it('silver_sponsor_recruiting_gold_creates_pass_up_bonus', function () {
+    // Silver sponsor (sort=1), Gold new member (alokasi=400k), sponsor bonus=200k, sisa=200k
+    $upline = User::factory()->create();
+    $uplineProfile = MemberProfile::factory()->gold()->for($upline)->create();
+    Wallet::factory()->for($upline)->create();
+
+    $silverSponsor = User::factory()->create(['sponsor_id' => $upline->id]);
+    $silverProfile = MemberProfile::factory()->silver()->for($silverSponsor)->create();
+    Wallet::factory()->for($silverSponsor)->create();
+
+    $pin = makeBonusPin(PackageType::Gold, $silverSponsor->id);
+
+    actingAs($silverSponsor)
+        ->post('/member/register', bonusRegisterPayload($pin, 'left', 'newgold@member.test'));
+
+    $passUpBonus = \App\Models\Bonus::where('member_profile_id', $uplineProfile->id)
+        ->where('bonus_type', \App\Enums\Mlm\BonusType::PassUpSponsor->value)
+        ->first();
+
+    expect($passUpBonus)->not->toBeNull()
+        ->and($passUpBonus->amount)->toBe(200_000)
+        ->and($passUpBonus->ewallet_amount)->toBe((int) (200_000 * 0.2))
+        ->and($passUpBonus->cash_amount)->toBe(200_000 - (int) (200_000 * 0.2))
+        ->and($passUpBonus->status->value)->toBe('Pending');
+});
+
+it('silver_sponsor_recruiting_platinum_creates_pass_up_bonus', function () {
+    // Silver sponsor (sort=1), Platinum new member (alokasi=600k), sponsor bonus=200k, sisa=400k
+    $upline = User::factory()->create();
+    $uplineProfile = MemberProfile::factory()->gold()->for($upline)->create();
+    Wallet::factory()->for($upline)->create();
+
+    $silverSponsor = User::factory()->create(['sponsor_id' => $upline->id]);
+    $silverProfile = MemberProfile::factory()->silver()->for($silverSponsor)->create();
+    Wallet::factory()->for($silverSponsor)->create();
+
+    $pin = makeBonusPin(PackageType::Platinum, $silverSponsor->id);
+
+    actingAs($silverSponsor)
+        ->post('/member/register', bonusRegisterPayload($pin, 'left', 'newplatinum@member.test'));
+
+    $passUpBonus = \App\Models\Bonus::where('member_profile_id', $uplineProfile->id)
+        ->where('bonus_type', \App\Enums\Mlm\BonusType::PassUpSponsor->value)
+        ->first();
+
+    expect($passUpBonus)->not->toBeNull()
+        ->and($passUpBonus->amount)->toBe(400_000);
+});
+
+it('gold_sponsor_recruiting_platinum_creates_pass_up_bonus', function () {
+    // Gold sponsor (sort=2), Platinum new member (alokasi=600k), sponsor bonus=400k, sisa=200k
+    $upline = User::factory()->create();
+    $uplineProfile = MemberProfile::factory()->platinum()->for($upline)->create();
+    Wallet::factory()->for($upline)->create();
+
+    $goldSponsor = User::factory()->create(['sponsor_id' => $upline->id]);
+    $goldProfile = MemberProfile::factory()->gold()->for($goldSponsor)->create();
+    Wallet::factory()->for($goldSponsor)->create();
+
+    $pin = makeBonusPin(PackageType::Platinum, $goldSponsor->id);
+
+    actingAs($goldSponsor)
+        ->post('/member/register', bonusRegisterPayload($pin, 'left', 'newplatinum2@member.test'));
+
+    $passUpBonus = \App\Models\Bonus::where('member_profile_id', $uplineProfile->id)
+        ->where('bonus_type', \App\Enums\Mlm\BonusType::PassUpSponsor->value)
+        ->first();
+
+    expect($passUpBonus)->not->toBeNull()
+        ->and($passUpBonus->amount)->toBe(200_000);
+});
+
+it('same_package_recruiting_no_pass_up_created', function () {
+    // Silver recruits Silver → sisa = 0, no pass-up
+    $upline = User::factory()->create();
+    $uplineProfile = MemberProfile::factory()->gold()->for($upline)->create();
+    Wallet::factory()->for($upline)->create();
+
+    $silverSponsor = User::factory()->create(['sponsor_id' => $upline->id]);
+    $silverProfile = MemberProfile::factory()->silver()->for($silverSponsor)->create();
+    Wallet::factory()->for($silverSponsor)->create();
+
+    $pin = makeBonusPin(PackageType::Silver, $silverSponsor->id);
+
+    actingAs($silverSponsor)
+        ->post('/member/register', bonusRegisterPayload($pin, 'left', 'samepackage@member.test'));
+
+    $passUpBonus = \App\Models\Bonus::where('member_profile_id', $uplineProfile->id)
+        ->where('bonus_type', \App\Enums\Mlm\BonusType::PassUpSponsor->value)
+        ->first();
+
+    expect($passUpBonus)->toBeNull();
+});
+
+it('higher_package_recruiting_lower_no_pass_up_created', function () {
+    // Gold sponsor recruits Silver → sisa = 0 (alokasi=200k, bonus=200k)
+    $upline = User::factory()->create();
+    $uplineProfile = MemberProfile::factory()->platinum()->for($upline)->create();
+    Wallet::factory()->for($upline)->create();
+
+    $goldSponsor = User::factory()->create(['sponsor_id' => $upline->id]);
+    $goldProfile = MemberProfile::factory()->gold()->for($goldSponsor)->create();
+    Wallet::factory()->for($goldSponsor)->create();
+
+    $pin = makeBonusPin(PackageType::Silver, $goldSponsor->id);
+
+    actingAs($goldSponsor)
+        ->post('/member/register', bonusRegisterPayload($pin, 'left', 'lower@member.test'));
+
+    $passUpBonus = \App\Models\Bonus::where('member_profile_id', $uplineProfile->id)
+        ->where('bonus_type', \App\Enums\Mlm\BonusType::PassUpSponsor->value)
+        ->first();
+
+    expect($passUpBonus)->toBeNull();
+});
+
+it('pass_up_skips_same_level_uplines', function () {
+    // Chain: Platinum upline → Gold upline2 → Gold sponsor → recruits Platinum
+    // alokasi=600k, sponsor bonus=400k, sisa=200k → should skip Gold upline2, go to Platinum upline
+    $platinumUpline = User::factory()->create();
+    $platinumProfile = MemberProfile::factory()->platinum()->for($platinumUpline)->create();
+    Wallet::factory()->for($platinumUpline)->create();
+
+    $goldUpline2 = User::factory()->create(['sponsor_id' => $platinumUpline->id]);
+    $goldProfile2 = MemberProfile::factory()->gold()->for($goldUpline2)->create();
+    Wallet::factory()->for($goldUpline2)->create();
+
+    $goldSponsor = User::factory()->create(['sponsor_id' => $goldUpline2->id]);
+    $goldProfile = MemberProfile::factory()->gold()->for($goldSponsor)->create();
+    Wallet::factory()->for($goldSponsor)->create();
+
+    $pin = makeBonusPin(PackageType::Platinum, $goldSponsor->id);
+
+    actingAs($goldSponsor)
+        ->post('/member/register', bonusRegisterPayload($pin, 'left', 'skiptest@member.test'));
+
+    // Gold upline2 (same level) should NOT get pass-up
+    $skipBonus = \App\Models\Bonus::where('member_profile_id', $goldProfile2->id)
+        ->where('bonus_type', \App\Enums\Mlm\BonusType::PassUpSponsor->value)
+        ->first();
+
+    // Platinum upline should get the pass-up
+    $passUpBonus = \App\Models\Bonus::where('member_profile_id', $platinumProfile->id)
+        ->where('bonus_type', \App\Enums\Mlm\BonusType::PassUpSponsor->value)
+        ->first();
+
+    expect($skipBonus)->toBeNull()
+        ->and($passUpBonus)->not->toBeNull()
+        ->and($passUpBonus->amount)->toBe(200_000);
+});
+
+it('no_eligible_upline_no_pass_up_created', function () {
+    // Silver sponsor with no upline higher than Silver
+    $sameUpline = User::factory()->create();
+    $sameProfile = MemberProfile::factory()->silver()->for($sameUpline)->create();
+    Wallet::factory()->for($sameUpline)->create();
+
+    $silverSponsor = User::factory()->create(['sponsor_id' => $sameUpline->id]);
+    $silverProfile = MemberProfile::factory()->silver()->for($silverSponsor)->create();
+    Wallet::factory()->for($silverSponsor)->create();
+
+    $pin = makeBonusPin(PackageType::Gold, $silverSponsor->id);
+
+    actingAs($silverSponsor)
+        ->post('/member/register', bonusRegisterPayload($pin, 'left', 'noupline@member.test'));
+
+    $totalPassUp = \App\Models\Bonus::where('bonus_type', \App\Enums\Mlm\BonusType::PassUpSponsor->value)->count();
+
+    expect($totalPassUp)->toBe(0);
+});
+
+it('pass_up_email_is_queued_for_recipient', function () {
+    $upline = User::factory()->create();
+    $uplineProfile = MemberProfile::factory()->gold()->for($upline)->create();
+    Wallet::factory()->for($upline)->create();
+
+    $silverSponsor = User::factory()->create(['sponsor_id' => $upline->id]);
+    $silverProfile = MemberProfile::factory()->silver()->for($silverSponsor)->create();
+    Wallet::factory()->for($silverSponsor)->create();
+
+    $pin = makeBonusPin(PackageType::Gold, $silverSponsor->id);
+
+    actingAs($silverSponsor)
+        ->post('/member/register', bonusRegisterPayload($pin, 'left', 'emailtest@member.test'));
+
+    Mail::assertQueued(BonusAvailable::class, function (BonusAvailable $mail) use ($upline) {
+        return $mail->hasTo($upline->email);
     });
 });

@@ -26,6 +26,14 @@ enum PackageType: string
     }
 
     /**
+     * Total alokasi sponsor bonus untuk paket ini: sort_order × sponsor_bonus_unit
+     */
+    public function sponsorAlokasi(): int
+    {
+        return Package::findByKey($this->value)->sponsorAlokasi();
+    }
+
+    /**
      * Sponsor bonus: min(sponsor_level, new_member_level) × sponsor_bonus_unit
      * Matrix (sponsor \ new member):
      *   Silver×Any      = Rp 200.000
