@@ -77,6 +77,30 @@ class DuitkuService
     }
 
     /**
+     * Get available payment methods from Duitku.
+     *
+     * @return array<int, array{paymentMethod: string, paymentName: string, paymentImage: string, totalFee: string}>
+     */
+    public function getPaymentMethods(int $amount): array
+    {
+        $datetime = now()->timezone('Asia/Jakarta')->format('Y-m-d H:i:s');
+        $signature = hash('sha256', $this->merchantCode.$amount.$datetime.$this->apiKey);
+
+        $baseUrl = $this->isSandbox
+            ? 'https://sandbox.duitku.com/webapi/api/merchant/paymentmethod/getpaymentmethod'
+            : 'https://passport.duitku.com/webapi/api/merchant/paymentmethod/getpaymentmethod';
+
+        $response = Http::timeout(15)->post($baseUrl, [
+            'merchantcode' => $this->merchantCode,
+            'amount' => $amount,
+            'datetime' => $datetime,
+            'signature' => $signature,
+        ]);
+
+        return $response->json('paymentFee') ?? [];
+    }
+
+    /**
      * Verify Duitku callback signature.
      */
     public function verifyCallback(array $data): bool

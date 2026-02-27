@@ -38,6 +38,13 @@ interface Order {
     paid_at: string | null;
 }
 
+interface DuitkuMethod {
+    paymentMethod: string;
+    paymentName: string;
+    paymentImage: string;
+    totalFee: string;
+}
+
 interface Props {
     products: Product[];
     orders: {
@@ -46,27 +53,17 @@ interface Props {
         last_page: number;
         total: number;
     };
+    duitkuMethods: DuitkuMethod[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Repeat Order', href: '/member/ro' },
 ];
 
-const DUITKU_METHODS = [
-    { code: 'QRIS', label: 'QRIS', desc: 'Semua dompet & bank' },
-    { code: 'BC', label: 'VA BCA', desc: 'Virtual Account BCA' },
-    { code: 'I1', label: 'VA BNI', desc: 'Virtual Account BNI' },
-    { code: 'BR', label: 'VA BRI', desc: 'Virtual Account BRI' },
-    { code: 'M2', label: 'VA Mandiri', desc: 'Virtual Account Mandiri' },
-    { code: 'OV', label: 'OVO', desc: 'Dompet OVO' },
-    { code: 'DA', label: 'DANA', desc: 'Dompet DANA' },
-    { code: 'SP', label: 'ShopeePay', desc: 'Dompet ShopeePay' },
-];
-
-export default function OrderIndex({ products, orders }: Props) {
+export default function OrderIndex({ products, orders, duitkuMethods }: Props) {
     const [cart, setCart] = useState<{ product_id: number; quantity: number }[]>([]);
     const [paymentMethod, setPaymentMethod] = useState<'manual_transfer' | 'duitku'>('manual_transfer');
-    const [duitkuMethod, setDuitkuMethod] = useState<string>('QRIS');
+    const [duitkuMethod, setDuitkuMethod] = useState<string>(duitkuMethods[0]?.paymentMethod ?? '');
 
     const { post, processing } = useForm({
         items: [] as { product_id: number; quantity: number }[],
@@ -337,22 +334,27 @@ export default function OrderIndex({ products, orders }: Props) {
                                                     </div>
                                                 </button>
 
-                                                {paymentMethod === 'duitku' && (
+                                                {paymentMethod === 'duitku' && duitkuMethods.length > 0 && (
                                                     <div className="mt-1 rounded-lg border bg-slate-50 p-3 space-y-2">
-                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Pilih Metode Duitku</p>
-                                                        <div className="grid grid-cols-2 gap-1.5">
-                                                            {DUITKU_METHODS.map(m => (
+                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Pilih Metode Pembayaran</p>
+                                                        <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                                                            {duitkuMethods.map(m => (
                                                                 <button
-                                                                    key={m.code}
+                                                                    key={m.paymentMethod}
                                                                     type="button"
-                                                                    onClick={() => setDuitkuMethod(m.code)}
-                                                                    className={`flex flex-col rounded-md border p-2 text-left transition-all ${duitkuMethod === m.code
-                                                                        ? 'border-primary bg-primary/10 text-primary'
+                                                                    onClick={() => setDuitkuMethod(m.paymentMethod)}
+                                                                    className={`flex items-center gap-2 rounded-md border p-2 text-left transition-all ${duitkuMethod === m.paymentMethod
+                                                                        ? 'border-primary bg-primary/10'
                                                                         : 'border-slate-200 bg-white hover:border-primary/40'
                                                                         }`}
                                                                 >
-                                                                    <span className="text-[11px] font-bold leading-none">{m.label}</span>
-                                                                    <span className="text-[9px] text-muted-foreground mt-0.5 leading-tight">{m.desc}</span>
+                                                                    <img src={m.paymentImage} alt={m.paymentName} className="h-5 w-8 object-contain shrink-0" />
+                                                                    <div className="min-w-0">
+                                                                        <span className="text-[10px] font-bold leading-none block truncate">{m.paymentName}</span>
+                                                                        {m.totalFee !== '0' && (
+                                                                            <span className="text-[9px] text-muted-foreground">+Rp {parseInt(m.totalFee).toLocaleString('id-ID')}</span>
+                                                                        )}
+                                                                    </div>
                                                                 </button>
                                                             ))}
                                                         </div>

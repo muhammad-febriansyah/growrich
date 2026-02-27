@@ -39,11 +39,17 @@ class OrderController extends Controller
             ->whereYear('created_at', now()->year)
             ->sum('total_amount');
 
+        $duitkuMethods = rescue(
+            fn () => app(DuitkuService::class)->getPaymentMethods(10000),
+            [],
+        );
+
         return Inertia::render('member/order/index', [
             'orders' => $orders,
             'products' => $products,
             'totalRo' => $totalRo,
             'thisMonthRo' => $thisMonthRo,
+            'duitkuMethods' => $duitkuMethods,
         ]);
     }
 
