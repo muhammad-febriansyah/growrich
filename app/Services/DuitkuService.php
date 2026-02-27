@@ -40,14 +40,15 @@ class DuitkuService
         string $customerName,
         string $email,
         string $returnUrl,
-        string $callbackUrl
+        string $callbackUrl,
+        string $paymentMethod = 'VA'
     ): array {
         $signature = md5($this->merchantCode.$merchantOrderId.$amount.$this->apiKey);
 
         $payload = [
             'merchantCode' => $this->merchantCode,
             'paymentAmount' => $amount,
-            'paymentMethod' => '',  // kosong = tampilkan semua metode pembayaran
+            'paymentMethod' => $paymentMethod,
             'merchantOrderId' => $merchantOrderId,
             'productDetails' => $productDetails,
             'customerVaName' => $customerName,
