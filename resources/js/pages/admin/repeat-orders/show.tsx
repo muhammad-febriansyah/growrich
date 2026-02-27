@@ -18,7 +18,7 @@ interface RepeatOrder {
     id: number;
     order_number: string;
     total_amount: number;
-    status: 'pending' | 'completed' | 'rejected';
+    status: 'pending' | 'paid' | 'completed' | 'rejected';
     period_month: number;
     period_year: number;
     payment_method: string | null;
@@ -50,6 +50,7 @@ const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 
 
 function StatusBadge({ status }: { status: string }) {
     if (status === 'completed') return <Badge className="bg-green-100 text-green-700 border border-green-300 hover:bg-green-100">Selesai</Badge>;
+    if (status === 'paid') return <Badge className="bg-blue-100 text-blue-700 border border-blue-300 hover:bg-blue-100">Sudah Bayar</Badge>;
     if (status === 'pending') return <Badge className="bg-yellow-100 text-yellow-700 border border-yellow-300 hover:bg-yellow-100">Menunggu</Badge>;
     return <Badge variant="destructive">Ditolak</Badge>;
 }
@@ -96,7 +97,7 @@ export default function RepeatOrderShow({ order }: Props) {
                         </div>
                     </div>
 
-                    {order.status === 'pending' && (
+                    {(order.status === 'pending' || order.status === 'paid') && (
                         <div className="flex shrink-0 gap-2">
                             <Button
                                 variant="outline"
