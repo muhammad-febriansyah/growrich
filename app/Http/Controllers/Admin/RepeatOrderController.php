@@ -29,7 +29,7 @@ class RepeatOrderController extends Controller
         $orders = $query->orderByDesc('created_at')->paginate(20)->withQueryString();
 
         $stats = [
-            'pending' => RepeatOrder::where('status', 'pending')->count(),
+            'pending' => RepeatOrder::whereIn('status', ['pending', 'paid'])->count(),
             'completed' => RepeatOrder::where('status', 'completed')->count(),
             'rejected' => RepeatOrder::where('status', 'rejected')->count(),
         ];
@@ -52,8 +52,8 @@ class RepeatOrderController extends Controller
 
     public function approve(RepeatOrder $repeatOrder)
     {
-        if ($repeatOrder->status !== 'pending') {
-            return back()->with('error', 'Hanya order berstatus pending yang dapat disetujui.');
+        if (! in_array($repeatOrder->status, ['pending', 'paid'])) {
+            return back()->with('error', 'Hanya order berstatus pending atau sudah bayar yang dapat disetujui.');
         }
 
         $repeatOrder->update(['status' => 'completed']);
@@ -65,8 +65,8 @@ class RepeatOrderController extends Controller
 
     public function reject(RepeatOrder $repeatOrder)
     {
-        if ($repeatOrder->status !== 'pending') {
-            return back()->with('error', 'Hanya order berstatus pending yang dapat ditolak.');
+        if (! in_array($repeatOrder->status, ['pending', 'paid'])) {
+            return back()->with('error', 'Hanya order berstatus pending atau sudah bayar yang dapat ditolak.');
         }
 
         $repeatOrder->load('items.product');
