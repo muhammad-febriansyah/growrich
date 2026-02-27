@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\RepeatOrder;
 use App\Models\RepeatOrderItem;
-use App\Models\SiteSetting;
 use App\Services\DuitkuService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +18,7 @@ class OrderController extends Controller
         $user = auth()->user();
         $profile = $user->memberProfile;
 
-        if (!$profile) {
+        if (! $profile) {
             return redirect()->route('dashboard')->with('error', 'Profil member tidak ditemukan.');
         }
 
@@ -53,7 +52,7 @@ class OrderController extends Controller
         $user = auth()->user();
         $profile = $user->memberProfile;
 
-        if (!$profile) {
+        if (! $profile) {
             return back()->with('error', 'Profil member tidak ditemukan.');
         }
 
@@ -76,7 +75,7 @@ class OrderController extends Controller
             foreach ($request->items as $item) {
                 $product = Product::findOrFail($item['product_id']);
 
-                if (!$product->is_active) {
+                if (! $product->is_active) {
                     throw new \RuntimeException("Produk {$product->name} tidak aktif.");
                 }
 
@@ -101,7 +100,7 @@ class OrderController extends Controller
 
             $order = RepeatOrder::create([
                 'member_profile_id' => $profile->id,
-                'order_number' => 'RO-' . strtoupper(uniqid()),
+                'order_number' => 'RO-'.strtoupper(uniqid()),
                 'total_amount' => $totalAmount,
                 'status' => 'pending',
                 'period_month' => now()->month,
@@ -133,12 +132,13 @@ class OrderController extends Controller
                     'duitku_reference' => $result['reference'],
                 ]);
 
-                return redirect($result['paymentUrl']);
+                return Inertia::location($result['paymentUrl']);
             } catch (\RuntimeException $e) {
                 // Rollback order items manually then delete order
                 $order->items()->delete();
                 $order->delete();
-                return back()->with('error', 'Gagal menghubungi Duitku: ' . $e->getMessage());
+
+                return back()->with('error', 'Gagal menghubungi Duitku: '.$e->getMessage());
             }
         }
 
@@ -152,7 +152,7 @@ class OrderController extends Controller
         $user = auth()->user();
         $profile = $user->memberProfile;
 
-        if (!$profile || $order->member_profile_id !== $profile->id) {
+        if (! $profile || $order->member_profile_id !== $profile->id) {
             abort(403);
         }
 
@@ -166,7 +166,7 @@ class OrderController extends Controller
         $user = auth()->user();
         $profile = $user->memberProfile;
 
-        if (!$profile || $order->member_profile_id !== $profile->id) {
+        if (! $profile || $order->member_profile_id !== $profile->id) {
             abort(403);
         }
 
@@ -186,7 +186,7 @@ class OrderController extends Controller
         $user = auth()->user();
         $profile = $user->memberProfile;
 
-        if (!$profile || $order->member_profile_id !== $profile->id) {
+        if (! $profile || $order->member_profile_id !== $profile->id) {
             abort(403);
         }
 

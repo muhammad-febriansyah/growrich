@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Member;
 use App\Enums\Mlm\PackageType;
 use App\Http\Controllers\Controller;
 use App\Models\PinOrder;
-use App\Models\SiteSetting;
 use App\Services\DuitkuService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,7 +20,7 @@ class PinOrderController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $packages = collect(PackageType::cases())->map(fn($p) => [
+        $packages = collect(PackageType::cases())->map(fn ($p) => [
             'value' => $p->value,
             'label' => $p->value,
             'price' => $p->registrationPrice(),
@@ -114,10 +113,11 @@ class PinOrderController extends Controller
                     'duitku_reference' => $result['reference'],
                 ]);
 
-                return redirect($result['paymentUrl']);
+                return Inertia::location($result['paymentUrl']);
             } catch (\RuntimeException $e) {
                 $pinOrder->delete();
-                return back()->with('error', 'Gagal menghubungi Duitku: ' . $e->getMessage());
+
+                return back()->with('error', 'Gagal menghubungi Duitku: '.$e->getMessage());
             }
         }
 
