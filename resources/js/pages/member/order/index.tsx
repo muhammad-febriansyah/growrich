@@ -52,9 +52,21 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Repeat Order', href: '/member/ro' },
 ];
 
+const DUITKU_METHODS = [
+    { code: 'QRIS', label: 'QRIS', desc: 'Semua dompet & bank' },
+    { code: 'BC', label: 'VA BCA', desc: 'Virtual Account BCA' },
+    { code: 'I1', label: 'VA BNI', desc: 'Virtual Account BNI' },
+    { code: 'BR', label: 'VA BRI', desc: 'Virtual Account BRI' },
+    { code: 'M2', label: 'VA Mandiri', desc: 'Virtual Account Mandiri' },
+    { code: 'OV', label: 'OVO', desc: 'Dompet OVO' },
+    { code: 'DA', label: 'DANA', desc: 'Dompet DANA' },
+    { code: 'SP', label: 'ShopeePay', desc: 'Dompet ShopeePay' },
+];
+
 export default function OrderIndex({ products, orders }: Props) {
     const [cart, setCart] = useState<{ product_id: number; quantity: number }[]>([]);
     const [paymentMethod, setPaymentMethod] = useState<'manual_transfer' | 'duitku'>('manual_transfer');
+    const [duitkuMethod, setDuitkuMethod] = useState<string>('QRIS');
 
     const { post, processing } = useForm({
         items: [] as { product_id: number; quantity: number }[],
@@ -162,6 +174,7 @@ export default function OrderIndex({ products, orders }: Props) {
         router.post('/member/ro', {
             items: cart,
             payment_method: paymentMethod,
+            duitku_method: paymentMethod === 'duitku' ? duitkuMethod : undefined,
         }, {
             onSuccess: () => setCart([]),
         });
@@ -323,6 +336,28 @@ export default function OrderIndex({ products, orders }: Props) {
                                                         <p className="text-[10px] text-muted-foreground mt-1 leading-tight">QRIS, VA, E-Wallet</p>
                                                     </div>
                                                 </button>
+
+                                                {paymentMethod === 'duitku' && (
+                                                    <div className="mt-1 rounded-lg border bg-slate-50 p-3 space-y-2">
+                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Pilih Metode Duitku</p>
+                                                        <div className="grid grid-cols-2 gap-1.5">
+                                                            {DUITKU_METHODS.map(m => (
+                                                                <button
+                                                                    key={m.code}
+                                                                    type="button"
+                                                                    onClick={() => setDuitkuMethod(m.code)}
+                                                                    className={`flex flex-col rounded-md border p-2 text-left transition-all ${duitkuMethod === m.code
+                                                                        ? 'border-primary bg-primary/10 text-primary'
+                                                                        : 'border-slate-200 bg-white hover:border-primary/40'
+                                                                        }`}
+                                                                >
+                                                                    <span className="text-[11px] font-bold leading-none">{m.label}</span>
+                                                                    <span className="text-[9px] text-muted-foreground mt-0.5 leading-tight">{m.desc}</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 

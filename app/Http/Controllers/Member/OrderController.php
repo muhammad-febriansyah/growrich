@@ -61,9 +61,11 @@ class OrderController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'payment_method' => 'required|in:duitku,manual_transfer',
+            'duitku_method' => 'required_if:payment_method,duitku|nullable|string',
         ], [
             'payment_method.required' => 'Metode pembayaran wajib dipilih.',
             'payment_method.in' => 'Metode pembayaran tidak valid.',
+            'duitku_method.required_if' => 'Pilih metode pembayaran Duitku.',
         ]);
 
         $order = null;
@@ -125,6 +127,7 @@ class OrderController extends Controller
                     email: $user->email,
                     returnUrl: route('member.ro.index'),
                     callbackUrl: route('payment.callback'),
+                    paymentMethod: $request->duitku_method,
                 );
 
                 $order->update([
