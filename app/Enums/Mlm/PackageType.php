@@ -45,6 +45,14 @@ enum PackageType: string
         return Package::findByKey($this->value)->sponsorBonusFor(Package::findByKey($newMemberPackage->value));
     }
 
+    /**
+     * Maksimum pass-up bonus yang dapat diterima oleh pemilik paket ini sebagai upline.
+     */
+    public function maxPassUpAmount(): int
+    {
+        return Package::findByKey($this->value)->maxPassUpAmount();
+    }
+
     /** @deprecated Use sponsorBonusFor() instead */
     public function sponsorBonus(): int
     {

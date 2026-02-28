@@ -1,6 +1,9 @@
 import { Head, router } from '@inertiajs/react';
-import { ChevronLeft, User as UserIcon } from 'lucide-react';
+import { Check, ChevronLeft, Copy, MessageCircle, User as UserIcon, UserPlus } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { cn } from '@/lib/utils';
@@ -162,25 +165,28 @@ function NodeCard({ node, isLeaf }: { node: TreeNode; isLeaf: boolean }) {
 
 // ── AvailableSlot ─────────────────────────────────────────────────────────────
 
-function AvailableSlot({ parentId, leg }: { parentId: number | null; leg: 'left' | 'right' }) {
-    function handleClick() {
-        if (!parentId) return;
-        router.get('/member/register', { parent_id: parentId, leg });
-    }
-
+function AvailableSlot({
+    parentId,
+    leg,
+    onSlotClick,
+}: {
+    parentId: number | null;
+    leg: 'left' | 'right';
+    onSlotClick: (parentId: number, leg: 'left' | 'right') => void;
+}) {
     return (
         <div
             className={cn(
                 'w-36 overflow-hidden rounded-2xl border-2 border-dashed border-gray-300 bg-gray-100 shadow-sm md:w-44',
                 parentId && 'cursor-pointer transition-colors hover:border-primary/50 hover:bg-gray-200',
             )}
-            onClick={handleClick}
+            onClick={() => parentId && onSlotClick(parentId, leg)}
         >
             <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
                 <p className="text-sm font-bold text-gray-500">Available</p>
                 {parentId && (
                     <p className="mt-2 text-[10px] leading-snug text-gray-400">
-                        Klik untuk mendaftarkan member baru disini
+                        Klik untuk menambah member di sini
                     </p>
                 )}
             </div>
@@ -195,47 +201,41 @@ function Node({
     level = 0,
     parentId = null,
     leg = 'left',
+    onSlotClick,
 }: {
     node: TreeNode | null;
     level?: number;
     parentId?: number | null;
     leg?: 'left' | 'right';
+    onSlotClick: (parentId: number, leg: 'left' | 'right') => void;
 }) {
     const isLeaf = level === 2;
 
     return (
         <div className="flex flex-col items-center">
             {/* Box */}
-            {node ? <NodeCard node={node} isLeaf={isLeaf} /> : <AvailableSlot parentId={parentId} leg={leg} />}
+            {node ? (
+                <NodeCard node={node} isLeaf={isLeaf} />
+            ) : (
+                <AvailableSlot parentId={parentId} leg={leg} onSlotClick={onSlotClick} />
+            )}
 
             {/* Children — only for filled non-leaf nodes */}
             {node && !isLeaf && (
                 <>
-                    {/* Vertical: parent box bottom → crossbar */}
                     <div className="h-12 w-[2px] bg-slate-300" />
-
-                    {/* Children row — gap-6 between subtrees; crossbar extended by gap/2 */}
                     <div className="flex gap-6">
-                        {/* Left child container */}
                         <div className="relative flex flex-col items-center">
-                            {/* Horizontal crossbar: center → gap midpoint */}
                             <div className="absolute -right-3 top-0 h-[2px] w-[calc(50%+0.75rem)] bg-slate-300" />
-                            {/* Vertical: crossbar → left child top */}
                             <div className="absolute left-1/2 top-0 h-12 w-[2px] -translate-x-1/2 bg-slate-300" />
-                            {/* Spacer (same height as vertical above) */}
                             <div className="h-12" />
-                            <Node node={node.left} level={level + 1} parentId={node.id} leg="left" />
+                            <Node node={node.left} level={level + 1} parentId={node.id} leg="left" onSlotClick={onSlotClick} />
                         </div>
-
-                        {/* Right child container */}
                         <div className="relative flex flex-col items-center">
-                            {/* Horizontal crossbar: gap midpoint → center */}
                             <div className="absolute -left-3 top-0 h-[2px] w-[calc(50%+0.75rem)] bg-slate-300" />
-                            {/* Vertical: crossbar → right child top */}
                             <div className="absolute left-1/2 top-0 h-12 w-[2px] -translate-x-1/2 bg-slate-300" />
-                            {/* Spacer */}
                             <div className="h-12" />
-                            <Node node={node.right} level={level + 1} parentId={node.id} leg="right" />
+                            <Node node={node.right} level={level + 1} parentId={node.id} leg="right" onSlotClick={onSlotClick} />
                         </div>
                     </div>
                 </>
@@ -248,6 +248,8 @@ function Node({
 
 export default function NetworkIndex({ tree, ancestors }: Props) {
     const isSubTree = ancestors.length > 0;
+    const [selectedSlot, setSelectedSlot] = useState<{ parentId: number; leg: 'left' | 'right' } | null>(null);
+    const [linkCopied, setLinkCopied] = useState(false);
 
     function handleBack() {
         if (ancestors.length >= 2) {
@@ -257,9 +259,98 @@ export default function NetworkIndex({ tree, ancestors }: Props) {
         }
     }
 
+    function handleSlotClick(parentId: number, leg: 'left' | 'right') {
+        setSelectedSlot({ parentId, leg });
+        setLinkCopied(false);
+    }
+
+    function handleDaftarkanLangsung() {
+        if (!selectedSlot) return;
+        router.get('/member/register', { parent_id: selectedSlot.parentId, leg: selectedSlot.leg });
+    }
+
+    function getRegisterLink() {
+        if (!selectedSlot) return '';
+        return `${window.location.origin}/register?parent_id=${selectedSlot.parentId}&leg=${selectedSlot.leg}`;
+    }
+
+    function handleCopyLink() {
+        navigator.clipboard.writeText(getRegisterLink()).then(() => {
+            setLinkCopied(true);
+            setTimeout(() => setLinkCopied(false), 3000);
+        });
+    }
+
+    function handleWhatsApp() {
+        if (!selectedSlot) return;
+        const leg = selectedSlot.leg === 'left' ? 'Kiri' : 'Kanan';
+        const message =
+            `Halo! Saya mengundang Anda untuk bergabung bersama saya di GrowRich.\n\n` +
+            `Slot pendaftaran Anda sudah disiapkan di posisi Kaki ${leg}.\n\n` +
+            `Gunakan link berikut untuk mendaftar (siapkan PIN registrasi dari saya):\n` +
+            getRegisterLink();
+        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+    }
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Diagram Jaringan" />
+
+            {/* ── Slot Action Modal ──────────────────────────────────── */}
+            <Dialog open={selectedSlot !== null} onOpenChange={(open) => { if (!open) setSelectedSlot(null); }}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>
+                            Slot Tersedia — Kaki {selectedSlot?.leg === 'left' ? 'Kiri' : 'Kanan'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Pilih cara mendaftarkan member baru di slot ini.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-3 pt-1">
+                        <Button
+                            className="flex h-auto flex-col items-start gap-0.5 px-4 py-3"
+                            onClick={handleDaftarkanLangsung}
+                        >
+                            <span className="flex items-center gap-2 font-semibold">
+                                <UserPlus className="h-4 w-4" />
+                                Daftarkan Langsung
+                            </span>
+                            <span className="pl-6 text-xs font-normal opacity-80">
+                                Isi formulir atas nama calon member
+                            </span>
+                        </Button>
+
+                        <div className="space-y-1.5">
+                            <p className="text-xs font-medium text-muted-foreground">Bagikan Link Pendaftaran</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                    variant="outline"
+                                    className="flex h-auto flex-col items-center gap-1 py-3"
+                                    onClick={handleCopyLink}
+                                >
+                                    {linkCopied ? (
+                                        <Check className="h-4 w-4 text-green-600" />
+                                    ) : (
+                                        <Copy className="h-4 w-4" />
+                                    )}
+                                    <span className="text-xs font-medium">
+                                        {linkCopied ? <span className="text-green-600">Tersalin!</span> : 'Salin Link'}
+                                    </span>
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="flex h-auto flex-col items-center gap-1 border-green-300 py-3 text-green-700 hover:bg-green-50 hover:text-green-800"
+                                    onClick={handleWhatsApp}
+                                >
+                                    <MessageCircle className="h-4 w-4" />
+                                    <span className="text-xs font-medium">Kirim via WA</span>
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             <div className="flex flex-col gap-6 p-4 text-foreground md:p-6">
                 <div>
@@ -270,7 +361,6 @@ export default function NetworkIndex({ tree, ancestors }: Props) {
                 <Card className="overflow-hidden">
                     <CardHeader className="border-b bg-white px-4 py-3 md:px-6">
                         <div className="flex flex-wrap items-center justify-between gap-3">
-                            {/* Kembali ke atas / title */}
                             {isSubTree ? (
                                 <button
                                     onClick={handleBack}
@@ -283,7 +373,6 @@ export default function NetworkIndex({ tree, ancestors }: Props) {
                                 <span className="text-sm font-medium text-muted-foreground">Pohon Jaringan</span>
                             )}
 
-                            {/* Legend */}
                             <div className="flex gap-3 text-[11px] text-muted-foreground">
                                 <span className="flex items-center gap-1.5">
                                     <span className="inline-block h-3 w-3 rounded bg-gray-300" />
@@ -304,7 +393,7 @@ export default function NetworkIndex({ tree, ancestors }: Props) {
                     <CardContent className="overflow-x-auto bg-slate-50/50 p-6 md:p-10">
                         {tree ? (
                             <div className="flex min-w-[640px] justify-center py-6">
-                                <Node node={tree} />
+                                <Node node={tree} onSlotClick={handleSlotClick} />
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">

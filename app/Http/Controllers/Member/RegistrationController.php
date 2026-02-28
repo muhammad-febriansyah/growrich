@@ -47,10 +47,9 @@ class RegistrationController extends Controller
         $newUser = null;
         $newProfile = null;
         $sponsorBonus = null;
-        $passUpRecipient = null;
-        $passUpBonus = null;
+        $passUpDistributions = [];
 
-        DB::transaction(function () use ($request, $sponsor, $pin, &$newUser, &$newProfile, &$sponsorBonus, &$passUpRecipient, &$passUpBonus) {
+        DB::transaction(function () use ($request, $sponsor, $pin, &$newUser, &$newProfile, &$sponsorBonus, &$passUpDistributions) {
             $sponsorProfile = $sponsor->memberProfile;
 
             if (! $sponsorProfile) {
@@ -158,36 +157,14 @@ class RegistrationController extends Controller
                 'meta' => ['new_member_id' => $newUser->id, 'new_member_package' => $newMemberPackage->value, 'sponsor_package' => $sponsorPackage->value],
             ]);
 
-            // 7. Pass Up Sponsor Bonus
+            // 7. Pass Up Sponsor Bonus (multi-recipient)
             $alokasi = $newMemberPackage->sponsorAlokasi();
             $sisa = $alokasi - $bonusAmount;
 
             if ($sisa > 0) {
-                $passUpRecipient = $this->findPassUpRecipient($sponsor, $sponsorPackage);
-
-                if ($passUpRecipient) {
-                    $passUpProfile = $passUpRecipient->memberProfile;
-                    $passUpEwallet = (int) ($sisa * 0.2);
-                    $passUpCash = $sisa - $passUpEwallet;
-
-                    $passUpBonus = Bonus::create([
-                        'member_profile_id' => $passUpProfile->id,
-                        'bonus_type' => BonusType::PassUpSponsor->value,
-                        'amount' => $sisa,
-                        'ewallet_amount' => $passUpEwallet,
-                        'cash_amount' => $passUpCash,
-                        'status' => BonusStatus::Pending->value,
-                        'bonus_date' => now()->toDateString(),
-                        'period_month' => (int) now()->format('n'),
-                        'period_year' => (int) now()->format('Y'),
-                        'meta' => [
-                            'new_member_id' => $newUser->id,
-                            'new_member_package' => $newMemberPackage->value,
-                            'sponsor_id' => $sponsor->id,
-                            'sponsor_package' => $sponsorPackage->value,
-                        ],
-                    ]);
-                }
+                $passUpDistributions = $this->distributePassUpBonuses(
+                    $sponsor, $sponsorPackage, $sisa, $newUser->id, $newMemberPackage
+                );
             }
 
             // 8. Propagate Pairing Points up the tree
@@ -199,8 +176,8 @@ class RegistrationController extends Controller
         Mail::to($sponsor->email)->queue(new SponsorNewMemberRegistered($sponsor, $newUser, $pin->package_type->value));
         Mail::to($sponsor->email)->queue(new BonusAvailable($sponsor, $sponsorBonus));
 
-        if ($passUpRecipient && $passUpBonus) {
-            Mail::to($passUpRecipient->email)->queue(new BonusAvailable($passUpRecipient, $passUpBonus));
+        foreach ($passUpDistributions as ['user' => $passUpUser, 'bonus' => $passUpBonus]) {
+            Mail::to($passUpUser->email)->queue(new BonusAvailable($passUpUser, $passUpBonus));
         }
 
         return redirect()->route('member.network.index')
@@ -250,16 +227,24 @@ class RegistrationController extends Controller
     }
 
     /**
-     * Walk up the sponsor chain and return the first upline whose package sort_order
-     * is strictly greater than the sponsor's package sort_order.
-     * Uplines without a memberProfile (admin, etc.) are skipped.
+     * Walk up the sponsor chain, distributing pass-up bonus to each eligible upline
+     * (package strictly higher than sponsor's) until the remaining amount is exhausted.
+     * Each upline can receive at most their maxPassUpAmount().
+     *
+     * @return array<int, array{user: User, bonus: Bonus}>
      */
-    private function findPassUpRecipient(User $sponsor, PackageType $sponsorPackage): ?User
-    {
+    private function distributePassUpBonuses(
+        User $sponsor,
+        PackageType $sponsorPackage,
+        int $remaining,
+        int $newUserId,
+        PackageType $newMemberPackage,
+    ): array {
         $sponsorSortOrder = \App\Models\Package::findByKey($sponsorPackage->value)->sort_order;
         $current = $sponsor;
+        $distributions = [];
 
-        while ($current->sponsor_id) {
+        while ($current->sponsor_id && $remaining > 0) {
             $upline = User::find($current->sponsor_id);
 
             if (! $upline) {
@@ -272,14 +257,37 @@ class RegistrationController extends Controller
                 $uplineSortOrder = \App\Models\Package::findByKey($uplineProfile->package_type->value)->sort_order;
 
                 if ($uplineSortOrder > $sponsorSortOrder) {
-                    return $upline;
+                    $give = min($remaining, $uplineProfile->package_type->maxPassUpAmount());
+                    $passUpEwallet = (int) ($give * 0.2);
+                    $passUpCash = $give - $passUpEwallet;
+
+                    $bonus = Bonus::create([
+                        'member_profile_id' => $uplineProfile->id,
+                        'bonus_type' => BonusType::PassUpSponsor->value,
+                        'amount' => $give,
+                        'ewallet_amount' => $passUpEwallet,
+                        'cash_amount' => $passUpCash,
+                        'status' => BonusStatus::Pending->value,
+                        'bonus_date' => now()->toDateString(),
+                        'period_month' => (int) now()->format('n'),
+                        'period_year' => (int) now()->format('Y'),
+                        'meta' => [
+                            'new_member_id' => $newUserId,
+                            'new_member_package' => $newMemberPackage->value,
+                            'sponsor_id' => $sponsor->id,
+                            'sponsor_package' => $sponsorPackage->value,
+                        ],
+                    ]);
+
+                    $distributions[] = ['user' => $upline, 'bonus' => $bonus];
+                    $remaining -= $give;
                 }
             }
 
             $current = $upline;
         }
 
-        return null;
+        return $distributions;
     }
 
     /**

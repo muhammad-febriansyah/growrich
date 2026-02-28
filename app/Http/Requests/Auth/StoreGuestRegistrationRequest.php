@@ -25,6 +25,8 @@ class StoreGuestRegistrationRequest extends FormRequest
                     ->where('status', 'available')
                     ->whereNotNull('assigned_to'),
             ],
+            // Placement (opsional — dari link sponsor)
+            'parent_id' => 'nullable|integer|exists:member_profiles,id',
             // Data Akun
             'name' => 'required|string|max:255',
             'username' => 'nullable|string|max:50|unique:users,username|alpha_num',
@@ -66,6 +68,7 @@ class StoreGuestRegistrationRequest extends FormRequest
         return [
             'pin_code.required' => 'Kode PIN wajib diisi.',
             'pin_code.exists' => 'Kode PIN tidak valid, sudah digunakan, atau tidak terdaftar dalam sistem.',
+            'parent_id.exists' => 'Slot penempatan tidak ditemukan.',
 
             'name.required' => 'Nama lengkap wajib diisi.',
             'username.unique' => 'Username sudah digunakan, pilih yang lain.',

@@ -105,6 +105,16 @@ class Package extends Model
     }
 
     /**
+     * Maksimum pass-up bonus yang dapat diterima oleh pemilik paket ini sebagai upline.
+     * Formula: (sort_order - 1) × sponsor_bonus_unit
+     * Gold: 200k | Platinum: 400k
+     */
+    public function maxPassUpAmount(): int
+    {
+        return ($this->sort_order - 1) * $this->sponsor_bonus_unit;
+    }
+
+    /**
      * Return the next-tier Package (by sort_order), or null for Platinum.
      */
     public function next(): ?static

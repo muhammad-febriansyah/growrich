@@ -230,6 +230,7 @@ it('silver_sponsor_recruiting_gold_creates_pass_up_bonus', function () {
 
 it('silver_sponsor_recruiting_platinum_creates_pass_up_bonus', function () {
     // Silver sponsor (sort=1), Platinum new member (alokasi=600k), sponsor bonus=200k, sisa=400k
+    // Upline adalah Gold → capped ke max Gold pass-up = 200k
     $upline = User::factory()->create();
     $uplineProfile = MemberProfile::factory()->gold()->for($upline)->create();
     Wallet::factory()->for($upline)->create();
@@ -248,7 +249,7 @@ it('silver_sponsor_recruiting_platinum_creates_pass_up_bonus', function () {
         ->first();
 
     expect($passUpBonus)->not->toBeNull()
-        ->and($passUpBonus->amount)->toBe(400_000);
+        ->and($passUpBonus->amount)->toBe(200_000);
 });
 
 it('gold_sponsor_recruiting_platinum_creates_pass_up_bonus', function () {
@@ -320,7 +321,7 @@ it('higher_package_recruiting_lower_no_pass_up_created', function () {
 
 it('pass_up_skips_same_level_uplines', function () {
     // Chain: Platinum upline → Gold upline2 → Gold sponsor → recruits Platinum
-    // alokasi=600k, sponsor bonus=400k, sisa=200k → should skip Gold upline2, go to Platinum upline
+    // alokasi=600k, sponsor bonus=400k, sisa=200k → Gold upline2 di-skip (sama level), Platinum dapat 200k
     $platinumUpline = User::factory()->create();
     $platinumProfile = MemberProfile::factory()->platinum()->for($platinumUpline)->create();
     Wallet::factory()->for($platinumUpline)->create();
@@ -338,12 +339,12 @@ it('pass_up_skips_same_level_uplines', function () {
     actingAs($goldSponsor)
         ->post('/member/register', bonusRegisterPayload($pin, 'left', 'skiptest@member.test'));
 
-    // Gold upline2 (same level) should NOT get pass-up
+    // Gold upline2 (same level as Gold sponsor) should NOT get pass-up
     $skipBonus = \App\Models\Bonus::where('member_profile_id', $goldProfile2->id)
         ->where('bonus_type', \App\Enums\Mlm\BonusType::PassUpSponsor->value)
         ->first();
 
-    // Platinum upline should get the pass-up
+    // Platinum upline should get pass-up (sisa=200k, max Platinum=400k → 200k)
     $passUpBonus = \App\Models\Bonus::where('member_profile_id', $platinumProfile->id)
         ->where('bonus_type', \App\Enums\Mlm\BonusType::PassUpSponsor->value)
         ->first();
@@ -351,6 +352,40 @@ it('pass_up_skips_same_level_uplines', function () {
     expect($skipBonus)->toBeNull()
         ->and($passUpBonus)->not->toBeNull()
         ->and($passUpBonus->amount)->toBe(200_000);
+});
+
+it('pass_up_distributes_to_multiple_uplines_when_sisa_exceeds_gold_cap', function () {
+    // Chain: Platinum(P2) → Gold(G1) → Silver(S1) → recruits Platinum(P1)
+    // sisa=400k: G1 dapat min(400k, 200k)=200k, sisa=200k → P2 dapat min(200k, 400k)=200k
+    $platinumUpline = User::factory()->create();
+    $platinumProfile = MemberProfile::factory()->platinum()->for($platinumUpline)->create();
+    Wallet::factory()->for($platinumUpline)->create();
+
+    $goldUpline = User::factory()->create(['sponsor_id' => $platinumUpline->id]);
+    $goldProfile = MemberProfile::factory()->gold()->for($goldUpline)->create();
+    Wallet::factory()->for($goldUpline)->create();
+
+    $silverSponsor = User::factory()->create(['sponsor_id' => $goldUpline->id]);
+    $silverProfile = MemberProfile::factory()->silver()->for($silverSponsor)->create();
+    Wallet::factory()->for($silverSponsor)->create();
+
+    $pin = makeBonusPin(PackageType::Platinum, $silverSponsor->id);
+
+    actingAs($silverSponsor)
+        ->post('/member/register', bonusRegisterPayload($pin, 'left', 'multidist@member.test'));
+
+    $goldBonus = \App\Models\Bonus::where('member_profile_id', $goldProfile->id)
+        ->where('bonus_type', \App\Enums\Mlm\BonusType::PassUpSponsor->value)
+        ->first();
+
+    $platinumBonus = \App\Models\Bonus::where('member_profile_id', $platinumProfile->id)
+        ->where('bonus_type', \App\Enums\Mlm\BonusType::PassUpSponsor->value)
+        ->first();
+
+    expect($goldBonus)->not->toBeNull()
+        ->and($goldBonus->amount)->toBe(200_000)
+        ->and($platinumBonus)->not->toBeNull()
+        ->and($platinumBonus->amount)->toBe(200_000);
 });
 
 it('no_eligible_upline_no_pass_up_created', function () {

@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
         // ── Admin user ───────────────────────────────────────────────────────
         $admin = User::factory()->admin()->create([
             'name' => 'Admin GrowRich',
-            'email' => 'admin@growrich.com',
+            'email' => 'admin@growrich.id',
             'phone' => '081234567890',
             'referral_code' => strtoupper(Str::random(8)),
         ]);
@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
         // ── Root member (top of binary tree) ────────────────────────────────
         $root = User::factory()->create([
             'name' => 'Root Member',
-            'email' => 'root@growrich.com',
+            'email' => 'root@growrich.id',
             'phone' => '089876543210',
             'referral_code' => strtoupper(Str::random(8)),
             'role' => UserRole::Member->value,
