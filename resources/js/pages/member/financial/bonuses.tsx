@@ -5,6 +5,7 @@ import { bonuses as bonusesRoute } from '@/actions/App/Http/Controllers/Member/F
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 
@@ -109,6 +110,17 @@ export default function BonusIndex({
 }: Props) {
     const [tanggal, setTanggal] = useState(filters.tanggal || '');
     const [bulan, setBulan] = useState(filters.bulan || '');
+    const [selMonth, setSelMonth] = useState(() => (filters.bulan ? filters.bulan.split('-')[1] : ''));
+    const [selYear, setSelYear] = useState(() => (filters.bulan ? filters.bulan.split('-')[0] : ''));
+
+    const CURRENT_YEAR = new Date().getFullYear();
+    const YEAR_OPTIONS = Array.from({ length: CURRENT_YEAR - 2023 }, (_, i) => String(2024 + i));
+
+    const handleBulanSelect = (month: string, year: string) => {
+        const newBulan = month && year ? `${year}-${month}` : '';
+        setBulan(newBulan);
+        router.get(bonusesRoute.url(), { tanggal, bulan: newBulan }, { preserveState: true, replace: true });
+    };
 
     const applyFilter = (key: string, value: string) => {
         const current = { tanggal, bulan, [key]: value };
@@ -300,15 +312,50 @@ export default function BonusIndex({
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground whitespace-nowrap">Cari Berdasarkan Bulan:</span>
-                            <Input
-                                type="month"
-                                className="bg-white w-[160px] pr-8"
-                                value={bulan}
-                                onChange={(e) => {
-                                    setBulan(e.target.value);
-                                    applyFilter('bulan', e.target.value);
+                            <Select
+                                value={selMonth || undefined}
+                                onValueChange={(val) => {
+                                    setSelMonth(val);
+                                    handleBulanSelect(val, selYear);
                                 }}
-                            />
+                            >
+                                <SelectTrigger className="bg-white w-[120px]">
+                                    <SelectValue placeholder="Bulan" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {MONTH_NAMES.map((name, i) => (
+                                        <SelectItem key={i} value={String(i + 1).padStart(2, '0')}>{name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select
+                                value={selYear || undefined}
+                                onValueChange={(val) => {
+                                    setSelYear(val);
+                                    handleBulanSelect(selMonth, val);
+                                }}
+                            >
+                                <SelectTrigger className="bg-white w-[90px]">
+                                    <SelectValue placeholder="Tahun" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {YEAR_OPTIONS.map((year) => (
+                                        <SelectItem key={year} value={year}>{year}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {bulan && (
+                                <button
+                                    className="text-sm text-muted-foreground hover:text-foreground"
+                                    onClick={() => {
+                                        setSelMonth('');
+                                        setSelYear('');
+                                        handleBulanSelect('', '');
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            )}
                         </div>
                     </div>
 
