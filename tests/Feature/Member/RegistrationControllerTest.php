@@ -6,6 +6,8 @@ use App\Models\MemberProfile;
 use App\Models\RegistrationPin;
 use App\Models\User;
 use App\Models\Wallet;
+use Database\Seeders\PackageSeeder;
+use Database\Seeders\SiteSettingSeeder;
 use Illuminate\Support\Facades\Mail;
 
 use function Pest\Laravel\actingAs;
@@ -20,12 +22,34 @@ function makePin(PackageType $package = PackageType::Silver, ?int $assignedTo = 
 function registerPayload(RegistrationPin $pin, string $leg = 'left'): array
 {
     return [
-        'pin_code'              => $pin->pin_code,
-        'name'                  => 'New Member',
-        'email'                 => 'new@member.test',
-        'password'              => 'password123',
+        'pin_code' => $pin->pin_code,
+        // Akun
+        'name' => 'New Member',
+        'email' => 'new@member.test',
+        'phone' => '081234567890',
+        'password' => 'password123',
         'password_confirmation' => 'password123',
-        'leg_position'          => $leg,
+        'leg_position' => $leg,
+        // Data Pribadi
+        'birth_date' => '1990-01-01',
+        'birth_place' => 'Jakarta',
+        'gender' => 'Laki-laki',
+        'marital_status' => 'Belum Menikah',
+        'nationality' => 'Indonesia',
+        'id_number' => '3171234567890001',
+        'address' => 'Jl. Contoh No. 1',
+        'province' => 'DKI Jakarta',
+        'city' => 'Jakarta Pusat',
+        'district' => 'Gambir',
+        'village' => 'Gambir',
+        'postal_code' => '10110',
+        // Bank
+        'bank_name' => 'BCA',
+        'bank_account_number' => '1234567890',
+        'bank_account_name' => 'New Member',
+        // Ahli Waris
+        'beneficiary_name' => 'Ahli Waris',
+        'beneficiary_relationship' => 'Orang Tua',
     ];
 }
 
@@ -33,6 +57,7 @@ function registerPayload(RegistrationPin $pin, string $leg = 'left'): array
 
 beforeEach(function () {
     Mail::fake();
+    $this->seed([PackageSeeder::class, SiteSettingSeeder::class]);
 
     $this->sponsor = User::factory()->create();
     $this->profile = MemberProfile::factory()->for($this->sponsor)->create();
@@ -110,10 +135,10 @@ it('bfs picks shallowest slot across branches, not straight down', function () {
      * A "go straight left" approach would go deeper past LL.
      * Correct BFS must return LL.right (level 2, not level 3+).
      */
-    $lc  = MemberProfile::factory()->create(['parent_id' => $this->profile->id, 'leg_position' => 'left']);
-    $ll  = MemberProfile::factory()->create(['parent_id' => $lc->id, 'leg_position' => 'left']);
+    $lc = MemberProfile::factory()->create(['parent_id' => $this->profile->id, 'leg_position' => 'left']);
+    $ll = MemberProfile::factory()->create(['parent_id' => $lc->id, 'leg_position' => 'left']);
     $llLeft = MemberProfile::factory()->create(['parent_id' => $ll->id, 'leg_position' => 'left']);
-    $lr  = MemberProfile::factory()->create(['parent_id' => $lc->id, 'leg_position' => 'right']);
+    $lr = MemberProfile::factory()->create(['parent_id' => $lc->id, 'leg_position' => 'right']);
     $lrl = MemberProfile::factory()->create(['parent_id' => $lr->id, 'leg_position' => 'left']);
     $lrr = MemberProfile::factory()->create(['parent_id' => $lr->id, 'leg_position' => 'right']);
 

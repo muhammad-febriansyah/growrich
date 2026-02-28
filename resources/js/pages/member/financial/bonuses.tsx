@@ -302,7 +302,7 @@ export default function BonusIndex({
                             <span className="text-sm text-muted-foreground whitespace-nowrap">Cari Berdasarkan Bulan:</span>
                             <Input
                                 type="month"
-                                className="bg-white w-[160px]"
+                                className="bg-white w-[160px] pr-8"
                                 value={bulan}
                                 onChange={(e) => {
                                     setBulan(e.target.value);

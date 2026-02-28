@@ -6,6 +6,8 @@ use App\Models\Bonus;
 use App\Models\DailyBonusRun;
 use App\Models\MemberProfile;
 use App\Models\PairingPointLedger;
+use Database\Seeders\PackageSeeder;
+use Database\Seeders\SiteSettingSeeder;
 use Illuminate\Support\Facades\Mail;
 
 use function Pest\Laravel\artisan;
@@ -48,6 +50,7 @@ function makeMemberWithLedger(string $date, int $leftPoints, int $rightPoints, P
 
 beforeEach(function () {
     Mail::fake();
+    $this->seed([PackageSeeder::class, SiteSettingSeeder::class]);
 });
 
 it('daily_runner_creates_pairing_bonus', function () {

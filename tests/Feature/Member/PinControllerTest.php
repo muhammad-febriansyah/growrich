@@ -4,12 +4,20 @@ namespace Tests\Feature\Member;
 
 use App\Models\RegistrationPin;
 use App\Models\User;
+use Database\Seeders\PackageSeeder;
+use Database\Seeders\SiteSettingSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class PinControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed([PackageSeeder::class, SiteSettingSeeder::class]);
+    }
 
     public function test_member_can_view_assigned_pins()
     {
