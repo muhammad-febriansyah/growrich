@@ -8,6 +8,7 @@ use App\Models\PinOrder;
 use App\Services\DuitkuService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -38,7 +39,7 @@ class PinOrderController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|HttpResponse
     {
         $request->validate([
             'package_type' => 'required|in:Silver,Gold,Platinum',
