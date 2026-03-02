@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('member_profiles', function (Blueprint $table) {
-            $table->json('leveling_rewarded_levels')->default('[]')->after('career_level');
+            $table->json('leveling_rewarded_levels')->nullable()->after('career_level');
         });
     }
 
