@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\DailyBonusRun;
 use App\Services\BonusRunnerService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -20,6 +21,12 @@ class RunDailyBonusCommand extends Command
             $date = Carbon::parse($dateStr);
         } catch (\Exception $e) {
             $this->error("Invalid date: {$dateStr}");
+
+            return self::FAILURE;
+        }
+
+        if (DailyBonusRun::whereDate('run_date', $date->toDateString())->where('status', 'completed')->exists()) {
+            $this->warn("Daily bonus run for {$date->toDateString()} already completed. Skipping.");
 
             return self::FAILURE;
         }

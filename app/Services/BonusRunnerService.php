@@ -27,7 +27,7 @@ class BonusRunnerService
      */
     public function runDaily(Carbon $date): DailyBonusRun
     {
-        $existing = DailyBonusRun::where('run_date', $date->toDateString())
+        $existing = DailyBonusRun::whereDate('run_date', $date->toDateString())
             ->where('status', 'completed')
             ->first();
 
@@ -87,14 +87,23 @@ class BonusRunnerService
                 continue;
             }
 
-            $pairs = min($leftPp, $rightPp);
-
             // Cap by package
             $packageType = $profile->package_type instanceof PackageType
                 ? $profile->package_type
                 : PackageType::from($profile->package_type);
 
-            $pairs = min($pairs, $packageType->maxPairingPerDay());
+            $maxPairs = $packageType->maxPairingPerDay();
+            $bothExceedMax = $leftPp >= $maxPairs && $rightPp >= $maxPairs;
+
+            if ($bothExceedMax) {
+                // Both legs hangus (go to 0) when both hit the max
+                $pairs = $maxPairs;
+                $profile->update(['left_pp_total' => 0, 'right_pp_total' => 0]);
+            } else {
+                $pairs = min($leftPp, $rightPp, $maxPairs);
+                $profile->decrement('left_pp_total', $pairs);
+                $profile->decrement('right_pp_total', $pairs);
+            }
 
             if ($pairs <= 0) {
                 continue;
@@ -115,15 +124,10 @@ class BonusRunnerService
                 'period_month' => $date->month,
                 'period_year' => $date->year,
                 'daily_bonus_run_id' => $run->id,
-                'meta' => ['pairs' => $pairs, 'left_pp' => $leftPp, 'right_pp' => $rightPp],
+                'meta' => ['pairs' => $pairs, 'left_pp' => $leftPp, 'right_pp' => $rightPp, 'hangus' => $bothExceedMax],
             ]);
 
             $totalPairing += $amount;
-
-            // Flush PP after pairing (consume the matched pairs)
-            $usedPp = $pairs;
-            $profile->decrement('left_pp_total', $usedPp);
-            $profile->decrement('right_pp_total', $usedPp);
         }
 
         $run->increment('total_pairing_bonus', $totalPairing);
@@ -214,59 +218,71 @@ class BonusRunnerService
     // ── Leveling Bonus ────────────────────────────────────────────────────────
 
     /**
-     * 250k/500k/750k per pair based on package combination:
-     * Silver+Silver=250k, Gold+Gold=500k, Platinum+Platinum=750k
-     * Mixed pairs use the lower tier value.
+     * Awarded ONCE per level (1–6) per member, based on the FIRST pair formed at each depth.
+     * 250k/500k/750k per pair based on the lower of the two packages at that level.
      */
     private function runLevelingBonus(DailyBonusRun $run, Carbon $date): void
     {
         $profiles = MemberProfile::where('package_status', 'active')
             ->whereNotNull('left_child_id')
             ->whereNotNull('right_child_id')
-            ->with(['leftChild', 'rightChild'])
             ->get();
 
         $totalLeveling = 0;
 
         foreach ($profiles as $profile) {
-            $leftChild = $profile->leftChild;
-            $rightChild = $profile->rightChild;
+            $rewardedLevels = $profile->leveling_rewarded_levels ?? [];
 
-            if (! $leftChild || ! $rightChild) {
-                continue;
+            for ($level = 1; $level <= 6; $level++) {
+                if (in_array($level, $rewardedLevels)) {
+                    continue;
+                }
+
+                $leftMembers = $this->getMembersAtDepth($profile, 'left', $level);
+                $rightMembers = $this->getMembersAtDepth($profile, 'right', $level);
+
+                if ($leftMembers->isEmpty() || $rightMembers->isEmpty()) {
+                    continue;
+                }
+
+                $leftMember = $leftMembers->sortBy('created_at')->first();
+                $rightMember = $rightMembers->sortBy('created_at')->first();
+
+                $leftPkg = $leftMember->package_type instanceof PackageType
+                    ? $leftMember->package_type
+                    : PackageType::from($leftMember->package_type);
+                $rightPkg = $rightMember->package_type instanceof PackageType
+                    ? $rightMember->package_type
+                    : PackageType::from($rightMember->package_type);
+
+                $amount = $this->levelingBonusAmount($leftPkg, $rightPkg);
+
+                if ($amount <= 0) {
+                    continue;
+                }
+
+                $ewalletAmount = (int) ($amount * 0.2);
+                $cashAmount = $amount - $ewalletAmount;
+
+                Bonus::create([
+                    'member_profile_id' => $profile->id,
+                    'bonus_type' => BonusType::Leveling->value,
+                    'amount' => $amount,
+                    'ewallet_amount' => $ewalletAmount,
+                    'cash_amount' => $cashAmount,
+                    'status' => BonusStatus::Pending->value,
+                    'bonus_date' => $date->toDateString(),
+                    'period_month' => $date->month,
+                    'period_year' => $date->year,
+                    'daily_bonus_run_id' => $run->id,
+                    'meta' => ['level' => $level, 'left_pkg' => $leftPkg->value, 'right_pkg' => $rightPkg->value],
+                ]);
+
+                $totalLeveling += $amount;
+
+                $rewardedLevels[] = $level;
+                $profile->update(['leveling_rewarded_levels' => $rewardedLevels]);
             }
-
-            $leftPkg = $leftChild->package_type instanceof PackageType
-                ? $leftChild->package_type
-                : PackageType::from($leftChild->package_type);
-            $rightPkg = $rightChild->package_type instanceof PackageType
-                ? $rightChild->package_type
-                : PackageType::from($rightChild->package_type);
-
-            $amount = $this->levelingBonusAmount($leftPkg, $rightPkg);
-
-            if ($amount <= 0) {
-                continue;
-            }
-
-            $ewalletAmount = (int) ($amount * 0.2);
-            $cashAmount = $amount - $ewalletAmount;
-
-            Bonus::create([
-                'member_profile_id' => $profile->id,
-                'bonus_type' => BonusType::Leveling->value,
-                'amount' => $amount,
-                'ewallet_amount' => $ewalletAmount,
-                'cash_amount' => $cashAmount,
-                'status' => BonusStatus::Pending->value,
-                'bonus_date' => $date->toDateString(),
-                'period_month' => $date->month,
-                'period_year' => $date->year,
-                'daily_bonus_run_id' => $run->id,
-                'meta' => ['left_pkg' => $leftPkg->value, 'right_pkg' => $rightPkg->value],
-            ]);
-
-            $totalLeveling += $amount;
         }
 
         $run->increment('total_leveling_bonus', $totalLeveling);
@@ -278,6 +294,43 @@ class BonusRunnerService
         $rightVal = Package::findByKey($right->value)->leveling_bonus_amount;
 
         return min($leftVal, $rightVal);
+    }
+
+    /**
+     * BFS from the direct left/right child of $root, returning all members at the given depth.
+     * depth=1 returns the direct child, depth=2 returns grandchildren, etc.
+     *
+     * @return \Illuminate\Support\Collection<int, MemberProfile>
+     */
+    private function getMembersAtDepth(MemberProfile $root, string $leg, int $depth): \Illuminate\Support\Collection
+    {
+        $startChildId = $leg === 'left' ? $root->left_child_id : $root->right_child_id;
+
+        if (! $startChildId) {
+            return collect();
+        }
+
+        $currentLevel = MemberProfile::where('id', $startChildId)->get();
+
+        for ($d = 1; $d < $depth; $d++) {
+            $childIds = [];
+            foreach ($currentLevel as $member) {
+                if ($member->left_child_id) {
+                    $childIds[] = $member->left_child_id;
+                }
+                if ($member->right_child_id) {
+                    $childIds[] = $member->right_child_id;
+                }
+            }
+
+            if (empty($childIds)) {
+                return collect();
+            }
+
+            $currentLevel = MemberProfile::whereIn('id', $childIds)->get();
+        }
+
+        return $currentLevel;
     }
 
     // ── Monthly: Repeat Order Bonus ───────────────────────────────────────────
