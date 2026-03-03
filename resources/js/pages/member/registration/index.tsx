@@ -1,11 +1,12 @@
 import { Head, useForm } from '@inertiajs/react';
-import { Banknote, Eye, EyeOff, HeartHandshake, Key, Layout, MapPin, User, UserPlus } from 'lucide-react';
+import { Banknote, BookOpen, Eye, EyeOff, HeartHandshake, Key, Layout, MapPin, User, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,6 +38,7 @@ function FieldError({ message }: { message?: string }) {
 export default function RegistrationIndex({ myPins, prefillParentId, prefillLeg }: Props) {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [agreedToEthics, setAgreedToEthics] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         // PIN & Network
@@ -575,11 +577,167 @@ export default function RegistrationIndex({ myPins, prefillParentId, prefillLeg 
                         </CardContent>
                     </Card>
 
+                    {/* ── 8. Kode Etik Perusahaan ───────────────────────── */}
+                    <Card className="border-amber-200 bg-amber-50 shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-sm text-amber-800">
+                                <BookOpen className="h-4 w-4 text-amber-600" />
+                                Kode Etik Perusahaan
+                            </CardTitle>
+                            <CardDescription className="text-amber-700">
+                                Baca dan centang pernyataan di bawah sebagai syarat pendaftaran member.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="h-72 overflow-y-auto rounded-md border border-amber-200 bg-white p-4 text-sm leading-relaxed text-gray-700">
+                                <h3 className="mb-3 text-center text-base font-bold text-gray-900">KODE ETIK PERUSAHAAN</h3>
+
+                                <h4 className="mb-1 font-bold">I. PRINSIP DASAR ETIKA BISNIS</h4>
+                                <p className="mb-1 font-semibold">1. Kepatuhan Hukum</p>
+                                <p className="mb-1">Semua member wajib:</p>
+                                <ul className="mb-2 ml-4 list-disc space-y-0.5">
+                                    <li>Mematuhi hukum Republik Indonesia.</li>
+                                    <li>Mengikuti peraturan perdagangan dan perlindungan konsumen.</li>
+                                    <li>Tidak melakukan praktik yang melanggar hukum, termasuk penipuan atau manipulasi informasi.</li>
+                                </ul>
+                                <p className="mb-1 font-semibold">2. Kejujuran dan Transparansi</p>
+                                <p className="mb-1">Member dilarang:</p>
+                                <ul className="mb-3 ml-4 list-disc space-y-0.5">
+                                    <li>Memberikan klaim berlebihan terhadap produk.</li>
+                                    <li>Menjanjikan penghasilan pasti atau instan.</li>
+                                    <li>Memanipulasi testimoni.</li>
+                                </ul>
+
+                                <h4 className="mb-1 font-bold">II. ETIKA PENJUALAN PRODUK</h4>
+                                <p className="mb-1 font-semibold">1. Klaim Produk</p>
+                                <ul className="mb-2 ml-4 list-disc space-y-0.5">
+                                    <li>Hanya menggunakan materi promosi resmi dari perusahaan.</li>
+                                    <li>Tidak mengklaim produk dapat menyembuhkan penyakit berat tanpa izin resmi.</li>
+                                    <li>Tidak membuat klaim medis tanpa dasar ilmiah.</li>
+                                </ul>
+                                <p className="mb-1 font-semibold">2. Edukasi Konsumen</p>
+                                <ul className="mb-2 ml-4 list-disc space-y-0.5">
+                                    <li>Menjelaskan manfaat dan cara pakai secara benar.</li>
+                                    <li>Menyampaikan efek samping (jika ada).</li>
+                                    <li>Tidak memaksa konsumen untuk membeli.</li>
+                                </ul>
+                                <p className="mb-1 font-semibold">3. Larangan Praktik Tidak Sehat</p>
+                                <ul className="mb-3 ml-4 list-disc space-y-0.5">
+                                    <li>Tidak melakukan black campaign terhadap kompetitor.</li>
+                                    <li>Tidak menjual produk di bawah harga resmi (perang harga).</li>
+                                    <li>Tidak menjual produk palsu atau kedaluwarsa.</li>
+                                </ul>
+
+                                <h4 className="mb-1 font-bold">III. ETIKA REKRUTMEN MEMBER</h4>
+                                <p className="mb-1 font-semibold">1. Transparansi Sistem</p>
+                                <ul className="mb-2 ml-4 list-disc space-y-0.5">
+                                    <li>Menjelaskan sistem bonus secara jelas dan realistis.</li>
+                                    <li>Tidak menjanjikan kekayaan instan.</li>
+                                    <li>Tidak menggunakan tekanan emosional dalam rekrutmen.</li>
+                                </ul>
+                                <p className="mb-1 font-semibold">2. Larangan Skema Ilegal</p>
+                                <ul className="mb-2 ml-4 list-disc space-y-0.5">
+                                    <li>Dilarang menjalankan praktik money game.</li>
+                                    <li>Tidak boleh menekankan perekrutan tanpa penjualan produk.</li>
+                                    <li>Wajib berorientasi pada penjualan produk nyata.</li>
+                                </ul>
+                                <p className="mb-1 font-semibold">3. Etika Antar Jaringan</p>
+                                <ul className="mb-3 ml-4 list-disc space-y-0.5">
+                                    <li>Tidak membajak member dari jaringan lain.</li>
+                                    <li>Tidak menyebarkan isu negatif terhadap leader lain.</li>
+                                    <li>Menghormati struktur organisasi.</li>
+                                </ul>
+
+                                <h4 className="mb-1 font-bold">IV. ETIKA KOMUNIKASI DAN MEDIA SOSIAL</h4>
+                                <p className="mb-1 font-semibold">1. Perilaku Online</p>
+                                <ul className="mb-2 ml-4 list-disc space-y-0.5">
+                                    <li>Tidak menyebarkan hoaks.</li>
+                                    <li>Tidak menggunakan bahasa kasar, SARA, atau provokatif.</li>
+                                    <li>Tidak menyalahgunakan logo dan brand perusahaan.</li>
+                                </ul>
+                                <p className="mb-1 font-semibold">2. Branding Personal</p>
+                                <p className="mb-1">Member boleh membangun personal branding, tetapi:</p>
+                                <ul className="mb-3 ml-4 list-disc space-y-0.5">
+                                    <li>Tidak mengatasnamakan perusahaan tanpa izin.</li>
+                                    <li>Tidak membuat pelatihan berbayar yang mengatasnamakan PT. Grow Rich Indonesia tanpa persetujuan resmi.</li>
+                                </ul>
+
+                                <h4 className="mb-1 font-bold">V. ETIKA KEPEMIMPINAN</h4>
+                                <p className="mb-1">Leader wajib:</p>
+                                <ul className="mb-3 ml-4 list-disc space-y-0.5">
+                                    <li>Memberi contoh yang baik.</li>
+                                    <li>Membina tim secara profesional.</li>
+                                    <li>Tidak melakukan intimidasi.</li>
+                                    <li>Tidak memanfaatkan member untuk kepentingan pribadi.</li>
+                                </ul>
+
+                                <h4 className="mb-1 font-bold">VI. KERAHASIAAN DAN DATA</h4>
+                                <ul className="mb-3 ml-4 list-disc space-y-0.5">
+                                    <li>Menjaga data member dan konsumen.</li>
+                                    <li>Tidak menyebarkan database perusahaan.</li>
+                                    <li>Tidak menggunakan data untuk kepentingan pribadi.</li>
+                                </ul>
+
+                                <h4 className="mb-1 font-bold">VII. KONFLIK KEPENTINGAN</h4>
+                                <p className="mb-1">Member dilarang:</p>
+                                <ul className="mb-3 ml-4 list-disc space-y-0.5">
+                                    <li>Menjalankan bisnis sejenis di perusahaan lain tanpa izin.</li>
+                                    <li>Menggunakan jaringan PT. Grow Rich Indonesia untuk mempromosikan bisnis lain.</li>
+                                    <li>Mengalihkan member ke perusahaan kompetitor.</li>
+                                </ul>
+
+                                <h4 className="mb-1 font-bold">VIII. SANKSI PELANGGARAN</h4>
+                                <p className="mb-1">Pelanggaran kode etik akan dikenakan sanksi bertahap:</p>
+                                <ol className="mb-3 ml-4 list-decimal space-y-0.5">
+                                    <li>Teguran Lisan</li>
+                                    <li>Teguran Tertulis</li>
+                                    <li>Skorsing Bonus</li>
+                                    <li>Penurunan Level</li>
+                                    <li>Pemutusan Keanggotaan</li>
+                                    <li>Tindakan Hukum (jika diperlukan)</li>
+                                </ol>
+                                <p className="mb-3 text-xs italic">Keputusan manajemen bersifat final dan mengikat.</p>
+
+                                <h4 className="mb-1 font-bold">IX. KOMITMEN MEMBER</h4>
+                                <p className="mb-1">Setiap member wajib:</p>
+                                <ul className="mb-3 ml-4 list-disc space-y-0.5">
+                                    <li>Membaca dan memahami kode etik ini.</li>
+                                    <li>Mencentang sebagai pernyataan kepatuhan.</li>
+                                    <li>Siap menerima konsekuensi jika melanggar.</li>
+                                </ul>
+
+                                <h4 className="mb-1 font-bold">X. PENUTUP</h4>
+                                <p className="mb-1">Kode Etik ini dibuat untuk:</p>
+                                <ul className="mb-3 ml-4 list-disc space-y-0.5">
+                                    <li>Melindungi konsumen</li>
+                                    <li>Melindungi member</li>
+                                    <li>Menjaga reputasi perusahaan</li>
+                                    <li>Menciptakan bisnis jangka panjang yang sehat dan berkelanjutan</li>
+                                </ul>
+                                <p className="text-center text-xs font-medium text-gray-600">
+                                    PT. Grow Rich Indonesia percaya bahwa keberhasilan sejati dibangun dengan integritas, bukan hanya keuntungan.
+                                </p>
+                            </div>
+
+                            <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-100 p-3">
+                                <Checkbox
+                                    id="ethics_agreement"
+                                    checked={agreedToEthics}
+                                    onCheckedChange={(checked) => setAgreedToEthics(checked === true)}
+                                    className="mt-0.5 border-amber-500 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                                />
+                                <Label htmlFor="ethics_agreement" className="cursor-pointer text-sm leading-relaxed text-amber-900">
+                                    Saya telah membaca, memahami, dan <span className="font-semibold">menyetujui seluruh isi Kode Etik Perusahaan</span> PT. Grow Rich Indonesia, serta bersedia menerima sanksi apabila terbukti melanggar.
+                                </Label>
+                            </div>
+                        </CardContent>
+                    </Card>
+
                     <div className="flex justify-center">
                         <Button
                             type="submit"
                             className="h-12 w-full md:w-64 text-base"
-                            disabled={processing || myPins.length === 0}
+                            disabled={processing || myPins.length === 0 || !agreedToEthics}
                         >
                             <UserPlus className="mr-2 h-5 w-5" />
                             Daftarkan Member
