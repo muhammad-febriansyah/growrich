@@ -1,6 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import React, { useState } from 'react';
-import { Save, Globe, Phone, Share2, Search, Layout, Settings, Image, Mail, CreditCard, Eye, EyeOff, Coins, ShieldCheck } from 'lucide-react';
+import { Save, Globe, Phone, Share2, Search, Layout, Settings, Image, Mail, CreditCard, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { InputRupiah } from '@/components/ui/input-rupiah';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -240,12 +240,7 @@ export default function SiteSettings({ settings }: Props) {
                             >
                                 <ShieldCheck className="size-4 mr-3" /> reCAPTCHA
                             </TabsTrigger>
-                            <TabsTrigger
-                                value="bonus"
-                                className="px-4 py-3 border-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-slate-600 hover:bg-slate-100 transition-all rounded-lg font-semibold"
-                            >
-                                <Coins className="size-4 mr-3" /> Bonus
-                            </TabsTrigger>
+                            {/* Tab Bonus disembunyikan */}
                         </TabsList>
 
                         <div className="space-y-6 min-w-0">
@@ -863,29 +858,7 @@ export default function SiteSettings({ settings }: Props) {
                                     </CardContent>
                                 </Card>
                             </TabsContent>
-                            {/* Bonus Settings */}
-                            <TabsContent value="bonus" className="mt-0 focus-visible:outline-none">
-                                <Card className="border shadow-sm rounded-xl overflow-hidden">
-                                    <CardHeader className="border-b bg-slate-50/50 py-4 px-6 font-semibold">
-                                        <CardTitle className="text-lg">Konfigurasi Bonus</CardTitle>
-                                        <CardDescription>Pengaturan nilai bonus MLM yang berlaku secara global.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="p-6 space-y-5">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="pairing_bonus_amount">Bonus Pairing per Pasang</Label>
-                                            <InputRupiah
-                                                id="pairing_bonus_amount"
-                                                value={data.pairing_bonus_amount}
-                                                onChange={(v) => setData('pairing_bonus_amount', v)}
-                                            />
-                                            <p className="text-xs text-muted-foreground">
-                                                Nilai bonus yang diberikan kepada member untuk setiap 1 pasang (pair) yang terbentuk di jaringan binary. Default: Rp 100.000.
-                                            </p>
-                                            {errors.pairing_bonus_amount && <p className="text-sm text-destructive">{errors.pairing_bonus_amount}</p>}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </TabsContent>
+                            {/* TabsContent Bonus disembunyikan */}
                         </div>
                     </Tabs>
                 </form>
