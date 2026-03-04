@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 
@@ -196,11 +197,8 @@ export default function BonusIndex({
     const dailyData = isPaginated(dailyBonuses) ? dailyBonuses.data : [];
     const monthlyData = isPaginated(monthlyBonuses) ? monthlyBonuses.data : [];
 
-    const dailySectionTitle = tanggal ? `Bonus Harian Tanggal: ${formatDateId(tanggal)}` : 'Daftar Bonus Harian';
-    const dailySectionSubtitle = tanggal ? 'Rincian Bonus Harian Anda' : 'Rekapitulasi Bonus Harian Anda';
-
-    const monthlySectionTitle = bulan ? `Daftar Bonus Bulan: ${formatMonthId(bulan)}` : 'Daftar Bonus Bulanan';
-    const monthlySectionSubtitle = bulan ? 'Rincian Bonus Bulanan Anda' : 'Rekapitulasi Bonus Bulanan Anda';
+    const dailySectionTitle = tanggal ? `Bonus Harian Tanggal: ${formatDateId(tanggal)}` : 'Bonus Harian';
+    const monthlySectionTitle = bulan ? `Bonus Bulan: ${formatMonthId(bulan)}` : 'Bonus Bulanan';
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -237,172 +235,180 @@ export default function BonusIndex({
                     </Card>
                 </div>
 
-                {/* Daily Bonuses */}
-                <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h2 className="text-lg font-semibold">{dailySectionTitle}</h2>
-                            <p className="text-sm text-muted-foreground">{dailySectionSubtitle}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground whitespace-nowrap">Cari Berdasarkan Tanggal:</span>
-                            <Input
-                                type="date"
-                                className="bg-white w-[160px]"
-                                value={tanggal}
-                                onChange={(e) => {
-                                    setTanggal(e.target.value);
-                                    applyFilter('tanggal', e.target.value);
-                                }}
-                            />
-                        </div>
-                    </div>
+                {/* Tabs */}
+                <Tabs defaultValue="harian">
+                    <TabsList className="mb-2">
+                        <TabsTrigger value="harian">Bonus Harian</TabsTrigger>
+                        <TabsTrigger value="bulanan">Bonus Bulanan</TabsTrigger>
+                    </TabsList>
 
-                    <Card className="shadow-premium border-none">
-                        <CardContent className="pt-6">
-                            <DataTable
-                                columns={dailyColumns}
-                                data={dailyData}
-                                emptyTitle="Belum ada bonus harian"
-                                emptyDescription="Tidak ada bonus harian untuk periode yang dipilih."
-                            />
-                            {tanggal && dailyFilteredTotal !== null && dailyData.length > 0 && (
-                                <div className="mt-0 border-t border-slate-100 px-4 py-3 flex justify-between items-center">
-                                    <span className="font-bold text-slate-800">Total Bonus Harian</span>
-                                    <span className="font-bold text-slate-900">{fmt(dailyFilteredTotal)}</span>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {isPaginated(dailyBonuses) && dailyBonuses.last_page > 1 && (
-                        <div className="flex items-center justify-end gap-3">
-                            <span className="text-sm text-muted-foreground">
-                                Halaman {dailyBonuses.current_page} dari {dailyBonuses.last_page}
-                            </span>
-                            <div className="flex gap-2">
-                                <button
-                                    className="rounded border bg-white px-3 py-1 text-sm disabled:opacity-40"
-                                    disabled={dailyBonuses.current_page === 1}
-                                    onClick={() => dailyBonuses.links[0].url && router.get(dailyBonuses.links[0].url)}
-                                >
-                                    Sebelumnya
-                                </button>
-                                <button
-                                    className="rounded border bg-white px-3 py-1 text-sm disabled:opacity-40"
-                                    disabled={dailyBonuses.current_page === dailyBonuses.last_page}
-                                    onClick={() => {
-                                        const last = dailyBonuses.links[dailyBonuses.links.length - 1];
-                                        if (last.url) { router.get(last.url); }
+                    {/* Tab Bonus Harian */}
+                    <TabsContent value="harian" className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <h2 className="text-lg font-semibold">{dailySectionTitle}</h2>
+                                <p className="text-sm text-muted-foreground">Rekapitulasi Bonus Harian Anda</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground whitespace-nowrap">Cari Berdasarkan Tanggal:</span>
+                                <Input
+                                    type="date"
+                                    className="bg-white w-[160px]"
+                                    value={tanggal}
+                                    onChange={(e) => {
+                                        setTanggal(e.target.value);
+                                        applyFilter('tanggal', e.target.value);
                                     }}
-                                >
-                                    Selanjutnya
-                                </button>
+                                />
                             </div>
                         </div>
-                    )}
-                </div>
 
-                {/* Monthly Bonuses */}
-                <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h2 className="text-lg font-semibold">{monthlySectionTitle}</h2>
-                            <p className="text-sm text-muted-foreground">{monthlySectionSubtitle}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground whitespace-nowrap">Cari Berdasarkan Bulan:</span>
-                            <Select
-                                value={selMonth || undefined}
-                                onValueChange={(val) => {
-                                    setSelMonth(val);
-                                    handleBulanSelect(val, selYear);
-                                }}
-                            >
-                                <SelectTrigger className="bg-white w-[120px]">
-                                    <SelectValue placeholder="Bulan" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {MONTH_NAMES.map((name, i) => (
-                                        <SelectItem key={i} value={String(i + 1).padStart(2, '0')}>{name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Select
-                                value={selYear || undefined}
-                                onValueChange={(val) => {
-                                    setSelYear(val);
-                                    handleBulanSelect(selMonth, val);
-                                }}
-                            >
-                                <SelectTrigger className="bg-white w-[90px]">
-                                    <SelectValue placeholder="Tahun" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {YEAR_OPTIONS.map((year) => (
-                                        <SelectItem key={year} value={year}>{year}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {bulan && (
-                                <button
-                                    className="text-sm text-muted-foreground hover:text-foreground"
-                                    onClick={() => {
-                                        setSelMonth('');
-                                        setSelYear('');
-                                        handleBulanSelect('', '');
-                                    }}
-                                >
-                                    ✕
-                                </button>
-                            )}
-                        </div>
-                    </div>
+                        <Card className="shadow-premium border-none">
+                            <CardContent className="pt-6">
+                                <DataTable
+                                    columns={dailyColumns}
+                                    data={dailyData}
+                                    emptyTitle="Belum ada bonus harian"
+                                    emptyDescription="Tidak ada bonus harian untuk periode yang dipilih."
+                                />
+                                {tanggal && dailyFilteredTotal !== null && dailyData.length > 0 && (
+                                    <div className="mt-0 border-t border-slate-100 px-4 py-3 flex justify-between items-center">
+                                        <span className="font-bold text-slate-800">Total Bonus Harian</span>
+                                        <span className="font-bold text-slate-900">{fmt(dailyFilteredTotal)}</span>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
 
-                    <Card className="shadow-premium border-none">
-                        <CardContent className="pt-6">
-                            <DataTable
-                                columns={monthlyColumns}
-                                data={monthlyData}
-                                emptyTitle="Belum ada bonus bulanan"
-                                emptyDescription="Tidak ada bonus bulanan untuk periode yang dipilih."
-                            />
-                            {bulan && monthlyFilteredTotal !== null && monthlyData.length > 0 && (
-                                <div className="mt-0 border-t border-slate-100 px-4 py-3 flex justify-between items-center">
-                                    <span className="font-bold text-slate-800">Total Bonus</span>
-                                    <span className="font-bold text-slate-900">{fmt(monthlyFilteredTotal)}</span>
+                        {isPaginated(dailyBonuses) && dailyBonuses.last_page > 1 && (
+                            <div className="flex items-center justify-end gap-3">
+                                <span className="text-sm text-muted-foreground">
+                                    Halaman {dailyBonuses.current_page} dari {dailyBonuses.last_page}
+                                </span>
+                                <div className="flex gap-2">
+                                    <button
+                                        className="rounded border bg-white px-3 py-1 text-sm disabled:opacity-40"
+                                        disabled={dailyBonuses.current_page === 1}
+                                        onClick={() => dailyBonuses.links[0].url && router.get(dailyBonuses.links[0].url)}
+                                    >
+                                        Sebelumnya
+                                    </button>
+                                    <button
+                                        className="rounded border bg-white px-3 py-1 text-sm disabled:opacity-40"
+                                        disabled={dailyBonuses.current_page === dailyBonuses.last_page}
+                                        onClick={() => {
+                                            const last = dailyBonuses.links[dailyBonuses.links.length - 1];
+                                            if (last.url) { router.get(last.url); }
+                                        }}
+                                    >
+                                        Selanjutnya
+                                    </button>
                                 </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                            </div>
+                        )}
+                    </TabsContent>
 
-                    {isPaginated(monthlyBonuses) && monthlyBonuses.last_page > 1 && (
-                        <div className="flex items-center justify-end gap-3">
-                            <span className="text-sm text-muted-foreground">
-                                Halaman {monthlyBonuses.current_page} dari {monthlyBonuses.last_page}
-                            </span>
-                            <div className="flex gap-2">
-                                <button
-                                    className="rounded border bg-white px-3 py-1 text-sm disabled:opacity-40"
-                                    disabled={monthlyBonuses.current_page === 1}
-                                    onClick={() => monthlyBonuses.links[0].url && router.get(monthlyBonuses.links[0].url)}
-                                >
-                                    Sebelumnya
-                                </button>
-                                <button
-                                    className="rounded border bg-white px-3 py-1 text-sm disabled:opacity-40"
-                                    disabled={monthlyBonuses.current_page === monthlyBonuses.last_page}
-                                    onClick={() => {
-                                        const last = monthlyBonuses.links[monthlyBonuses.links.length - 1];
-                                        if (last.url) { router.get(last.url); }
+                    {/* Tab Bonus Bulanan */}
+                    <TabsContent value="bulanan" className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <h2 className="text-lg font-semibold">{monthlySectionTitle}</h2>
+                                <p className="text-sm text-muted-foreground">Rekapitulasi Bonus Bulanan Anda</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground whitespace-nowrap">Cari Berdasarkan Bulan:</span>
+                                <Select
+                                    value={selMonth || undefined}
+                                    onValueChange={(val) => {
+                                        setSelMonth(val);
+                                        handleBulanSelect(val, selYear);
                                     }}
                                 >
-                                    Selanjutnya
-                                </button>
+                                    <SelectTrigger className="bg-white w-[120px]">
+                                        <SelectValue placeholder="Bulan" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {MONTH_NAMES.map((name, i) => (
+                                            <SelectItem key={i} value={String(i + 1).padStart(2, '0')}>{name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Select
+                                    value={selYear || undefined}
+                                    onValueChange={(val) => {
+                                        setSelYear(val);
+                                        handleBulanSelect(selMonth, val);
+                                    }}
+                                >
+                                    <SelectTrigger className="bg-white w-[90px]">
+                                        <SelectValue placeholder="Tahun" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {YEAR_OPTIONS.map((year) => (
+                                            <SelectItem key={year} value={year}>{year}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {bulan && (
+                                    <button
+                                        className="text-sm text-muted-foreground hover:text-foreground"
+                                        onClick={() => {
+                                            setSelMonth('');
+                                            setSelYear('');
+                                            handleBulanSelect('', '');
+                                        }}
+                                    >
+                                        ✕
+                                    </button>
+                                )}
                             </div>
                         </div>
-                    )}
-                </div>
+
+                        <Card className="shadow-premium border-none">
+                            <CardContent className="pt-6">
+                                <DataTable
+                                    columns={monthlyColumns}
+                                    data={monthlyData}
+                                    emptyTitle="Belum ada bonus bulanan"
+                                    emptyDescription="Tidak ada bonus bulanan untuk periode yang dipilih."
+                                />
+                                {bulan && monthlyFilteredTotal !== null && monthlyData.length > 0 && (
+                                    <div className="mt-0 border-t border-slate-100 px-4 py-3 flex justify-between items-center">
+                                        <span className="font-bold text-slate-800">Total Bonus</span>
+                                        <span className="font-bold text-slate-900">{fmt(monthlyFilteredTotal)}</span>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {isPaginated(monthlyBonuses) && monthlyBonuses.last_page > 1 && (
+                            <div className="flex items-center justify-end gap-3">
+                                <span className="text-sm text-muted-foreground">
+                                    Halaman {monthlyBonuses.current_page} dari {monthlyBonuses.last_page}
+                                </span>
+                                <div className="flex gap-2">
+                                    <button
+                                        className="rounded border bg-white px-3 py-1 text-sm disabled:opacity-40"
+                                        disabled={monthlyBonuses.current_page === 1}
+                                        onClick={() => monthlyBonuses.links[0].url && router.get(monthlyBonuses.links[0].url)}
+                                    >
+                                        Sebelumnya
+                                    </button>
+                                    <button
+                                        className="rounded border bg-white px-3 py-1 text-sm disabled:opacity-40"
+                                        disabled={monthlyBonuses.current_page === monthlyBonuses.last_page}
+                                        onClick={() => {
+                                            const last = monthlyBonuses.links[monthlyBonuses.links.length - 1];
+                                            if (last.url) { router.get(last.url); }
+                                        }}
+                                    >
+                                        Selanjutnya
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </TabsContent>
+                </Tabs>
             </div>
         </AppLayout>
     );

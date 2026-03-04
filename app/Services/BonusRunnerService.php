@@ -13,6 +13,7 @@ use App\Models\MemberReward;
 use App\Models\Package;
 use App\Models\RepeatOrder;
 use App\Models\RewardMilestone;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -136,14 +137,16 @@ class BonusRunnerService
     // ── Matching Bonus ────────────────────────────────────────────────────────
 
     /**
-     * Percentage of downline's Pairing Bonus:
-     * G1=15%, G2-G4=15%, G5-G6=10%, G7-G10=5%
+     * Percentage of downline's Pairing Bonus distributed up the SPONSOR CHAIN (rekrutan):
+     * G1-G4=15%, G5-G6=10%, G7-G10=5%
+     *
+     * Generasi dihitung berdasarkan rantai rekrut (users.sponsor_id), bukan posisi binary tree.
      */
     private function runMatchingBonus(DailyBonusRun $run, Carbon $date): void
     {
         $pairingBonuses = Bonus::where('daily_bonus_run_id', $run->id)
             ->where('bonus_type', BonusType::Pairing->value)
-            ->with('memberProfile')
+            ->with('memberProfile.user')
             ->get();
 
         $totalMatching = 0;
@@ -154,49 +157,53 @@ class BonusRunnerService
                 continue;
             }
 
-            // Walk up the tree, distributing matching bonus
-            $current = $downlineProfile;
+            // Walk up the SPONSOR CHAIN (rekrutan), not the binary tree
+            $currentUser = $downlineProfile->user;
             $generation = 1;
 
-            while ($current->parent_id && $generation <= 10) {
-                $ancestor = MemberProfile::where('id', $current->parent_id)
-                    ->where('package_status', 'active')
-                    ->first();
+            while ($currentUser && $currentUser->sponsor_id && $generation <= 10) {
+                $sponsorUser = User::find($currentUser->sponsor_id);
 
-                if (! $ancestor) {
+                if (! $sponsorUser) {
                     break;
                 }
 
-                $percent = $this->matchingPercent($generation);
+                $ancestor = MemberProfile::where('user_id', $sponsorUser->id)
+                    ->where('package_status', 'active')
+                    ->first();
 
-                if ($percent > 0) {
-                    $amount = (int) ($pairingBonus->amount * $percent / 100);
-                    $ewalletAmount = (int) ($amount * 0.2);
-                    $cashAmount = $amount - $ewalletAmount;
+                if ($ancestor) {
+                    $percent = $this->matchingPercent($generation);
 
-                    Bonus::create([
-                        'member_profile_id' => $ancestor->id,
-                        'bonus_type' => BonusType::Matching->value,
-                        'amount' => $amount,
-                        'ewallet_amount' => $ewalletAmount,
-                        'cash_amount' => $cashAmount,
-                        'status' => BonusStatus::Pending->value,
-                        'bonus_date' => $date->toDateString(),
-                        'period_month' => $date->month,
-                        'period_year' => $date->year,
-                        'daily_bonus_run_id' => $run->id,
-                        'meta' => [
-                            'generation' => $generation,
-                            'percent' => $percent,
-                            'source_bonus_id' => $pairingBonus->id,
-                            'source_profile_id' => $downlineProfile->id,
-                        ],
-                    ]);
+                    if ($percent > 0) {
+                        $amount = (int) ($pairingBonus->amount * $percent / 100);
+                        $ewalletAmount = (int) ($amount * 0.2);
+                        $cashAmount = $amount - $ewalletAmount;
 
-                    $totalMatching += $amount;
+                        Bonus::create([
+                            'member_profile_id' => $ancestor->id,
+                            'bonus_type' => BonusType::Matching->value,
+                            'amount' => $amount,
+                            'ewallet_amount' => $ewalletAmount,
+                            'cash_amount' => $cashAmount,
+                            'status' => BonusStatus::Pending->value,
+                            'bonus_date' => $date->toDateString(),
+                            'period_month' => $date->month,
+                            'period_year' => $date->year,
+                            'daily_bonus_run_id' => $run->id,
+                            'meta' => [
+                                'generation' => $generation,
+                                'percent' => $percent,
+                                'source_bonus_id' => $pairingBonus->id,
+                                'source_profile_id' => $downlineProfile->id,
+                            ],
+                        ]);
+
+                        $totalMatching += $amount;
+                    }
                 }
 
-                $current = $ancestor;
+                $currentUser = $sponsorUser;
                 $generation++;
             }
         }
