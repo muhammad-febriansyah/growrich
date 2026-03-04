@@ -343,70 +343,83 @@ class BonusRunnerService
     // ── Monthly: Repeat Order Bonus ───────────────────────────────────────────
 
     /**
-     * 5% of RO value per G1-G7 downline who placed an RO in the given month.
+     * Konsep sama dengan Bonus Matching, namun sumbernya dari nilai RO (bukan Bonus Pairing).
+     * Untuk setiap member yang memiliki RO di periode ini, 5% dari total RO-nya didistribusikan
+     * ke atas via rantai rekrut (sponsor_id) untuk G1–G7.
      */
     public function runRepeatOrderBonus(Carbon $month): void
     {
         $periodMonth = $month->month;
         $periodYear = $month->year;
 
-        $profiles = MemberProfile::where('package_status', 'active')->get();
+        // Idempotency: skip jika sudah dijalankan untuk periode ini
+        $alreadyRun = Bonus::where('bonus_type', BonusType::RepeatOrder->value)
+            ->where('period_month', $periodMonth)
+            ->where('period_year', $periodYear)
+            ->exists();
 
-        foreach ($profiles as $profile) {
-            // Member harus punya personal RO minimal Rp 1.000.000 di bulan tersebut
-            $ownRoTotal = RepeatOrder::where('member_profile_id', $profile->id)
-                ->whereYear('created_at', $periodYear)
-                ->whereMonth('created_at', $periodMonth)
-                ->where('status', 'completed')
-                ->sum('total_amount');
+        if ($alreadyRun) {
+            return;
+        }
 
-            if ($ownRoTotal < 1_000_000) {
+        // Ambil total RO per member untuk periode ini
+        $memberRoTotals = RepeatOrder::where('status', 'completed')
+            ->where('period_month', $periodMonth)
+            ->where('period_year', $periodYear)
+            ->groupBy('member_profile_id')
+            ->select('member_profile_id', DB::raw('SUM(total_amount) as ro_total'))
+            ->get();
+
+        foreach ($memberRoTotals as $memberRo) {
+            $profile = MemberProfile::where('id', $memberRo->member_profile_id)
+                ->with('user')
+                ->first();
+
+            if (! $profile || ! $profile->user) {
                 continue;
             }
 
-            $downlineIds = $this->getDownlineIds($profile->id, 7);
+            // Jalan ke atas via rantai rekrut (sponsor_id), sama seperti Bonus Matching
+            $currentUser = $profile->user;
+            $generation = 1;
 
-            if (empty($downlineIds)) {
-                continue;
+            while ($currentUser && $currentUser->sponsor_id && $generation <= 7) {
+                $sponsorUser = User::find($currentUser->sponsor_id);
+
+                if (! $sponsorUser) {
+                    break;
+                }
+
+                $ancestor = MemberProfile::where('user_id', $sponsorUser->id)
+                    ->where('package_status', 'active')
+                    ->first();
+
+                if ($ancestor) {
+                    $amount = (int) ($memberRo->ro_total * 0.05);
+                    $ewalletAmount = (int) ($amount * 0.2);
+                    $cashAmount = $amount - $ewalletAmount;
+
+                    Bonus::create([
+                        'member_profile_id' => $ancestor->id,
+                        'bonus_type' => BonusType::RepeatOrder->value,
+                        'amount' => $amount,
+                        'ewallet_amount' => $ewalletAmount,
+                        'cash_amount' => $cashAmount,
+                        'status' => BonusStatus::Pending->value,
+                        'bonus_date' => $month->copy()->endOfMonth()->toDateString(),
+                        'period_month' => $periodMonth,
+                        'period_year' => $periodYear,
+                        'meta' => [
+                            'generation' => $generation,
+                            'source_profile_id' => $profile->id,
+                            'ro_total' => $memberRo->ro_total,
+                        ],
+                    ]);
+                }
+
+                $currentUser = $sponsorUser;
+                $generation++;
             }
-
-            $roTotal = RepeatOrder::whereIn('member_profile_id', $downlineIds)
-                ->whereYear('created_at', $periodYear)
-                ->whereMonth('created_at', $periodMonth)
-                ->where('status', 'completed')
-                ->sum('total_amount');
-
-            if ($roTotal < 1_000_000) {
-                continue;
-            }
-
-            $amount = (int) ($roTotal * 0.05);
-            $ewalletAmount = (int) ($amount * 0.2);
-            $cashAmount = $amount - $ewalletAmount;
-
-            // Avoid duplicate for same period
-            $exists = Bonus::where('member_profile_id', $profile->id)
-                ->where('bonus_type', BonusType::RepeatOrder->value)
-                ->where('period_month', $periodMonth)
-                ->where('period_year', $periodYear)
-                ->exists();
-
-            if ($exists) {
-                continue;
-            }
-
-            Bonus::create([
-                'member_profile_id' => $profile->id,
-                'bonus_type' => BonusType::RepeatOrder->value,
-                'amount' => $amount,
-                'ewallet_amount' => $ewalletAmount,
-                'cash_amount' => $cashAmount,
-                'status' => BonusStatus::Pending->value,
-                'bonus_date' => $month->endOfMonth()->toDateString(),
-                'period_month' => $periodMonth,
-                'period_year' => $periodYear,
-                'meta' => ['ro_total' => $roTotal, 'downline_count' => count($downlineIds)],
-            ]);
         }
     }
 
