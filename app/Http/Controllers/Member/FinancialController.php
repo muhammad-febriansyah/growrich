@@ -80,7 +80,6 @@ class FinancialController extends Controller
 
         $dailyTotal = Bonus::where('member_profile_id', $profile->id)
             ->whereIn('bonus_type', $dailyTypes)
-            ->whereDate('bonus_date', now()->toDateString())
             ->sum('amount');
 
         $monthlyTotal = Bonus::where('member_profile_id', $profile->id)
