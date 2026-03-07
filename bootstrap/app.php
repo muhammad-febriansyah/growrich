@@ -38,4 +38,5 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
         $schedule->command('bonus:run-daily')->dailyAt('00:05');
+        $schedule->command('bonus:run-monthly')->monthlyOn(1, '00:10');
     })->create();
