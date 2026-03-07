@@ -38,6 +38,11 @@ class BonusRunnerService
             return $existing;
         }
 
+        // Delete any failed run for the same date so we can retry
+        DailyBonusRun::whereDate('run_date', $date->toDateString())
+            ->where('status', 'failed')
+            ->delete();
+
         $run = DailyBonusRun::create([
             'run_date' => $date->toDateString(),
             'status' => 'running',
