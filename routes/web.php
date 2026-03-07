@@ -65,13 +65,13 @@ Route::get('/', function () {
             ->orderBy('sort_order')
             ->get(['id', 'icon', 'title', 'description']),
         'marketingBonuses' => $marketingBonuses,
-        'careerLevels' => collect(\App\Enums\Mlm\CareerLevel::cases())->map(fn($l) => [
+        'careerLevels' => collect(\App\Enums\Mlm\CareerLevel::cases())->map(fn ($l) => [
             'value' => $l->value,
             'label' => $l->label(),
             'required_pp' => $l->requiredPp(),
             'global_share_percent' => $l->globalSharePercent(),
         ]),
-        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn($p) => [
+        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn ($p) => [
             'name' => $p->value,
             'price' => $p->registrationPrice(),
             'pairing_point' => $p->pairingPoint(),
@@ -125,7 +125,7 @@ Route::get('/blog', function (\Illuminate\Http\Request $request) {
         ->orderByDesc('published_at')
         ->paginate(6)
         ->withQueryString()
-        ->through(fn($p) => [
+        ->through(fn ($p) => [
             'id' => $p->id,
             'title' => $p->title,
             'slug' => $p->slug,
@@ -152,7 +152,7 @@ Route::get('/blog/{slug}', function (string $slug) {
         ->orderByDesc('published_at')
         ->limit(3)
         ->get()
-        ->map(fn($p) => [
+        ->map(fn ($p) => [
             'id' => $p->id,
             'title' => $p->title,
             'slug' => $p->slug,
@@ -181,12 +181,12 @@ Route::get('/produk', function () {
         ->get(['id', 'name', 'description', 'sku', 'unit', 'image', 'regular_price', 'ro_price', 'member_discount', 'stock', 'bpom_number']);
 
     return Inertia::render('produk', [
-        'products' => $products->map(fn(\App\Models\Product $p) => array_merge($p->toArray(), ['image_url' => $p->image_url])),
+        'products' => $products->map(fn (\App\Models\Product $p) => array_merge($p->toArray(), ['image_url' => $p->image_url])),
     ]);
 })->name('produk');
 
 Route::get('/produk/{product}', function (\App\Models\Product $product) {
-    abort_if(!$product->is_active, 404);
+    abort_if(! $product->is_active, 404);
 
     return Inertia::render('produk/show', [
         'product' => array_merge($product->toArray(), ['image_url' => $product->image_url]),
@@ -196,7 +196,7 @@ Route::get('/produk/{product}', function (\App\Models\Product $product) {
 Route::get('/paket', function () {
     return Inertia::render('paket', [
         'pairingBonusAmount' => \App\Models\Package::pairingBonusAmount(),
-        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn($p) => [
+        'packages' => collect(\App\Enums\Mlm\PackageType::cases())->map(fn ($p) => [
             'name' => $p->value,
             'price' => $p->registrationPrice(),
             'pairing_point' => $p->pairingPoint(),
@@ -257,7 +257,7 @@ Route::get('/reseller-program', function () {
 
     if (isset($data['trip_images']) && is_array($data['trip_images'])) {
         $data['trip_images_urls'] = collect($data['trip_images'])
-            ->map(fn($path) => \Illuminate\Support\Facades\Storage::url($path))
+            ->map(fn ($path) => \Illuminate\Support\Facades\Storage::url($path))
             ->toArray();
     }
 
@@ -272,7 +272,7 @@ Route::get('/marketing-plan', function () {
         ->get();
 
     return Inertia::render('marketing-plan', [
-        'packages' => \App\Models\Package::orderBy('sort_order')->get()->map(fn($p) => [
+        'packages' => \App\Models\Package::orderBy('sort_order')->get()->map(fn ($p) => [
             'name' => $p->name,
             'price' => $p->registration_price,
             'pairing_point' => $p->pairing_point,
@@ -290,7 +290,7 @@ Route::get('/terms', function () {
     return Inertia::render('legal/terms', ['page' => $page]);
 })->name('terms');
 
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';
 
 Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('admin/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('admin.dashboard');
@@ -382,7 +382,7 @@ Route::middleware(['auth', 'verified', 'role:member'])->group(function () {
 
     Route::get('member/profile', [App\Http\Controllers\Member\ProfileController::class, 'index'])->name('member.profile.index');
     Route::get('member/profile/edit', [App\Http\Controllers\Member\ProfileController::class, 'edit'])->name('member.profile.edit');
-    Route::put('member/profile', [App\Http\Controllers\Member\ProfileController::class, 'update'])->name('member.profile.update');
+    Route::match(['PUT', 'POST'], 'member/profile', [App\Http\Controllers\Member\ProfileController::class, 'update'])->name('member.profile.update');
 
     Route::get('member/network', [App\Http\Controllers\Member\NetworkController::class, 'index'])->name('member.network.index');
 
@@ -421,7 +421,6 @@ Route::middleware(['auth', 'verified', 'role:member'])->group(function () {
     // Progress Reward
     Route::get('member/rewards', [App\Http\Controllers\Member\RewardController::class, 'index'])->name('member.rewards.index');
 });
-
 
 // ── Duitku Payment Callbacks (no auth, CSRF exempted via bootstrap/app.php) ──
 Route::post('payment/callback', [App\Http\Controllers\Payment\DuitkuCallbackController::class, 'handle'])->name('payment.callback');

@@ -2,7 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Enums\Mlm\CareerLevel;
+use App\Enums\Mlm\PackageType;
 use App\Enums\Mlm\UserRole;
+use App\Models\MemberProfile;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Database\Seeder;
@@ -41,8 +44,24 @@ class DatabaseSeeder extends Seeder
             RewardMilestoneSeeder::class,
         ]);
 
-        // ── Demo network (depends on products & milestones) ──────────────────
-        $this->call(MlmNetworkSeeder::class);
+        // ── Root Member profile (top of binary tree) ─────────────────────────
+        MemberProfile::create([
+            'user_id' => $root->id,
+            'package_type' => PackageType::Platinum->value,
+            'package_status' => 'active',
+            'pin_code' => strtoupper(Str::random(4)).rand(1000, 9999),
+            'activated_at' => now(),
+            'parent_id' => null,
+            'leg_position' => null,
+            'left_child_id' => null,
+            'right_child_id' => null,
+            'left_pp_total' => 0,
+            'right_pp_total' => 0,
+            'left_rp_total' => 0,
+            'right_rp_total' => 0,
+            'career_level' => CareerLevel::Member->value,
+            'leveling_rewarded_levels' => null,
+        ]);
 
         // ── Registration PINs (depends on admin user) ────────────────────────
         $this->call(RegistrationPinSeeder::class);

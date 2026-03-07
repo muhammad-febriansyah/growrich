@@ -1,5 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Camera, Save, User as UserIcon } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,15 +18,34 @@ export default function ProfileEdit({ user }: Props) {
         { title: 'Edit Profil', href: '/member/profile/edit' },
     ];
 
-    const { data, setData, put, processing, errors } = useForm({
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(user.avatar ?? null);
+
+    const { data, setData, post, processing, errors } = useForm<{
+        name: string;
+        email: string;
+        phone: string;
+        avatar: File | null;
+        _method: string;
+    }>({
         name: user.name,
         email: user.email,
         phone: user.phone || '',
+        avatar: null,
+        _method: 'PUT',
     });
+
+    function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (file) {
+            setData('avatar', file);
+            setAvatarPreview(URL.createObjectURL(file));
+        }
+    }
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        put('/member/profile');
+        post('/member/profile');
     };
 
     return (
@@ -43,6 +63,54 @@ export default function ProfileEdit({ user }: Props) {
                 </div>
 
                 <form onSubmit={submit} className="space-y-6">
+                    {/* Foto Profil */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Foto Profil</CardTitle>
+                            <CardDescription>Foto akan ditampilkan di profil dan diagram jaringan.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex items-center gap-6">
+                                <div className="relative">
+                                    <div className="h-24 w-24 overflow-hidden rounded-full border-2 border-border bg-slate-100 flex items-center justify-center">
+                                        {avatarPreview ? (
+                                            <img src={avatarPreview} alt="Avatar" className="h-full w-full object-cover" />
+                                        ) : (
+                                            <UserIcon className="h-12 w-12 text-slate-400" />
+                                        )}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
+                                    >
+                                        <Camera className="h-3.5 w-3.5" />
+                                    </button>
+                                </div>
+                                <div className="space-y-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        Pilih Foto
+                                    </Button>
+                                    <p className="text-xs text-muted-foreground">JPG, PNG, atau WebP. Maks. 2 MB.</p>
+                                    {errors.avatar && <p className="text-sm text-destructive">{errors.avatar}</p>}
+                                </div>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    className="hidden"
+                                    onChange={handleAvatarChange}
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Informasi Pribadi */}
                     <Card>
                         <CardHeader>
                             <CardTitle>Informasi Pribadi</CardTitle>

@@ -272,9 +272,10 @@ export default function BonusIndex({
                                     emptyDescription="Tidak ada bonus harian untuk periode yang dipilih."
                                 />
                                 {tanggal && dailyFilteredTotal !== null && dailyData.length > 0 && (
-                                    <div className="mt-0 border-t border-slate-100 px-4 py-3 flex justify-between items-center">
-                                        <span className="font-bold text-slate-800">Total Bonus Harian</span>
+                                    <div className="mt-0 border-t border-slate-100 px-4 py-3 flex items-center">
+                                        <span className="font-bold text-slate-800 flex-1">Total Bonus Harian</span>
                                         <span className="font-bold text-slate-900">{fmt(dailyFilteredTotal)}</span>
+                                        <span className="w-[130px]" />
                                     </div>
                                 )}
                             </CardContent>
@@ -373,9 +374,10 @@ export default function BonusIndex({
                                     emptyDescription="Tidak ada bonus bulanan untuk periode yang dipilih."
                                 />
                                 {bulan && monthlyFilteredTotal !== null && monthlyData.length > 0 && (
-                                    <div className="mt-0 border-t border-slate-100 px-4 py-3 flex justify-between items-center">
-                                        <span className="font-bold text-slate-800">Total Bonus</span>
+                                    <div className="mt-0 border-t border-slate-100 px-4 py-3 flex items-center">
+                                        <span className="font-bold text-slate-800 flex-1">Total Bonus</span>
                                         <span className="font-bold text-slate-900">{fmt(monthlyFilteredTotal)}</span>
+                                        <span className="w-[130px]" />
                                     </div>
                                 )}
                             </CardContent>
