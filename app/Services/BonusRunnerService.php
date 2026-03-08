@@ -11,10 +11,12 @@ use App\Models\DailyBonusRun;
 use App\Models\MemberProfile;
 use App\Models\MemberReward;
 use App\Models\Package;
+use App\Models\PairingPointLedger;
 use App\Models\RepeatOrder;
 use App\Models\RewardMilestone;
 use App\Models\User;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -70,6 +72,328 @@ class BonusRunnerService
 
         return $run->fresh();
     }
+
+    // ── Real-Time: PP Propagation + Bonus Generation ─────────────────────────
+
+    /**
+     * Propagate pairing points up the binary tree and immediately generate
+     * Pairing, Matching, and Leveling bonuses for each ancestor that forms a new pair.
+     * Called on every new member registration.
+     */
+    public function propagatePairingPointsAndProcessBonuses(MemberProfile $newProfile, PackageType $packageType): void
+    {
+        $pp = $packageType->pairingPoint();
+        $current = $newProfile;
+        $today = now();
+        $depthFromNew = 1;
+
+        while ($current->parent_id) {
+            $parent = MemberProfile::find($current->parent_id);
+
+            if (! $parent) {
+                break;
+            }
+
+            $leg = $current->leg_position?->value;
+
+            if (! $leg) {
+                break;
+            }
+
+            $totalColumn = $leg === 'left' ? 'left_pp_total' : 'right_pp_total';
+            $balanceBefore = $parent->$totalColumn;
+            $balanceAfter = $balanceBefore + $pp;
+
+            $parent->increment($totalColumn, $pp);
+            $parent->refresh();
+
+            PairingPointLedger::create([
+                'member_profile_id' => $parent->id,
+                'leg' => $leg,
+                'points' => $pp,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $balanceAfter,
+                'reason' => 'registration',
+                'reference_id' => $newProfile->id,
+                'ledger_date' => $today->toDateString(),
+            ]);
+
+            if ($parent->package_status === 'active') {
+                $pairingBonus = $this->processPairingForProfile($parent, $today);
+
+                if ($pairingBonus) {
+                    $parent->refresh();
+                    $this->processMatchingForBonus($pairingBonus, $today);
+                    $this->autoUpgradeCareerLevelForProfile($parent);
+                    $this->triggerRewardsForProfile($parent);
+                }
+
+                // Leveling: only ancestors within 6 hops can gain new leveling bonuses
+                if ($depthFromNew <= 6) {
+                    $this->processLevelingForProfile($parent, $today);
+                }
+            }
+
+            $depthFromNew++;
+            $current = $parent;
+        }
+    }
+
+    /**
+     * Check and create Pairing Bonus for a single profile (real-time).
+     * Returns the created Bonus if pairs were formed, null otherwise.
+     */
+    private function processPairingForProfile(MemberProfile $profile, CarbonInterface $date): ?Bonus
+    {
+        $leftPp = (int) $profile->left_pp_total;
+        $rightPp = (int) $profile->right_pp_total;
+
+        if ($leftPp <= 0 || $rightPp <= 0) {
+            return null;
+        }
+
+        $packageType = $profile->package_type instanceof PackageType
+            ? $profile->package_type
+            : PackageType::from($profile->package_type);
+
+        $maxPairs = $packageType->maxPairingPerDay();
+        $pairingUnit = PackageType::pairingBonusAmount();
+
+        $alreadyPairedToday = $pairingUnit > 0
+            ? (int) round(
+                Bonus::where('member_profile_id', $profile->id)
+                    ->where('bonus_type', BonusType::Pairing->value)
+                    ->whereDate('bonus_date', $date->toDateString())
+                    ->sum('amount') / $pairingUnit
+            )
+            : 0;
+
+        $remainingDailyCap = $maxPairs - $alreadyPairedToday;
+
+        if ($remainingDailyCap <= 0) {
+            return null;
+        }
+
+        $bothExceedMax = $leftPp >= $maxPairs && $rightPp >= $maxPairs;
+
+        if ($bothExceedMax) {
+            $pairs = $remainingDailyCap;
+            $profile->update(['left_pp_total' => 0, 'right_pp_total' => 0]);
+        } else {
+            $pairs = min($leftPp, $rightPp, $remainingDailyCap);
+            $profile->decrement('left_pp_total', $pairs);
+            $profile->decrement('right_pp_total', $pairs);
+        }
+
+        if ($pairs <= 0) {
+            return null;
+        }
+
+        $amount = $pairs * $pairingUnit;
+        $ewalletAmount = (int) ($amount * 0.2);
+        $cashAmount = $amount - $ewalletAmount;
+
+        return Bonus::create([
+            'member_profile_id' => $profile->id,
+            'bonus_type' => BonusType::Pairing->value,
+            'amount' => $amount,
+            'ewallet_amount' => $ewalletAmount,
+            'cash_amount' => $cashAmount,
+            'status' => BonusStatus::Pending->value,
+            'bonus_date' => $date->toDateString(),
+            'period_month' => $date->month,
+            'period_year' => $date->year,
+            'daily_bonus_run_id' => null,
+            'meta' => ['pairs' => $pairs, 'left_pp' => $leftPp, 'right_pp' => $rightPp, 'hangus' => $bothExceedMax],
+        ]);
+    }
+
+    /**
+     * Generate Matching Bonus for ancestors up to G10 based on a specific Pairing Bonus (real-time).
+     * Walks up the SPONSOR CHAIN (sponsor_id), not the binary tree.
+     */
+    private function processMatchingForBonus(Bonus $pairingBonus, CarbonInterface $date): void
+    {
+        $downlineProfile = $pairingBonus->memberProfile()->with('user')->first();
+
+        if (! $downlineProfile) {
+            return;
+        }
+
+        $currentUser = $downlineProfile->user;
+        $generation = 1;
+
+        while ($currentUser && $currentUser->sponsor_id && $generation <= 10) {
+            $sponsorUser = User::find($currentUser->sponsor_id);
+
+            if (! $sponsorUser) {
+                break;
+            }
+
+            $ancestor = MemberProfile::where('user_id', $sponsorUser->id)
+                ->where('package_status', 'active')
+                ->first();
+
+            if ($ancestor) {
+                $percent = $this->matchingPercent($generation);
+
+                if ($percent > 0) {
+                    $amount = (int) ($pairingBonus->amount * $percent / 100);
+                    $ewalletAmount = (int) ($amount * 0.2);
+                    $cashAmount = $amount - $ewalletAmount;
+
+                    Bonus::create([
+                        'member_profile_id' => $ancestor->id,
+                        'bonus_type' => BonusType::Matching->value,
+                        'amount' => $amount,
+                        'ewallet_amount' => $ewalletAmount,
+                        'cash_amount' => $cashAmount,
+                        'status' => BonusStatus::Pending->value,
+                        'bonus_date' => $date->toDateString(),
+                        'period_month' => $date->month,
+                        'period_year' => $date->year,
+                        'daily_bonus_run_id' => null,
+                        'meta' => [
+                            'generation' => $generation,
+                            'percent' => $percent,
+                            'source_bonus_id' => $pairingBonus->id,
+                            'source_profile_id' => $downlineProfile->id,
+                        ],
+                    ]);
+                }
+            }
+
+            $currentUser = $sponsorUser;
+            $generation++;
+        }
+    }
+
+    /**
+     * Check and create Leveling Bonus for a single profile (real-time).
+     * Skips levels already rewarded (idempotent via leveling_rewarded_levels).
+     */
+    private function processLevelingForProfile(MemberProfile $profile, CarbonInterface $date): void
+    {
+        $rewardedLevels = $profile->leveling_rewarded_levels ?? [];
+
+        for ($level = 1; $level <= 6; $level++) {
+            if (in_array($level, $rewardedLevels)) {
+                continue;
+            }
+
+            $leftMembers = $this->getMembersAtDepth($profile, 'left', $level);
+            $rightMembers = $this->getMembersAtDepth($profile, 'right', $level);
+
+            if ($leftMembers->isEmpty() || $rightMembers->isEmpty()) {
+                continue;
+            }
+
+            $leftMember = $leftMembers->sortBy('created_at')->first();
+            $rightMember = $rightMembers->sortBy('created_at')->first();
+
+            $leftPkg = $leftMember->package_type instanceof PackageType
+                ? $leftMember->package_type
+                : PackageType::from($leftMember->package_type);
+            $rightPkg = $rightMember->package_type instanceof PackageType
+                ? $rightMember->package_type
+                : PackageType::from($rightMember->package_type);
+
+            $amount = $this->levelingBonusAmount($leftPkg, $rightPkg);
+
+            if ($amount <= 0) {
+                continue;
+            }
+
+            $ewalletAmount = (int) ($amount * 0.2);
+            $cashAmount = $amount - $ewalletAmount;
+
+            Bonus::create([
+                'member_profile_id' => $profile->id,
+                'bonus_type' => BonusType::Leveling->value,
+                'amount' => $amount,
+                'ewallet_amount' => $ewalletAmount,
+                'cash_amount' => $cashAmount,
+                'status' => BonusStatus::Pending->value,
+                'bonus_date' => $date->toDateString(),
+                'period_month' => $date->month,
+                'period_year' => $date->year,
+                'daily_bonus_run_id' => null,
+                'meta' => ['level' => $level, 'left_pkg' => $leftPkg->value, 'right_pkg' => $rightPkg->value],
+            ]);
+
+            $rewardedLevels[] = $level;
+            $profile->update(['leveling_rewarded_levels' => $rewardedLevels]);
+        }
+    }
+
+    /**
+     * Upgrade career level for a single profile (real-time).
+     */
+    private function autoUpgradeCareerLevelForProfile(MemberProfile $profile): void
+    {
+        $smallerLeg = min((int) $profile->left_pp_total, (int) $profile->right_pp_total);
+
+        $currentLevel = $profile->career_level instanceof CareerLevel
+            ? $profile->career_level
+            : CareerLevel::from($profile->career_level);
+
+        $newLevel = $currentLevel;
+
+        foreach (CareerLevel::cases() as $level) {
+            if (
+                $level->sortOrder() > $currentLevel->sortOrder()
+                && $smallerLeg >= $level->requiredPp()
+                && $level->sortOrder() > $newLevel->sortOrder()
+            ) {
+                $newLevel = $level;
+            }
+        }
+
+        if ($newLevel !== $currentLevel) {
+            $profile->update(['career_level' => $newLevel->value]);
+            Log::info("Career level upgraded: profile #{$profile->id} {$currentLevel->value} → {$newLevel->value}");
+        }
+    }
+
+    /**
+     * Trigger rewards for a single profile (real-time).
+     */
+    private function triggerRewardsForProfile(MemberProfile $profile): void
+    {
+        $milestones = RewardMilestone::orderBy('sort_order')->get();
+
+        foreach ($milestones as $milestone) {
+            $qualifies = $profile->left_rp_total >= $milestone->required_left_rp
+                && $profile->right_rp_total >= $milestone->required_right_rp;
+
+            if (! $qualifies) {
+                continue;
+            }
+
+            $alreadyAwarded = MemberReward::where('member_profile_id', $profile->id)
+                ->where('reward_milestone_id', $milestone->id)
+                ->exists();
+
+            if ($alreadyAwarded) {
+                continue;
+            }
+
+            MemberReward::create([
+                'member_profile_id' => $profile->id,
+                'reward_milestone_id' => $milestone->id,
+                'status' => 'pending',
+                'qualified_at' => now(),
+            ]);
+        }
+    }
+
+    // ── Daily Batch (Catch-Up) ────────────────────────────────────────────────
+
+    // NOTE: Pairing, Matching, and Leveling bonuses are now generated in real-time
+    // during member registration via propagatePairingPointsAndProcessBonuses().
+    // The batch methods below are kept as catch-up for admin manual runs and
+    // existing data. Since PP is consumed real-time, the batch naturally produces
+    // no output for members who went through the real-time path.
 
     // ── Pairing Bonus ─────────────────────────────────────────────────────────
 

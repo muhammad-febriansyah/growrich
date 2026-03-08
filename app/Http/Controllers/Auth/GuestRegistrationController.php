@@ -14,9 +14,9 @@ use App\Mail\SponsorNewMemberRegistered;
 use App\Mail\WelcomeNewMember;
 use App\Models\Bonus;
 use App\Models\MemberProfile;
-use App\Models\PairingPointLedger;
 use App\Models\RegistrationPin;
 use App\Models\User;
+use App\Services\BonusRunnerService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -26,6 +26,8 @@ use Inertia\Inertia;
 
 class GuestRegistrationController extends Controller
 {
+    public function __construct(private readonly BonusRunnerService $bonusRunnerService) {}
+
     public function create(\Illuminate\Http\Request $request): \Inertia\Response
     {
         return Inertia::render('auth/register', [
@@ -172,8 +174,8 @@ class GuestRegistrationController extends Controller
                     );
                 }
 
-                // 10. Propagate Pairing Points
-                $this->propagatePairingPoints($newProfile, $newMemberPackage);
+                // 10. Propagate Pairing Points + generate real-time bonuses
+                $this->bonusRunnerService->propagatePairingPointsAndProcessBonuses($newProfile, $newMemberPackage);
             });
         } catch (\RuntimeException $e) {
             return back()->withErrors(['pin_code' => $e->getMessage()]);
@@ -291,47 +293,5 @@ class GuestRegistrationController extends Controller
         }
 
         throw new \RuntimeException('Tidak ada slot kosong di jaringan.');
-    }
-
-    /**
-     * Traverse from new profile upward, incrementing PP on each ancestor.
-     */
-    private function propagatePairingPoints(MemberProfile $newProfile, PackageType $packageType): void
-    {
-        $pp = $packageType->pairingPoint();
-        $current = $newProfile;
-
-        while ($current->parent_id) {
-            $parent = MemberProfile::find($current->parent_id);
-
-            if (! $parent) {
-                break;
-            }
-
-            $leg = $current->leg_position?->value;
-
-            if (! $leg) {
-                break;
-            }
-
-            $totalColumn = $leg === 'left' ? 'left_pp_total' : 'right_pp_total';
-            $balanceBefore = $parent->$totalColumn;
-            $balanceAfter = $balanceBefore + $pp;
-
-            $parent->increment($totalColumn, $pp);
-
-            PairingPointLedger::create([
-                'member_profile_id' => $parent->id,
-                'leg' => $leg,
-                'points' => $pp,
-                'balance_before' => $balanceBefore,
-                'balance_after' => $balanceAfter,
-                'reason' => 'registration',
-                'reference_id' => $newProfile->id,
-                'ledger_date' => now()->toDateString(),
-            ]);
-
-            $current = $parent;
-        }
     }
 }

@@ -15,6 +15,7 @@ interface PackageOption {
     value: string;
     label: string;
     price: number;
+    upgrade_from: string | null;
 }
 
 interface PinOrder {
@@ -118,7 +119,25 @@ export default function PinOrderIndex({ orders, packages, prefill }: Props) {
                                         <SelectValue placeholder="Pilih paket..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {packages.map((pkg) => (
+                                        {packages.filter((p) => p.upgrade_from === null).length > 0 && (
+                                            <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                                PIN Registrasi
+                                            </div>
+                                        )}
+                                        {packages.filter((p) => p.upgrade_from === null).map((pkg) => (
+                                            <SelectItem key={pkg.value} value={pkg.value}>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-semibold">{pkg.label}</span>
+                                                    <span className="text-xs text-muted-foreground">{fmt(pkg.price)}/PIN</span>
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                        {packages.filter((p) => p.upgrade_from !== null).length > 0 && (
+                                            <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-t mt-1 pt-2">
+                                                PIN Upgrade
+                                            </div>
+                                        )}
+                                        {packages.filter((p) => p.upgrade_from !== null).map((pkg) => (
                                             <SelectItem key={pkg.value} value={pkg.value}>
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-semibold">{pkg.label}</span>

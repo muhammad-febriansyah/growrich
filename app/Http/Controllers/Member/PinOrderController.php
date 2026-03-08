@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Member;
 
 use App\Enums\Mlm\PackageType;
+use App\Enums\Mlm\UpgradePinType;
 use App\Http\Controllers\Controller;
 use App\Models\PinOrder;
 use App\Services\DuitkuService;
@@ -21,11 +22,21 @@ class PinOrderController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $packages = collect(PackageType::cases())->map(fn ($p) => [
+        $registrationPackages = collect(PackageType::cases())->map(fn (PackageType $p) => [
             'value' => $p->value,
-            'label' => $p->value,
+            'label' => 'PIN Registrasi '.$p->value,
             'price' => $p->registrationPrice(),
+            'upgrade_from' => null,
         ]);
+
+        $upgradePackages = collect(UpgradePinType::cases())->map(fn (UpgradePinType $u) => [
+            'value' => 'Upgrade'.$u->value,
+            'label' => $u->label(),
+            'price' => $u->price(),
+            'upgrade_from' => $u->fromPackage()->value,
+        ]);
+
+        $packages = $registrationPackages->concat($upgradePackages);
 
         $user = auth()->user();
 
@@ -42,7 +53,7 @@ class PinOrderController extends Controller
     public function store(Request $request): RedirectResponse|HttpResponse
     {
         $request->validate([
-            'package_type' => 'required|in:Silver,Gold,Platinum',
+            'package_type' => 'required|in:Silver,Gold,Platinum,UpgradeSilverToGold,UpgradeSilverToPlatinum,UpgradeGoldToPlatinum',
             'quantity' => 'required|integer|min:1|max:100',
             'payment_method' => 'required|in:duitku,manual_transfer',
             'phone' => 'required|string|max:20',
@@ -71,14 +82,30 @@ class PinOrderController extends Controller
             'shipping_postal_code.required' => 'Kode Pos wajib diisi.',
         ]);
 
-        $package = PackageType::from($request->package_type);
-        $unitPrice = $package->registrationPrice();
+        $rawPackageType = $request->package_type;
+        $isUpgrade = str_starts_with($rawPackageType, 'Upgrade');
+
+        if ($isUpgrade) {
+            $upgradeType = UpgradePinType::from(substr($rawPackageType, strlen('Upgrade')));
+            $packageValue = $upgradeType->toPackage()->value;
+            $upgradeFrom = $upgradeType->fromPackage()->value;
+            $unitPrice = $upgradeType->price();
+            $productLabel = $upgradeType->label();
+        } else {
+            $package = PackageType::from($rawPackageType);
+            $packageValue = $package->value;
+            $upgradeFrom = null;
+            $unitPrice = $package->registrationPrice();
+            $productLabel = 'PIN Registrasi '.$package->value;
+        }
+
         $total = $unitPrice * $request->quantity;
 
         $pinOrder = PinOrder::create([
             'order_number' => PinOrder::generateOrderNumber(),
             'user_id' => auth()->id(),
-            'package_type' => $package,
+            'package_type' => $packageValue,
+            'upgrade_from' => $upgradeFrom,
             'quantity' => $request->quantity,
             'unit_price' => $unitPrice,
             'total_amount' => $total,
@@ -102,7 +129,7 @@ class PinOrderController extends Controller
                 $result = $duitku->createTransaction(
                     merchantOrderId: $pinOrder->order_number,
                     amount: $total,
-                    productDetails: "Order PIN {$package->value} x{$request->quantity}",
+                    productDetails: "{$productLabel} x{$request->quantity}",
                     customerName: $user->name,
                     email: $user->email,
                     returnUrl: route('member.pin-orders.index'),

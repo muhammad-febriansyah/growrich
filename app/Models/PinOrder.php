@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Mlm\PackageType;
+use App\Enums\Mlm\UpgradePinType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -12,6 +13,7 @@ class PinOrder extends Model
         'order_number',
         'user_id',
         'package_type',
+        'upgrade_from',
         'quantity',
         'unit_price',
         'total_amount',
@@ -50,6 +52,33 @@ class PinOrder extends Model
         return $this->paid_at !== null;
     }
 
+    public function isUpgradePin(): bool
+    {
+        return $this->upgrade_from !== null;
+    }
+
+    public function upgradePinType(): ?UpgradePinType
+    {
+        if (! $this->isUpgradePin()) {
+            return null;
+        }
+
+        $packageValue = $this->package_type instanceof PackageType
+            ? $this->package_type->value
+            : $this->package_type;
+
+        foreach (UpgradePinType::cases() as $type) {
+            if (
+                $type->fromPackage()->value === $this->upgrade_from
+                && $type->toPackage()->value === $packageValue
+            ) {
+                return $type;
+            }
+        }
+
+        return null;
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -57,9 +86,9 @@ class PinOrder extends Model
 
     public static function generateOrderNumber(): string
     {
-        $prefix = 'PO-' . now()->format('Ymd') . '-';
+        $prefix = 'PO-'.now()->format('Ymd').'-';
         $count = self::whereDate('created_at', today())->count() + 1;
 
-        return $prefix . str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) $count, 4, '0', STR_PAD_LEFT);
     }
 }

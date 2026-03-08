@@ -55,22 +55,37 @@ class PinOrderController extends Controller
             return back()->with('error', 'Order ini tidak dapat diselesaikan.');
         }
 
-        $package = $pinOrder->package_type instanceof PackageType
-            ? $pinOrder->package_type
-            : PackageType::from($pinOrder->package_type);
-
         // For Duitku orders, PINs are already auto-generated via callback.
         // For manual transfer, generate PINs now upon admin confirmation.
         if ($pinOrder->payment_method !== 'duitku') {
-            for ($i = 0; $i < $pinOrder->quantity; $i++) {
-                RegistrationPin::create([
-                    'pin_code' => 'PIN-' . Str::upper(Str::random(8)),
-                    'package_type' => $package,
-                    'price' => $pinOrder->unit_price,
-                    'status' => 'available',
-                    'purchased_by' => $pinOrder->user_id,
-                    'assigned_to' => $pinOrder->user_id,
-                ]);
+            if ($pinOrder->isUpgradePin()) {
+                $upgradeType = $pinOrder->upgradePinType();
+                for ($i = 0; $i < $pinOrder->quantity; $i++) {
+                    RegistrationPin::create([
+                        'pin_code' => 'UPIN-'.Str::upper(Str::random(8)),
+                        'package_type' => $upgradeType->toPackage()->value,
+                        'upgrade_from' => $upgradeType->fromPackage()->value,
+                        'price' => $pinOrder->unit_price,
+                        'status' => 'available',
+                        'purchased_by' => $pinOrder->user_id,
+                        'assigned_to' => $pinOrder->user_id,
+                    ]);
+                }
+            } else {
+                $package = $pinOrder->package_type instanceof PackageType
+                    ? $pinOrder->package_type
+                    : PackageType::from($pinOrder->package_type);
+
+                for ($i = 0; $i < $pinOrder->quantity; $i++) {
+                    RegistrationPin::create([
+                        'pin_code' => 'PIN-'.Str::upper(Str::random(8)),
+                        'package_type' => $package,
+                        'price' => $pinOrder->unit_price,
+                        'status' => 'available',
+                        'purchased_by' => $pinOrder->user_id,
+                        'assigned_to' => $pinOrder->user_id,
+                    ]);
+                }
             }
         }
 
@@ -113,7 +128,7 @@ class PinOrderController extends Controller
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="pin-orders-' . now()->format('Ymd-His') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="pin-orders-'.now()->format('Ymd-His').'.csv"',
         ];
 
         $columns = [
@@ -140,7 +155,7 @@ class PinOrderController extends Controller
 
         $callback = function () use ($orders, $columns) {
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM for Excel
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM for Excel
             fputcsv($file, $columns);
 
             foreach ($orders as $order) {

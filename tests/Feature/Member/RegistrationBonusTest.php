@@ -426,3 +426,126 @@ it('pass_up_email_is_queued_for_recipient', function () {
         return $mail->hasTo($upline->email);
     });
 });
+
+// ── Real-Time Pairing Bonus ────────────────────────────────────────────────
+
+it('pairing_bonus_created_realtime_when_pair_forms', function () {
+    // Sponsor already has 1 right-leg PP (simulating a previous right-leg registration)
+    $this->sponsorProfile->update(['right_pp_total' => 1]);
+
+    // Register new member on left leg → sponsor gets 1 left PP → pair forms immediately
+    $pin = makeBonusPin(PackageType::Silver, $this->sponsor->id);
+
+    actingAs($this->sponsor)
+        ->post('/member/register', bonusRegisterPayload($pin, 'left'));
+
+    $pairingBonus = Bonus::where('member_profile_id', $this->sponsorProfile->id)
+        ->where('bonus_type', BonusType::Pairing->value)
+        ->first();
+
+    expect($pairingBonus)->not->toBeNull()
+        ->and($pairingBonus->amount)->toBe(1 * 100_000)
+        ->and($pairingBonus->status->value)->toBe('Pending')
+        ->and($pairingBonus->daily_bonus_run_id)->toBeNull();
+
+    // PP consumed after pairing
+    $this->sponsorProfile->refresh();
+    expect($this->sponsorProfile->left_pp_total)->toBe(0)
+        ->and($this->sponsorProfile->right_pp_total)->toBe(0);
+});
+
+it('pairing_bonus_not_created_if_only_one_leg_has_pp', function () {
+    // Sponsor has no pre-existing PP; left-only registration cannot form a pair
+    $pin = makeBonusPin(PackageType::Silver, $this->sponsor->id);
+
+    actingAs($this->sponsor)
+        ->post('/member/register', bonusRegisterPayload($pin, 'left'));
+
+    expect(
+        Bonus::where('member_profile_id', $this->sponsorProfile->id)
+            ->where('bonus_type', BonusType::Pairing->value)
+            ->count()
+    )->toBe(0);
+});
+
+// ── Real-Time Matching Bonus ───────────────────────────────────────────────
+
+it('matching_bonus_created_realtime_after_pairing', function () {
+    // Rantai rekrut: uplineUser → sponsorUser
+    $uplineUser = User::factory()->create();
+    $uplineProfile = MemberProfile::factory()->silver()->for($uplineUser)->create();
+
+    $sponsorUser = User::factory()->create(['sponsor_id' => $uplineUser->id]);
+    $sponsorProfile = MemberProfile::factory()->silver()->for($sponsorUser)->create([
+        'right_pp_total' => 1, // Pre-existing right-leg PP to allow pairing
+    ]);
+    Wallet::factory()->for($sponsorUser)->create();
+
+    // Silver pairingPoint = 1; left registration completes the pair for sponsorProfile
+    $pin = makeBonusPin(PackageType::Silver, $sponsorUser->id);
+
+    actingAs($sponsorUser)
+        ->post('/member/register', bonusRegisterPayload($pin, 'left', 'rtmatch@member.test'));
+
+    // sponsorProfile forms 1 pair → 100,000 pairing bonus
+    // uplineProfile (G1) → 15% matching = 15,000
+    $matchingBonus = Bonus::where('member_profile_id', $uplineProfile->id)
+        ->where('bonus_type', BonusType::Matching->value)
+        ->first();
+
+    expect($matchingBonus)->not->toBeNull()
+        ->and($matchingBonus->amount)->toBe(15_000)
+        ->and($matchingBonus->meta['generation'])->toBe(1)
+        ->and($matchingBonus->daily_bonus_run_id)->toBeNull();
+});
+
+// ── Real-Time Leveling Bonus ───────────────────────────────────────────────
+
+it('leveling_bonus_created_realtime_when_both_sides_filled', function () {
+    // First registration: left leg only → no leveling yet
+    $pin1 = makeBonusPin(PackageType::Silver, $this->sponsor->id);
+    actingAs($this->sponsor)
+        ->post('/member/register', bonusRegisterPayload($pin1, 'left', 'lv1left@member.test'));
+
+    expect(
+        Bonus::where('member_profile_id', $this->sponsorProfile->id)
+            ->where('bonus_type', BonusType::Leveling->value)
+            ->count()
+    )->toBe(0);
+
+    // Second registration: right leg → level 1 now complete → leveling bonus immediately!
+    $pin2 = makeBonusPin(PackageType::Silver, $this->sponsor->id);
+    actingAs($this->sponsor)
+        ->post('/member/register', bonusRegisterPayload($pin2, 'right', 'lv1right@member.test'));
+
+    $levelingBonus = Bonus::where('member_profile_id', $this->sponsorProfile->id)
+        ->where('bonus_type', BonusType::Leveling->value)
+        ->first();
+
+    // Silver + Silver = 250,000
+    expect($levelingBonus)->not->toBeNull()
+        ->and($levelingBonus->amount)->toBe(250_000)
+        ->and($levelingBonus->meta['level'])->toBe(1)
+        ->and($levelingBonus->daily_bonus_run_id)->toBeNull();
+
+    $this->sponsorProfile->refresh();
+    expect($this->sponsorProfile->leveling_rewarded_levels)->toContain(1);
+});
+
+it('leveling_bonus_not_given_twice_for_same_level', function () {
+    // Two registrations complete level 1 → 1 leveling bonus
+    $pin1 = makeBonusPin(PackageType::Silver, $this->sponsor->id);
+    actingAs($this->sponsor)
+        ->post('/member/register', bonusRegisterPayload($pin1, 'left', 'lv2left@member.test'));
+
+    $pin2 = makeBonusPin(PackageType::Silver, $this->sponsor->id);
+    actingAs($this->sponsor)
+        ->post('/member/register', bonusRegisterPayload($pin2, 'right', 'lv2right@member.test'));
+
+    // Level 1 is marked as rewarded; no duplicate bonus on any further activity
+    expect(
+        Bonus::where('member_profile_id', $this->sponsorProfile->id)
+            ->where('bonus_type', BonusType::Leveling->value)
+            ->count()
+    )->toBe(1);
+});
