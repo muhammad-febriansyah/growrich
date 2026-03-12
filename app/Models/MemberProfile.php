@@ -31,6 +31,7 @@ class MemberProfile extends Model
         'left_rp_total',
         'right_rp_total',
         'career_level',
+        'is_stockist',
         'leveling_rewarded_levels',
         // Data Pribadi
         'birth_date',
@@ -68,6 +69,7 @@ class MemberProfile extends Model
             'right_pp_total' => 'integer',
             'left_rp_total' => 'integer',
             'right_rp_total' => 'integer',
+            'is_stockist' => 'boolean',
             'leveling_rewarded_levels' => 'array',
         ];
     }

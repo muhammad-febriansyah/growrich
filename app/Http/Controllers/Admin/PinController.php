@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use App\Models\RegistrationPin;
 use App\Enums\Mlm\PackageType;
+use App\Http\Controllers\Controller;
+use App\Models\PinTransferLog;
+use App\Models\RegistrationPin;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -57,8 +58,15 @@ class PinController extends Controller
             return back()->with('error', 'PIN tidak tersedia untuk ditugaskan.');
         }
 
-        $pin->update([
-            'assigned_to' => $user->id,
+        $fromUserId = $pin->assigned_to;
+        $pin->update(['assigned_to' => $user->id]);
+
+        PinTransferLog::create([
+            'pin_id' => $pin->id,
+            'from_user_id' => $fromUserId,
+            'to_user_id' => $user->id,
+            'transferred_by' => auth()->id(),
+            'actor_type' => 'admin',
         ]);
 
         return back()->with('success', "PIN berhasil ditugaskan ke {$user->name}.");
@@ -76,7 +84,7 @@ class PinController extends Controller
 
         for ($i = 0; $i < $request->amount; $i++) {
             RegistrationPin::create([
-                'pin_code' => 'PIN-' . Str::upper(Str::random(8)),
+                'pin_code' => 'PIN-'.Str::upper(Str::random(8)),
                 'package_type' => $package,
                 'price' => $price,
                 'status' => 'available',
@@ -91,6 +99,7 @@ class PinController extends Controller
     {
         if ($pin->status === 'available') {
             $pin->update(['status' => 'expired']);
+
             return back()->with('success', 'PIN berhasil dinonaktifkan.');
         }
 

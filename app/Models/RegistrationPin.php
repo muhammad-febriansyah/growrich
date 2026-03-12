@@ -46,6 +46,11 @@ class RegistrationPin extends Model
         return $this->belongsTo(User::class, 'used_by');
     }
 
+    public function transferLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PinTransferLog::class, 'pin_id');
+    }
+
     public function isAvailable(): bool
     {
         return $this->status === 'available';

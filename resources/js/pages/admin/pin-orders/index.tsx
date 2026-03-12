@@ -1,10 +1,12 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { CheckCircle2, Clock, Download, Key, Search, ShoppingCart, Truck, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
@@ -19,6 +21,8 @@ interface PinOrder {
     total_amount: number;
     status: 'pending' | 'completed' | 'cancelled';
     shipped_at: string | null;
+    shipping_courier: string | null;
+    shipping_tracking_number: string | null;
     phone: string;
     shipping_name: string;
     shipping_address: string;
@@ -62,6 +66,8 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function PinOrderIndex({ orders, stats, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
+    const [shipOrder, setShipOrder] = useState<PinOrder | null>(null);
+    const shipForm = useForm({ shipping_courier: '', shipping_tracking_number: '' });
 
     const applyFilter = (key: string, value: string) => {
         const next: Record<string, string> = { ...filters };
@@ -90,10 +96,16 @@ export default function PinOrderIndex({ orders, stats, filters }: Props) {
         }
     };
 
-    const handleShip = (order: PinOrder) => {
-        if (confirm(`Tandai order ${order.order_number} sudah dikirim ke ${order.shipping_name}?`)) {
-            router.post(`/admin/pin-orders/${order.id}/ship`);
-        }
+    const openShipDialog = (order: PinOrder) => {
+        setShipOrder(order);
+        shipForm.reset();
+    };
+
+    const submitShip = () => {
+        if (!shipOrder) return;
+        shipForm.post(`/admin/pin-orders/${shipOrder.id}/ship`, {
+            onSuccess: () => setShipOrder(null),
+        });
     };
 
     const pinLabel = (order: PinOrder) => order.upgrade_from
@@ -249,9 +261,16 @@ export default function PinOrderIndex({ orders, stats, filters }: Props) {
                                             <td className="px-4 py-3">
                                                 <StatusBadge status={order.status} />
                                                 {order.shipped_at && (
-                                                    <div className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-blue-600">
-                                                        <Truck className="h-3 w-3" />
-                                                        Dikirim {new Date(order.shipped_at).toLocaleDateString('id-ID', { dateStyle: 'medium' })}
+                                                    <div className="mt-1.5 text-[11px] text-blue-600">
+                                                        <div className="flex items-center gap-1 font-semibold">
+                                                            <Truck className="h-3 w-3" />
+                                                            Dikirim {new Date(order.shipped_at).toLocaleDateString('id-ID', { dateStyle: 'medium' })}
+                                                        </div>
+                                                        {order.shipping_courier && (
+                                                            <div className="mt-0.5 font-medium text-slate-600">
+                                                                {order.shipping_courier} · <span className="font-mono">{order.shipping_tracking_number}</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                                 {order.payment_receipt && (
@@ -275,7 +294,7 @@ export default function PinOrderIndex({ orders, stats, filters }: Props) {
                                                             <Button
                                                                 size="sm"
                                                                 variant="outline"
-                                                                className="h-7 text-xs text-green-700 border-green-300 hover:bg-green-50"
+                                                                className="h-7 text-xs text-green-700 border-green-300 hover:bg-green-50 hover:text-green-700"
                                                                 onClick={() => handleComplete(order)}
                                                             >
                                                                 <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
@@ -284,7 +303,7 @@ export default function PinOrderIndex({ orders, stats, filters }: Props) {
                                                             <Button
                                                                 size="sm"
                                                                 variant="outline"
-                                                                className="h-7 text-xs text-red-600 border-red-300 hover:bg-red-50"
+                                                                className="h-7 text-xs text-red-600 border-red-300 hover:bg-red-50 hover:text-red-600"
                                                                 onClick={() => handleCancel(order)}
                                                             >
                                                                 <XCircle className="mr-1 h-3.5 w-3.5" />
@@ -296,8 +315,8 @@ export default function PinOrderIndex({ orders, stats, filters }: Props) {
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            className="h-7 text-xs text-blue-600 border-blue-300 hover:bg-blue-50"
-                                                            onClick={() => handleShip(order)}
+                                                            className="h-7 text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+                                                            onClick={() => openShipDialog(order)}
                                                         >
                                                             <Truck className="mr-1 h-3.5 w-3.5" />
                                                             Tandai Dikirim
@@ -355,6 +374,53 @@ export default function PinOrderIndex({ orders, stats, filters }: Props) {
                     </div>
                 )}
             </div>
+
+            {/* Ship Dialog */}
+            <Dialog open={shipOrder !== null} onOpenChange={(open) => { if (!open) setShipOrder(null); }}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Tandai Dikirim</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-4 py-2 text-sm text-muted-foreground">
+                        <p>Order <span className="font-mono font-bold text-foreground">{shipOrder?.order_number}</span> ke <span className="font-medium text-foreground">{shipOrder?.shipping_name}</span></p>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="shipping_courier">Nama Kurir</Label>
+                            <Input
+                                id="shipping_courier"
+                                placeholder="JNE, SiCepat, J&T, Anteraja..."
+                                value={shipForm.data.shipping_courier}
+                                onChange={(e) => shipForm.setData('shipping_courier', e.target.value)}
+                            />
+                            {shipForm.errors.shipping_courier && (
+                                <p className="text-xs text-red-500">{shipForm.errors.shipping_courier}</p>
+                            )}
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="shipping_tracking_number">Nomor Resi</Label>
+                            <Input
+                                id="shipping_tracking_number"
+                                placeholder="Masukkan nomor resi..."
+                                value={shipForm.data.shipping_tracking_number}
+                                onChange={(e) => shipForm.setData('shipping_tracking_number', e.target.value)}
+                            />
+                            {shipForm.errors.shipping_tracking_number && (
+                                <p className="text-xs text-red-500">{shipForm.errors.shipping_tracking_number}</p>
+                            )}
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={() => setShipOrder(null)}>Batal</Button>
+                        <Button
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            disabled={shipForm.processing || !shipForm.data.shipping_courier || !shipForm.data.shipping_tracking_number}
+                            onClick={submitShip}
+                        >
+                            <Truck className="mr-2 h-4 w-4" />
+                            Kirim
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

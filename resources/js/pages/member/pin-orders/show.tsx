@@ -56,7 +56,7 @@ export default function PinOrderShow({ order }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Detail Order PIN ${order.order_number}`} />
 
-            <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-4 text-foreground md:p-6">
+            <div className="mx-auto flex w-full max-w-full flex-col gap-6 p-4 text-foreground md:p-6">
                 {/* Header Actions */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">

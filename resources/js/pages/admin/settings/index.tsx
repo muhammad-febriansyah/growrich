@@ -1,6 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import React, { useState } from 'react';
-import { Save, Globe, Phone, Share2, Search, Layout, Settings, Image, Mail, CreditCard, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Save, Globe, Phone, Share2, Search, Layout, Settings, Image, Mail, CreditCard, Eye, EyeOff, ShieldCheck, Store } from 'lucide-react';
 import { InputRupiah } from '@/components/ui/input-rupiah';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,6 +73,10 @@ interface SiteSettingsData {
     bank_account_number: string | null;
     bank_account_name: string | null;
     pairing_bonus_amount: number;
+    stockist_min_order: number;
+    stockist_discount_percent: number;
+    volume_discount_5_percent: number;
+    volume_discount_10_percent: number;
 }
 
 interface Props {
@@ -148,6 +152,10 @@ export default function SiteSettings({ settings }: Props) {
         google_maps_url: settings.google_maps_url || '',
         google_maps_embed: settings.google_maps_embed || '',
         pairing_bonus_amount: settings.pairing_bonus_amount ?? 100000,
+        stockist_min_order: settings.stockist_min_order ?? 10,
+        stockist_discount_percent: settings.stockist_discount_percent ?? 0,
+        volume_discount_5_percent: settings.volume_discount_5_percent ?? 0,
+        volume_discount_10_percent: settings.volume_discount_10_percent ?? 0,
     });
 
     const [showEmailToken, setShowEmailToken] = useState(false);
@@ -239,6 +247,12 @@ export default function SiteSettings({ settings }: Props) {
                                 className="px-4 py-3 border-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-slate-600 hover:bg-slate-100 transition-all rounded-lg font-semibold"
                             >
                                 <ShieldCheck className="size-4 mr-3" /> reCAPTCHA
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="stockist"
+                                className="px-4 py-3 border-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-slate-600 hover:bg-slate-100 transition-all rounded-lg font-semibold"
+                            >
+                                <Store className="size-4 mr-3" /> Stokis
                             </TabsTrigger>
                             {/* Tab Bonus disembunyikan */}
                         </TabsList>
@@ -854,6 +868,72 @@ export default function SiteSettings({ settings }: Props) {
                                                 </button>
                                             </div>
                                             {errors.nocaptcha_secret && <p className="text-sm text-destructive">{errors.nocaptcha_secret}</p>}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </TabsContent>
+                            <TabsContent value="stockist" className="mt-0 focus-visible:outline-none">
+                                <Card className="border shadow-sm rounded-xl overflow-hidden">
+                                    <CardHeader className="border-b bg-slate-50/50 py-4 px-6 font-semibold">
+                                        <CardTitle className="text-lg">Pengaturan Stokis & Diskon Volume</CardTitle>
+                                        <CardDescription>Atur minimal order stokis dan persentase diskon harga PIN.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-6 space-y-6">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="stockist_min_order">Minimal Order Stokis (jumlah PIN)</Label>
+                                            <Input
+                                                id="stockist_min_order"
+                                                type="number"
+                                                min={1}
+                                                max={999}
+                                                placeholder="10"
+                                                value={data.stockist_min_order}
+                                                onChange={(e) => setData('stockist_min_order', parseInt(e.target.value) || 0)}
+                                            />
+                                            <p className="text-xs text-muted-foreground">Stokis wajib memesan minimal sejumlah PIN ini setiap kali order.</p>
+                                            {errors.stockist_min_order && <p className="text-sm text-destructive">{errors.stockist_min_order}</p>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="stockist_discount_percent">Diskon Harga Stokis (%)</Label>
+                                            <Input
+                                                id="stockist_discount_percent"
+                                                type="number"
+                                                min={0}
+                                                max={100}
+                                                placeholder="0"
+                                                value={data.stockist_discount_percent}
+                                                onChange={(e) => setData('stockist_discount_percent', parseInt(e.target.value) || 0)}
+                                            />
+                                            <p className="text-xs text-muted-foreground">Diskon khusus untuk member berstatus stokis (berlaku untuk semua order stokis).</p>
+                                            {errors.stockist_discount_percent && <p className="text-sm text-destructive">{errors.stockist_discount_percent}</p>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="volume_discount_5_percent">Diskon Volume (order ≥ 5 PIN, %)</Label>
+                                            <Input
+                                                id="volume_discount_5_percent"
+                                                type="number"
+                                                min={0}
+                                                max={100}
+                                                placeholder="0"
+                                                value={data.volume_discount_5_percent}
+                                                onChange={(e) => setData('volume_discount_5_percent', parseInt(e.target.value) || 0)}
+                                            />
+                                            <p className="text-xs text-muted-foreground">Diskon otomatis untuk member non-stokis yang memesan 5–9 PIN sekaligus.</p>
+                                            {errors.volume_discount_5_percent && <p className="text-sm text-destructive">{errors.volume_discount_5_percent}</p>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="volume_discount_10_percent">Diskon Volume (order ≥ 10 PIN, %)</Label>
+                                            <Input
+                                                id="volume_discount_10_percent"
+                                                type="number"
+                                                min={0}
+                                                max={100}
+                                                placeholder="0"
+                                                value={data.volume_discount_10_percent}
+                                                onChange={(e) => setData('volume_discount_10_percent', parseInt(e.target.value) || 0)}
+                                            />
+                                            <p className="text-xs text-muted-foreground">Diskon otomatis untuk member non-stokis yang memesan 10 PIN atau lebih sekaligus.</p>
+                                            {errors.volume_discount_10_percent && <p className="text-sm text-destructive">{errors.volume_discount_10_percent}</p>}
                                         </div>
                                     </CardContent>
                                 </Card>

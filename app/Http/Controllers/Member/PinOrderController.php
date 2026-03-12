@@ -6,6 +6,7 @@ use App\Enums\Mlm\PackageType;
 use App\Enums\Mlm\UpgradePinType;
 use App\Http\Controllers\Controller;
 use App\Models\PinOrder;
+use App\Models\SiteSetting;
 use App\Services\DuitkuService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,6 +40,8 @@ class PinOrderController extends Controller
         $packages = $registrationPackages->concat($upgradePackages);
 
         $user = auth()->user();
+        $settings = SiteSetting::instance();
+        $isStockist = $user->memberProfile?->is_stockist ?? false;
 
         return Inertia::render('member/pin-orders/index', [
             'orders' => $orders,
@@ -47,14 +50,25 @@ class PinOrderController extends Controller
                 'phone' => $user->phone ?? '',
                 'shipping_name' => $user->name,
             ],
+            'discount' => [
+                'is_stockist' => $isStockist,
+                'stockist_min_order' => (int) ($settings->stockist_min_order ?? 10),
+                'stockist_percent' => (int) ($settings->stockist_discount_percent ?? 0),
+                'volume_5_percent' => (int) ($settings->volume_discount_5_percent ?? 0),
+                'volume_10_percent' => (int) ($settings->volume_discount_10_percent ?? 0),
+            ],
         ]);
     }
 
     public function store(Request $request): RedirectResponse|HttpResponse
     {
+        $settings = SiteSetting::instance();
+        $isStockist = auth()->user()->memberProfile?->is_stockist ?? false;
+        $minQty = $isStockist ? max(1, (int) ($settings->stockist_min_order ?? 10)) : 1;
+
         $request->validate([
             'package_type' => 'required|in:Silver,Gold,Platinum,UpgradeSilverToGold,UpgradeSilverToPlatinum,UpgradeGoldToPlatinum',
-            'quantity' => 'required|integer|min:1|max:100',
+            'quantity' => "required|integer|min:{$minQty}|max:100",
             'payment_method' => 'required|in:duitku,manual_transfer',
             'phone' => 'required|string|max:20',
             'shipping_name' => 'required|string|max:255',
@@ -68,7 +82,9 @@ class PinOrderController extends Controller
         ], [
             'package_type.required' => 'Jenis paket PIN wajib dipilih.',
             'quantity.required' => 'Jumlah PIN wajib diisi.',
-            'quantity.min' => 'Minimal pemesanan 1 PIN.',
+            'quantity.min' => $isStockist
+                ? "Stokis wajib order minimal {$minQty} PIN sekaligus."
+                : 'Minimal pemesanan 1 PIN.',
             'quantity.max' => 'Maksimal pemesanan 100 PIN sekaligus.',
             'payment_method.required' => 'Metode pembayaran wajib dipilih.',
             'payment_method.in' => 'Metode pembayaran tidak valid.',
@@ -99,7 +115,28 @@ class PinOrderController extends Controller
             $productLabel = 'PIN Registrasi '.$package->value;
         }
 
-        $total = $unitPrice * $request->quantity;
+        // Hitung diskon: stokis atau volume (ambil yang terbesar)
+        $settings = SiteSetting::instance();
+        $user = auth()->user();
+        $isStockist = $user->memberProfile?->is_stockist ?? false;
+        $qty = (int) $request->quantity;
+
+        $discountPercent = 0;
+        if ($isStockist) {
+            $discountPercent = (int) ($settings->stockist_discount_percent ?? 0);
+        } else {
+            if ($qty >= 10) {
+                $discountPercent = (int) ($settings->volume_discount_10_percent ?? 0);
+            } elseif ($qty >= 5) {
+                $discountPercent = (int) ($settings->volume_discount_5_percent ?? 0);
+            }
+        }
+
+        if ($discountPercent > 0) {
+            $unitPrice = (int) round($unitPrice * (1 - $discountPercent / 100));
+        }
+
+        $total = $unitPrice * $qty;
 
         $pinOrder = PinOrder::create([
             'order_number' => PinOrder::generateOrderNumber(),

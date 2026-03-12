@@ -28,6 +28,11 @@ class SiteSetting extends Model
         'duitku_merchant_code',
         'duitku_api_key',
         'duitku_is_sandbox',
+        // Diskon & Ketentuan PIN Stokis
+        'stockist_min_order',
+        'stockist_discount_percent',
+        'volume_discount_5_percent',
+        'volume_discount_10_percent',
         'bank_name',
         'bank_account_number',
         'bank_account_name',

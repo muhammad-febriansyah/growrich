@@ -27,6 +27,7 @@ interface MemberProfile {
     package_type: string;
     package_status: string;
     career_level: string;
+    is_stockist: boolean;
     left_pp_total: number;
     right_pp_total: number;
 }
@@ -143,7 +144,14 @@ export default function MemberIndex({ members, filters }: Props) {
             header: 'Nama',
             cell: ({ row }) => (
                 <div>
-                    <div className="font-medium text-sm">{row.original.name}</div>
+                    <div className="flex items-center gap-1.5">
+                        <span className="font-medium text-sm">{row.original.name}</span>
+                        {row.original.member_profile?.is_stockist && (
+                            <span className="inline-flex items-center rounded-full border border-orange-300 bg-orange-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-orange-700">
+                                Stokis
+                            </span>
+                        )}
+                    </div>
                     <div className="text-xs text-muted-foreground">{row.original.email}</div>
                 </div>
             ),
@@ -208,6 +216,18 @@ export default function MemberIndex({ members, filters }: Props) {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
                                     <Link href={`/admin/members/${member.id}/edit`}>Edit Member</Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onClick={() => {
+                                        const isStokis = member.member_profile?.is_stockist;
+                                        const action = isStokis ? 'Cabut status Stokis' : 'Tunjuk sebagai Stokis';
+                                        if (confirm(`${action} untuk ${member.name}?`)) {
+                                            router.post(`/admin/members/${member.id}/toggle-stockist`);
+                                        }
+                                    }}
+                                >
+                                    {member.member_profile?.is_stockist ? 'Cabut Status Stokis' : 'Tunjuk sebagai Stokis'}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem

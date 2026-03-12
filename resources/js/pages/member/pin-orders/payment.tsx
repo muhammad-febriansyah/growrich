@@ -87,7 +87,7 @@ export default function PinOrderPayment({ order, banks }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Instruksi Pembayaran – Order PIN" />
 
-            <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4 md:p-6">
+            <div className="mx-auto flex w-full max-w-full flex-col gap-6 p-4 md:p-6">
                 {/* Header */}
                 <div className="flex items-center gap-3">
                     <Button variant="outline" size="icon" asChild className="h-9 w-9 shrink-0">
@@ -232,7 +232,7 @@ export default function PinOrderPayment({ order, banks }: Props) {
                                             Preview Bukti Baru
                                         </p>
                                         <img src={previewUrl} alt="Preview Bukti" className="max-h-80 rounded w-full object-contain mx-auto" />
-                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/20 to-transparent p-2">
+                                        <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/20 to-transparent p-2">
                                             <p className="text-[10px] text-white text-center font-medium">Pastikan teks pada bukti terlihat jelas</p>
                                         </div>
                                     </div>

@@ -109,6 +109,11 @@ class SiteSettingController extends Controller
             'steps_section_description' => 'nullable|string',
             // Bonus
             'pairing_bonus_amount' => 'nullable|integer|min:0',
+            // Stokis & Diskon Volume
+            'stockist_min_order' => 'nullable|integer|min:1|max:999',
+            'stockist_discount_percent' => 'nullable|integer|min:0|max:100',
+            'volume_discount_5_percent' => 'nullable|integer|min:0|max:100',
+            'volume_discount_10_percent' => 'nullable|integer|min:0|max:100',
             // Bank Transfer
             'bank_name' => 'nullable|string|max:255',
             'bank_account_number' => 'nullable|string|max:50',

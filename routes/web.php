@@ -300,6 +300,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('admin/members/{user}/edit', [App\Http\Controllers\Admin\MemberController::class, 'edit'])->name('admin.members.edit');
     Route::put('admin/members/{user}', [App\Http\Controllers\Admin\MemberController::class, 'update'])->name('admin.members.update');
     Route::post('admin/members/{user}/reset-password', [App\Http\Controllers\Admin\MemberController::class, 'resetPassword'])->name('admin.members.reset-password');
+    Route::post('admin/members/{user}/toggle-stockist', [App\Http\Controllers\Admin\MemberController::class, 'toggleStockist'])->name('admin.members.toggle-stockist');
+    Route::get('admin/stockists', [App\Http\Controllers\Admin\StockistController::class, 'index'])->name('admin.stockists.index');
 
     Route::get('admin/pins', [App\Http\Controllers\Admin\PinController::class, 'index'])->name('admin.pins.index');
     Route::post('admin/pins', [App\Http\Controllers\Admin\PinController::class, 'store'])->name('admin.pins.store');
@@ -398,6 +400,8 @@ Route::middleware(['auth', 'verified', 'role:member'])->group(function () {
     Route::post('member/register', [App\Http\Controllers\Member\RegistrationController::class, 'store'])->name('member.register.store');
 
     Route::get('member/pins', [App\Http\Controllers\Member\PinController::class, 'index'])->name('member.pins.index');
+    Route::post('member/pins/transfer', [App\Http\Controllers\Member\PinController::class, 'transfer'])->name('member.pins.transfer');
+    Route::get('member/pins/lookup-member', [App\Http\Controllers\Member\PinController::class, 'lookupMember'])->name('member.pins.lookup-member');
 
     // PIN Orders
     Route::get('member/pin-orders', [App\Http\Controllers\Member\PinOrderController::class, 'index'])->name('member.pin-orders.index');

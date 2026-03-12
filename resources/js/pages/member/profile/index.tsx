@@ -11,6 +11,7 @@ interface Member extends User {
         package_type: string;
         package_status: string;
         career_level: string;
+        is_stockist: boolean;
         referral_code: string;
     };
     wallet?: {
@@ -134,9 +135,16 @@ export default function ProfileIndex({ user, sponsor, upline }: Props) {
                             </div>
                             <div className="space-y-1">
                                 <p className="text-xs text-muted-foreground">Status</p>
-                                <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 uppercase">
-                                    {user.member_profile?.package_status === 'active' ? 'Aktif' : user.member_profile?.package_status}
-                                </Badge>
+                                <div className="flex flex-wrap gap-1.5">
+                                    <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 uppercase">
+                                        {user.member_profile?.package_status === 'active' ? 'Aktif' : user.member_profile?.package_status}
+                                    </Badge>
+                                    {user.member_profile?.is_stockist && (
+                                        <Badge variant="outline" className="border-orange-300 bg-orange-100 text-orange-700">
+                                            ✦ Stokis
+                                        </Badge>
+                                    )}
+                                </div>
                             </div>
                             <div className="pt-2 border-t mt-2">
                                 <p className="text-xs text-muted-foreground">Nomor ID Member</p>

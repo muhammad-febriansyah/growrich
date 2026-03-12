@@ -1,5 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, CreditCard, History, User as UserIcon } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { ArrowLeft, CreditCard, History, Package, User as UserIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,7 @@ interface Member extends User {
         package_type: string;
         package_status: string;
         career_level: string;
+        is_stockist: boolean;
         pin_code?: string;
         activated_at: string;
         left_pp_total: number;
@@ -64,7 +65,7 @@ export default function MemberShow({ member }: Props) {
                     </div>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-4">
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium">Paket</CardTitle>
@@ -90,6 +91,40 @@ export default function MemberShow({ member }: Props) {
                         <CardContent>
                             <div className="text-2xl font-bold">Rp {new Intl.NumberFormat('id-ID').format(member.wallet?.balance || 0)}</div>
                             <p className="text-xs text-muted-foreground text-green-600">Saldo saat ini</p>
+                        </CardContent>
+                    </Card>
+                    <Card className={member.member_profile?.is_stockist ? 'border-orange-300 bg-orange-50' : ''}>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                                <Package className="h-4 w-4" />
+                                Status Stokis
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col gap-3">
+                            <div>
+                                {member.member_profile?.is_stockist ? (
+                                    <span className="inline-flex items-center rounded-full border border-orange-300 bg-orange-100 px-2.5 py-1 text-xs font-bold text-orange-700">
+                                        ✦ Stokis Aktif
+                                    </span>
+                                ) : (
+                                    <span className="text-sm text-muted-foreground">Bukan Stokis</span>
+                                )}
+                            </div>
+                            <Button
+                                size="sm"
+                                variant={member.member_profile?.is_stockist ? 'outline' : 'default'}
+                                className={member.member_profile?.is_stockist
+                                    ? 'h-7 text-xs border-orange-300 text-orange-700 hover:bg-orange-50 hover:text-orange-700'
+                                    : 'h-7 text-xs bg-orange-500 hover:bg-orange-600 text-white'}
+                                onClick={() => {
+                                    const action = member.member_profile?.is_stockist ? 'Cabut status Stokis' : 'Tunjuk sebagai Stokis';
+                                    if (confirm(`${action} untuk ${member.name}?`)) {
+                                        router.post(`/admin/members/${member.id}/toggle-stockist`);
+                                    }
+                                }}
+                            >
+                                {member.member_profile?.is_stockist ? 'Cabut Stokis' : 'Tunjuk Stokis'}
+                            </Button>
                         </CardContent>
                     </Card>
                 </div>

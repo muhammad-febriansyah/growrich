@@ -23,6 +23,7 @@ import {
     Star,
     Database,
     Banknote,
+    Store,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -55,6 +56,7 @@ export const adminNavGroups: NavGroup[] = [
             { title: 'Order PIN', href: '/admin/pin-orders', icon: ShoppingCart },
             { title: 'Manajemen Paket', href: '/admin/packages', icon: Package },
             { title: 'Manajemen Bank', href: '/admin/banks', icon: Banknote },
+            { title: 'Dashboard Stokis', href: '/admin/stockists', icon: Store },
         ],
     },
     {

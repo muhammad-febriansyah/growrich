@@ -100,4 +100,19 @@ class MemberController extends Controller
 
         return back()->with('success', 'Password member berhasil direset ke "password123".');
     }
+
+    public function toggleStockist(User $user): \Illuminate\Http\RedirectResponse
+    {
+        $profile = $user->memberProfile;
+
+        if (! $profile) {
+            return back()->with('error', 'Profil member tidak ditemukan.');
+        }
+
+        $profile->update(['is_stockist' => ! $profile->is_stockist]);
+
+        $status = $profile->is_stockist ? 'ditunjuk sebagai Stokis' : 'dicabut status Stokis-nya';
+
+        return back()->with('success', "{$user->name} berhasil {$status}.");
+    }
 }

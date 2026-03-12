@@ -34,6 +34,8 @@ class PinOrder extends Model
         'notes',
         'completed_at',
         'shipped_at',
+        'shipping_courier',
+        'shipping_tracking_number',
     ];
 
     protected function casts(): array

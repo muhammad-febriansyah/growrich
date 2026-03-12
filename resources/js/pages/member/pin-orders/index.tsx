@@ -45,6 +45,12 @@ interface Props {
     };
     packages: PackageOption[];
     prefill: { phone: string; shipping_name: string };
+    discount: {
+        is_stockist: boolean;
+        stockist_percent: number;
+        volume_5_percent: number;
+        volume_10_percent: number;
+    };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Order PIN', href: '/member/pin-orders' }];
@@ -66,7 +72,7 @@ function FieldError({ message }: { message?: string }) {
     return <p className="text-xs text-destructive">{message}</p>;
 }
 
-export default function PinOrderIndex({ orders, packages, prefill }: Props) {
+export default function PinOrderIndex({ orders, packages, prefill, discount }: Props) {
     const { data, setData, post, processing, errors, reset } = useForm({
         package_type: '',
         quantity: '1',
@@ -83,7 +89,21 @@ export default function PinOrderIndex({ orders, packages, prefill }: Props) {
     });
 
     const selectedPkg = packages.find((p) => p.value === data.package_type);
-    const totalAmount = selectedPkg ? selectedPkg.price * Number(data.quantity || 0) : 0;
+    const qty = Number(data.quantity || 0);
+    const basePrice = selectedPkg?.price ?? 0;
+
+    // Hitung diskon (sama dengan logika backend)
+    let discountPercent = 0;
+    if (discount.is_stockist && discount.stockist_percent > 0) {
+        discountPercent = discount.stockist_percent;
+    } else if (qty >= 10 && discount.volume_10_percent > 0) {
+        discountPercent = discount.volume_10_percent;
+    } else if (qty >= 5 && discount.volume_5_percent > 0) {
+        discountPercent = discount.volume_5_percent;
+    }
+
+    const unitPrice = discountPercent > 0 ? Math.round(basePrice * (1 - discountPercent / 100)) : basePrice;
+    const totalAmount = unitPrice * qty;
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -94,7 +114,7 @@ export default function PinOrderIndex({ orders, packages, prefill }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Order PIN" />
 
-            <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-4 text-foreground md:p-6">
+            <div className="mx-auto flex w-full max-w-full flex-col gap-6 p-4 text-foreground md:p-6">
                 <div>
                     <h1 className="text-2xl font-bold">Order PIN</h1>
                     <p className="mt-1 text-sm text-muted-foreground">
@@ -169,12 +189,22 @@ export default function PinOrderIndex({ orders, packages, prefill }: Props) {
 
                             {totalAmount > 0 && (
                                 <div className="sm:col-span-2 rounded-xl border border-primary/20 bg-white px-4 py-3">
+                                    {discountPercent > 0 && (
+                                        <div className="mb-2 flex items-center gap-2">
+                                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${discount.is_stockist ? 'bg-orange-100 text-orange-700 border border-orange-300' : 'bg-blue-100 text-blue-700 border border-blue-300'}`}>
+                                                {discount.is_stockist ? `✦ Harga Stokis −${discountPercent}%` : `Diskon Volume −${discountPercent}%`}
+                                            </span>
+                                        </div>
+                                    )}
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm text-muted-foreground">Total Pembayaran</span>
                                         <span className="text-lg font-bold text-primary">{fmt(totalAmount)}</span>
                                     </div>
                                     <p className="mt-1 text-xs text-muted-foreground">
-                                        {data.quantity} PIN × {selectedPkg ? fmt(selectedPkg.price) : '-'}
+                                        {data.quantity} PIN × {fmt(unitPrice)}
+                                        {discountPercent > 0 && (
+                                            <span className="ml-1.5 line-through opacity-50">{fmt(basePrice)}</span>
+                                        )}
                                     </p>
                                 </div>
                             )}
