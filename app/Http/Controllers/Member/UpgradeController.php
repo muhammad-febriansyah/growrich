@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PackageUpgradeRequest;
 use App\Models\RegistrationPin;
 use App\Models\User;
+use App\Services\BonusRunnerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,6 +16,8 @@ use Inertia\Response;
 
 class UpgradeController extends Controller
 {
+    public function __construct(private readonly BonusRunnerService $bonusRunnerService) {}
+
     public function index(): Response|RedirectResponse
     {
         $user = auth()->user();
@@ -123,6 +126,9 @@ class UpgradeController extends Controller
             'status' => 'approved',
             'notes' => 'Upgrade otomatis via PIN upgrade.',
         ]);
+
+        // Propagate Reward Point delta up the binary tree
+        $this->bonusRunnerService->propagateUpgradeRewardPoints($profile, $currentPackage, $targetPackage);
 
         return back()->with('success', "Selamat! Paket Anda berhasil diupgrade ke {$targetPackage->value}.");
     }

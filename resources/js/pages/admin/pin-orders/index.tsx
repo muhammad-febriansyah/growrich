@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { CheckCircle2, Clock, Download, Key, Search, ShoppingCart, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Download, Key, Search, ShoppingCart, Truck, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,10 +13,12 @@ interface PinOrder {
     id: number;
     order_number: string;
     package_type: string;
+    upgrade_from: string | null;
     quantity: number;
     unit_price: number;
     total_amount: number;
     status: 'pending' | 'completed' | 'cancelled';
+    shipped_at: string | null;
     phone: string;
     shipping_name: string;
     shipping_address: string;
@@ -87,6 +89,16 @@ export default function PinOrderIndex({ orders, stats, filters }: Props) {
             router.post(`/admin/pin-orders/${order.id}/cancel`);
         }
     };
+
+    const handleShip = (order: PinOrder) => {
+        if (confirm(`Tandai order ${order.order_number} sudah dikirim ke ${order.shipping_name}?`)) {
+            router.post(`/admin/pin-orders/${order.id}/ship`);
+        }
+    };
+
+    const pinLabel = (order: PinOrder) => order.upgrade_from
+        ? `Upgrade ${order.upgrade_from} → ${order.package_type}`
+        : `Registrasi ${order.package_type}`;
 
     const buildExportUrl = () => {
         const params = new URLSearchParams();
@@ -218,7 +230,9 @@ export default function PinOrderIndex({ orders, stats, filters }: Props) {
                                                 <p className="text-[11px] text-muted-foreground">{order.user?.member_id ?? order.user?.email ?? ''}</p>
                                                 <p className="text-[11px] text-muted-foreground">{order.phone}</p>
                                             </td>
-                                            <td className="px-4 py-3 font-semibold">{order.package_type}</td>
+                                            <td className="px-4 py-3">
+                                                <span className="font-semibold text-sm">{pinLabel(order)}</span>
+                                            </td>
                                             <td className="px-4 py-3 text-center font-bold">{order.quantity}</td>
                                             <td className="px-4 py-3 text-right font-bold text-slate-900">
                                                 {fmt(order.total_amount)}
@@ -234,6 +248,12 @@ export default function PinOrderIndex({ orders, stats, filters }: Props) {
                                             </td>
                                             <td className="px-4 py-3">
                                                 <StatusBadge status={order.status} />
+                                                {order.shipped_at && (
+                                                    <div className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-blue-600">
+                                                        <Truck className="h-3 w-3" />
+                                                        Dikirim {new Date(order.shipped_at).toLocaleDateString('id-ID', { dateStyle: 'medium' })}
+                                                    </div>
+                                                )}
                                                 {order.payment_receipt && (
                                                     <div className="mt-1.5">
                                                         <a
@@ -249,28 +269,41 @@ export default function PinOrderIndex({ orders, stats, filters }: Props) {
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                {order.status === 'pending' && (
-                                                    <div className="flex flex-col gap-1.5">
+                                                <div className="flex flex-col gap-1.5">
+                                                    {order.status === 'pending' && (
+                                                        <>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-7 text-xs text-green-700 border-green-300 hover:bg-green-50"
+                                                                onClick={() => handleComplete(order)}
+                                                            >
+                                                                <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                                                                Selesaikan
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-7 text-xs text-red-600 border-red-300 hover:bg-red-50"
+                                                                onClick={() => handleCancel(order)}
+                                                            >
+                                                                <XCircle className="mr-1 h-3.5 w-3.5" />
+                                                                Batalkan
+                                                            </Button>
+                                                        </>
+                                                    )}
+                                                    {order.status === 'completed' && !order.shipped_at && (
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            className="h-7 text-xs text-green-700 border-green-300 hover:bg-green-50"
-                                                            onClick={() => handleComplete(order)}
+                                                            className="h-7 text-xs text-blue-600 border-blue-300 hover:bg-blue-50"
+                                                            onClick={() => handleShip(order)}
                                                         >
-                                                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                                                            Selesaikan
+                                                            <Truck className="mr-1 h-3.5 w-3.5" />
+                                                            Tandai Dikirim
                                                         </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="h-7 text-xs text-red-600 border-red-300 hover:bg-red-50"
-                                                            onClick={() => handleCancel(order)}
-                                                        >
-                                                            <XCircle className="mr-1 h-3.5 w-3.5" />
-                                                            Batalkan
-                                                        </Button>
-                                                    </div>
-                                                )}
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

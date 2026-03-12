@@ -13,6 +13,7 @@ interface Pin {
     id: number;
     pin_code: string;
     package_type: string;
+    upgrade_from: string | null;
     price: number;
     status: string;
     created_at: string;
@@ -61,17 +62,26 @@ export default function PinIndex({ pins }: Props) {
         },
         {
             accessorKey: 'package_type',
-            header: 'Paket',
+            header: 'Jenis PIN',
             cell: ({ row }) => {
                 const styles: Record<string, string> = {
                     Silver: 'bg-slate-100 text-slate-700 border-slate-300',
                     Gold: 'bg-amber-100 text-amber-700 border-amber-300',
                     Platinum: 'bg-violet-100 text-violet-700 border-violet-300',
                 };
-                const t = row.original.package_type;
+                const { package_type, upgrade_from } = row.original;
+                if (upgrade_from) {
+                    return (
+                        <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${styles[package_type] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>
+                            <span className={`${styles[upgrade_from] ? 'opacity-70' : ''}`}>{upgrade_from}</span>
+                            <span>→</span>
+                            <span>{package_type}</span>
+                        </span>
+                    );
+                }
                 return (
-                    <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${styles[t] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>
-                        {t}
+                    <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${styles[package_type] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>
+                        {package_type}
                     </span>
                 );
             },
@@ -128,8 +138,8 @@ export default function PinIndex({ pins }: Props) {
 
             <div className="flex flex-col gap-6 p-4 md:p-6 text-foreground">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-2xl font-bold font-heading">PIN Registrasi Saya</h1>
-                    <p className="text-muted-foreground">Daftar PIN yang ditugaskan admin kepada Anda untuk registrasi member baru.</p>
+                    <h1 className="text-2xl font-bold font-heading">Stok PIN Saya</h1>
+                    <p className="text-muted-foreground">Daftar PIN registrasi dan PIN upgrade yang Anda miliki.</p>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-4">
@@ -147,7 +157,7 @@ export default function PinIndex({ pins }: Props) {
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle>Daftar PIN</CardTitle>
-                            <CardDescription>Gunakan kode PIN di bawah ini pada form registrasi member baru.</CardDescription>
+                            <CardDescription>PIN registrasi digunakan untuk mendaftar member baru. PIN upgrade digunakan di menu Upgrade Paket.</CardDescription>
                         </div>
                         <div className="p-2 bg-brand/10 rounded-full text-brand">
                             <Key className="h-5 w-5" />

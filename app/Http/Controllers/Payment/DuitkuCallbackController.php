@@ -78,19 +78,34 @@ class DuitkuCallbackController extends Controller
                     'completed_at' => now(),
                 ]);
 
-                $package = $pinOrder->package_type instanceof \App\Enums\Mlm\PackageType
-                    ? $pinOrder->package_type
-                    : \App\Enums\Mlm\PackageType::from($pinOrder->package_type);
+                if ($pinOrder->isUpgradePin()) {
+                    $upgradeType = $pinOrder->upgradePinType();
+                    for ($i = 0; $i < $pinOrder->quantity; $i++) {
+                        RegistrationPin::create([
+                            'pin_code' => 'UPIN-'.Str::upper(Str::random(8)),
+                            'package_type' => $upgradeType->toPackage()->value,
+                            'upgrade_from' => $upgradeType->fromPackage()->value,
+                            'price' => $pinOrder->unit_price,
+                            'status' => 'available',
+                            'purchased_by' => $pinOrder->user_id,
+                            'assigned_to' => $pinOrder->user_id,
+                        ]);
+                    }
+                } else {
+                    $package = $pinOrder->package_type instanceof \App\Enums\Mlm\PackageType
+                        ? $pinOrder->package_type
+                        : \App\Enums\Mlm\PackageType::from($pinOrder->package_type);
 
-                for ($i = 0; $i < $pinOrder->quantity; $i++) {
-                    RegistrationPin::create([
-                        'pin_code' => 'PIN-'.Str::upper(Str::random(8)),
-                        'package_type' => $package,
-                        'price' => $pinOrder->unit_price,
-                        'status' => 'available',
-                        'purchased_by' => $pinOrder->user_id,
-                        'assigned_to' => $pinOrder->user_id,
-                    ]);
+                    for ($i = 0; $i < $pinOrder->quantity; $i++) {
+                        RegistrationPin::create([
+                            'pin_code' => 'PIN-'.Str::upper(Str::random(8)),
+                            'package_type' => $package,
+                            'price' => $pinOrder->unit_price,
+                            'status' => 'available',
+                            'purchased_by' => $pinOrder->user_id,
+                            'assigned_to' => $pinOrder->user_id,
+                        ]);
+                    }
                 }
             });
 

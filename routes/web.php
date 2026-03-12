@@ -367,6 +367,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     // PIN Order Management
     Route::get('admin/pin-orders', [App\Http\Controllers\Admin\PinOrderController::class, 'index'])->name('admin.pin-orders.index');
     Route::post('admin/pin-orders/{pinOrder}/complete', [App\Http\Controllers\Admin\PinOrderController::class, 'complete'])->name('admin.pin-orders.complete');
+    Route::post('admin/pin-orders/{pinOrder}/ship', [App\Http\Controllers\Admin\PinOrderController::class, 'ship'])->name('admin.pin-orders.ship');
     Route::post('admin/pin-orders/{pinOrder}/cancel', [App\Http\Controllers\Admin\PinOrderController::class, 'cancel'])->name('admin.pin-orders.cancel');
     Route::get('admin/pin-orders/export', [App\Http\Controllers\Admin\PinOrderController::class, 'export'])->name('admin.pin-orders.export');
 

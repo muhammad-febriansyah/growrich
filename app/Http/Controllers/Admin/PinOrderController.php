@@ -8,10 +8,10 @@ use App\Models\PinOrder;
 use App\Models\RegistrationPin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PinOrderController extends Controller
 {
@@ -101,6 +101,21 @@ class PinOrderController extends Controller
         return back()->with('success', $msg);
     }
 
+    public function ship(PinOrder $pinOrder): RedirectResponse
+    {
+        if ($pinOrder->status !== 'completed') {
+            return back()->with('error', 'Hanya order yang sudah selesai dapat ditandai dikirim.');
+        }
+
+        if ($pinOrder->shipped_at) {
+            return back()->with('error', 'Order ini sudah ditandai dikirim sebelumnya.');
+        }
+
+        $pinOrder->update(['shipped_at' => now()]);
+
+        return back()->with('success', "Order #{$pinOrder->order_number} ditandai sudah dikirim.");
+    }
+
     public function cancel(PinOrder $pinOrder): RedirectResponse
     {
         if ($pinOrder->status !== 'pending') {
@@ -112,7 +127,7 @@ class PinOrderController extends Controller
         return back()->with('success', "Order #{$pinOrder->order_number} berhasil dibatalkan.");
     }
 
-    public function export(Request $request): HttpResponse
+    public function export(Request $request): StreamedResponse
     {
         $query = PinOrder::query()->with('user');
 
@@ -135,11 +150,12 @@ class PinOrderController extends Controller
             'No. Order',
             'Member',
             'Email',
-            'Paket',
+            'Jenis PIN',
             'Jumlah',
             'Harga Satuan',
             'Total',
             'Status',
+            'Status Pengiriman',
             'No. HP',
             'Penerima',
             'Alamat',
@@ -151,6 +167,7 @@ class PinOrderController extends Controller
             'Catatan',
             'Tanggal Order',
             'Tanggal Selesai',
+            'Tanggal Dikirim',
         ];
 
         $callback = function () use ($orders, $columns) {
@@ -163,15 +180,20 @@ class PinOrderController extends Controller
                     ? $order->package_type->value
                     : $order->package_type;
 
+                $pinLabel = $order->upgrade_from
+                    ? "Upgrade {$order->upgrade_from} → {$pkg}"
+                    : "Registrasi {$pkg}";
+
                 fputcsv($file, [
                     $order->order_number,
                     $order->user?->name ?? '-',
                     $order->user?->email ?? '-',
-                    $pkg,
+                    $pinLabel,
                     $order->quantity,
                     $order->unit_price,
                     $order->total_amount,
                     $order->status,
+                    $order->shipped_at ? 'Sudah Dikirim' : 'Belum Dikirim',
                     $order->phone,
                     $order->shipping_name,
                     $order->shipping_address,
@@ -183,6 +205,7 @@ class PinOrderController extends Controller
                     $order->notes ?? '',
                     $order->created_at->format('Y-m-d H:i'),
                     $order->completed_at?->format('Y-m-d H:i') ?? '',
+                    $order->shipped_at?->format('Y-m-d H:i') ?? '',
                 ]);
             }
 

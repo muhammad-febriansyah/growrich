@@ -33,6 +33,7 @@ class PinOrder extends Model
         'shipping_postal_code',
         'notes',
         'completed_at',
+        'shipped_at',
     ];
 
     protected function casts(): array
@@ -43,6 +44,7 @@ class PinOrder extends Model
             'unit_price' => 'integer',
             'total_amount' => 'integer',
             'completed_at' => 'datetime',
+            'shipped_at' => 'datetime',
             'paid_at' => 'datetime',
         ];
     }

@@ -14,6 +14,7 @@ use App\Models\Package;
 use App\Models\PairingPointLedger;
 use App\Models\RepeatOrder;
 use App\Models\RewardMilestone;
+use App\Models\RewardPointLedger;
 use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -83,6 +84,7 @@ class BonusRunnerService
     public function propagatePairingPointsAndProcessBonuses(MemberProfile $newProfile, PackageType $packageType): void
     {
         $pp = $packageType->pairingPoint();
+        $rp = $packageType->rewardPoint();
         $current = $newProfile;
         $today = now();
         $depthFromNew = 1;
@@ -100,23 +102,45 @@ class BonusRunnerService
                 break;
             }
 
-            $totalColumn = $leg === 'left' ? 'left_pp_total' : 'right_pp_total';
-            $balanceBefore = $parent->$totalColumn;
-            $balanceAfter = $balanceBefore + $pp;
+            // Propagate Pairing Points
+            $ppColumn = $leg === 'left' ? 'left_pp_total' : 'right_pp_total';
+            $ppBefore = $parent->$ppColumn;
+            $ppAfter = $ppBefore + $pp;
 
-            $parent->increment($totalColumn, $pp);
+            $parent->increment($ppColumn, $pp);
             $parent->refresh();
 
             PairingPointLedger::create([
                 'member_profile_id' => $parent->id,
                 'leg' => $leg,
                 'points' => $pp,
-                'balance_before' => $balanceBefore,
-                'balance_after' => $balanceAfter,
+                'balance_before' => $ppBefore,
+                'balance_after' => $ppAfter,
                 'reason' => 'registration',
                 'reference_id' => $newProfile->id,
                 'ledger_date' => $today->toDateString(),
             ]);
+
+            // Propagate Reward Points (only if package has RP > 0)
+            if ($rp > 0) {
+                $rpColumn = $leg === 'left' ? 'left_rp_total' : 'right_rp_total';
+                $rpBefore = $parent->$rpColumn;
+                $rpAfter = $rpBefore + $rp;
+
+                $parent->increment($rpColumn, $rp);
+                $parent->refresh();
+
+                RewardPointLedger::create([
+                    'member_profile_id' => $parent->id,
+                    'leg' => $leg,
+                    'points' => $rp,
+                    'balance_before' => $rpBefore,
+                    'balance_after' => $rpAfter,
+                    'reason' => 'registration',
+                    'reference_id' => $newProfile->id,
+                    'ledger_date' => $today->toDateString(),
+                ]);
+            }
 
             if ($parent->package_status === 'active') {
                 $pairingBonus = $this->processPairingForProfile($parent, $today);
@@ -135,6 +159,59 @@ class BonusRunnerService
             }
 
             $depthFromNew++;
+            $current = $parent;
+        }
+    }
+
+    /**
+     * Propagate the delta Reward Points up the binary tree when a member upgrades their package.
+     * Only the RP difference (newPackage - oldPackage) is propagated.
+     * Called on every package upgrade.
+     */
+    public function propagateUpgradeRewardPoints(MemberProfile $profile, PackageType $fromPackage, PackageType $toPackage): void
+    {
+        $rpDelta = $toPackage->rewardPoint() - $fromPackage->rewardPoint();
+
+        if ($rpDelta <= 0) {
+            return;
+        }
+
+        $current = $profile;
+        $today = now();
+
+        while ($current->parent_id) {
+            $parent = MemberProfile::find($current->parent_id);
+
+            if (! $parent) {
+                break;
+            }
+
+            $leg = $current->leg_position?->value;
+
+            if (! $leg) {
+                break;
+            }
+
+            $rpColumn = $leg === 'left' ? 'left_rp_total' : 'right_rp_total';
+            $rpBefore = $parent->$rpColumn;
+            $rpAfter = $rpBefore + $rpDelta;
+
+            $parent->increment($rpColumn, $rpDelta);
+            $parent->refresh();
+
+            RewardPointLedger::create([
+                'member_profile_id' => $parent->id,
+                'leg' => $leg,
+                'points' => $rpDelta,
+                'balance_before' => $rpBefore,
+                'balance_after' => $rpAfter,
+                'reason' => 'upgrade',
+                'reference_id' => $profile->id,
+                'ledger_date' => $today->toDateString(),
+            ]);
+
+            $this->triggerRewardsForProfile($parent);
+
             $current = $parent;
         }
     }
