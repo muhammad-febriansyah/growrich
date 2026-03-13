@@ -24,6 +24,7 @@ import {
     Database,
     Banknote,
     Store,
+    UserX,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -101,6 +102,7 @@ export const adminNavGroups: NavGroup[] = [
         items: [
             { title: 'Pengaturan Situs', href: '/admin/settings', icon: Settings },
             { title: 'Backup Database', href: '/admin/database-backups', icon: Database },
+            { title: 'Hapus Member', href: '/admin/member-deletions', icon: UserX },
         ],
     },
 ];

@@ -301,6 +301,10 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::put('admin/members/{user}', [App\Http\Controllers\Admin\MemberController::class, 'update'])->name('admin.members.update');
     Route::post('admin/members/{user}/reset-password', [App\Http\Controllers\Admin\MemberController::class, 'resetPassword'])->name('admin.members.reset-password');
     Route::post('admin/members/{user}/toggle-stockist', [App\Http\Controllers\Admin\MemberController::class, 'toggleStockist'])->name('admin.members.toggle-stockist');
+    Route::delete('admin/members/{user}', [App\Http\Controllers\Admin\MemberController::class, 'destroy'])->name('admin.members.destroy');
+    Route::get('admin/member-deletions', [App\Http\Controllers\Admin\MemberDeletionController::class, 'index'])->name('admin.member-deletions.index');
+    Route::delete('admin/member-deletions', [App\Http\Controllers\Admin\MemberDeletionController::class, 'bulkDestroy'])->name('admin.member-deletions.bulk-destroy');
+    Route::delete('admin/member-deletions/{user}', [App\Http\Controllers\Admin\MemberDeletionController::class, 'destroy'])->name('admin.member-deletions.destroy');
     Route::get('admin/stockists', [App\Http\Controllers\Admin\StockistController::class, 'index'])->name('admin.stockists.index');
 
     Route::get('admin/pins', [App\Http\Controllers\Admin\PinController::class, 'index'])->name('admin.pins.index');

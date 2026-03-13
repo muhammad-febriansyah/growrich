@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, CreditCard, History, Package, User as UserIcon } from 'lucide-react';
+import { ArrowLeft, History, Package, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +32,15 @@ interface Props {
 }
 
 export default function MemberShow({ member }: Props) {
+    const isRoot = !member.member_profile?.parent_id;
+
+    function handleDelete() {
+        if (!confirm(`PERHATIAN: Tindakan ini tidak dapat dibatalkan!\n\nHapus member "${member.name}" beserta seluruh data terkait (bonus, poin, wallet, dll)?\n\nKetik OK untuk melanjutkan.`)) {
+            return;
+        }
+        router.delete(`/admin/members/${member.id}`);
+    }
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Manajemen Member',
@@ -62,6 +71,12 @@ export default function MemberShow({ member }: Props) {
                         <Button asChild variant="outline">
                             <Link href={`/admin/members/${member.id}/edit`}>Edit Member</Link>
                         </Button>
+                        {!isRoot && (
+                            <Button variant="destructive" onClick={handleDelete}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Hapus Member
+                            </Button>
+                        )}
                     </div>
                 </div>
 

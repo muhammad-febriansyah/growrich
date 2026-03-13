@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Mlm\LegPosition;
 use App\Enums\Mlm\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\MemberProfile;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -114,5 +116,37 @@ class MemberController extends Controller
         $status = $profile->is_stockist ? 'ditunjuk sebagai Stokis' : 'dicabut status Stokis-nya';
 
         return back()->with('success', "{$user->name} berhasil {$status}.");
+    }
+
+    public function destroy(User $user): \Illuminate\Http\RedirectResponse
+    {
+        $profile = $user->memberProfile;
+
+        if (! $profile || is_null($profile->parent_id)) {
+            return back()->with('error', 'Member root tidak dapat dihapus.');
+        }
+
+        $parentProfile = MemberProfile::find($profile->parent_id);
+        $legPosition = $profile->leg_position;
+        $memberName = $user->name;
+
+        $user->delete();
+
+        if ($parentProfile && $legPosition) {
+            if ($legPosition === LegPosition::Left) {
+                $parentProfile->update([
+                    'left_pp_total' => 0,
+                    'left_rp_total' => 0,
+                ]);
+            } else {
+                $parentProfile->update([
+                    'right_pp_total' => 0,
+                    'right_rp_total' => 0,
+                ]);
+            }
+        }
+
+        return redirect()->route('admin.members.index')
+            ->with('success', "Member {$memberName} berhasil dihapus beserta seluruh data terkait.");
     }
 }
