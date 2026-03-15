@@ -1025,10 +1025,10 @@ class BonusRunnerService
         $bonus = Bonus::create(array_merge($attributes, ['status' => BonusStatus::Approved->value]));
 
         if ($bonus->ewallet_amount > 0) {
-            $wallet = MemberProfile::with('user.wallet')
-                ->find($attributes['member_profile_id'])
-                ?->user
-                ?->wallet;
+            $profile = MemberProfile::with('user.wallet')
+                ->find($attributes['member_profile_id']);
+
+            $wallet = $profile?->user?->wallet;
 
             $wallet?->credit(
                 $bonus->ewallet_amount,
@@ -1036,8 +1036,55 @@ class BonusRunnerService
                 Bonus::class,
                 $bonus->id,
             );
+
+            if ($wallet && $profile) {
+                $this->autoRepeatOrderIfNeeded($profile, $wallet);
+            }
         }
 
         return $bonus;
+    }
+
+    /**
+     * Automatically create a completed RO (Rp 1.000.000) from e-wallet if the member
+     * has no ewallet auto-RO yet this calendar month and balance >= 1.000.000.
+     * This ensures members stay qualified for GlobalSharing and RepeatOrder bonuses.
+     */
+    private function autoRepeatOrderIfNeeded(MemberProfile $profile, mixed $wallet): void
+    {
+        $autoRoAmount = 1_000_000;
+
+        $hasRoThisMonth = RepeatOrder::where('member_profile_id', $profile->id)
+            ->where('payment_method', 'ewallet')
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->exists();
+
+        if ($hasRoThisMonth) {
+            return;
+        }
+
+        $wallet->refresh();
+
+        if ($wallet->balance < $autoRoAmount) {
+            return;
+        }
+
+        DB::transaction(function () use ($profile, $wallet, $autoRoAmount) {
+            RepeatOrder::create([
+                'member_profile_id' => $profile->id,
+                'order_number' => 'RO-AUTO-'.strtoupper(uniqid()),
+                'total_amount' => $autoRoAmount,
+                'status' => 'completed',
+                'period_month' => now()->month,
+                'period_year' => now()->year,
+                'payment_method' => 'ewallet',
+                'paid_at' => now(),
+            ]);
+
+            $wallet->decrement('balance', $autoRoAmount);
+        });
+
+        Log::info("Auto RO created for profile #{$profile->id} (Rp {$autoRoAmount} from ewallet)");
     }
 }

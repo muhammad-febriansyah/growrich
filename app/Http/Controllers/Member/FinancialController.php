@@ -119,15 +119,24 @@ class FinancialController extends Controller
     public function withdraw(Request $request)
     {
         $request->validate([
-            'amount' => 'required|integer|min:50000', // Minimal WD 50rb
+            'amount' => 'required|integer|min:50000',
             'bank_name' => 'required|string',
             'account_number' => 'required|string',
             'account_name' => 'required|string',
         ]);
 
         $user = auth()->user();
-        if ($user->wallet->balance < $request->amount) {
-            return back()->with('error', 'Saldo tidak mencukupi.');
+        $balance = $user->wallet->balance;
+        $minimumHold = 1_000_000;
+
+        if ($balance < $minimumHold) {
+            return back()->with('error', 'Saldo e-wallet Anda kurang dari Rp 1.000.000. Minimum saldo Rp 1.000.000 harus dipertahankan untuk Auto RO bulanan.');
+        }
+
+        $maxWithdraw = $balance - $minimumHold;
+
+        if ($request->amount > $maxWithdraw) {
+            return back()->with('error', 'Maksimal penarikan adalah Rp '.number_format($maxWithdraw, 0, ',', '.').' (saldo harus tersisa minimal Rp 1.000.000).');
         }
 
         $withdrawal = null;

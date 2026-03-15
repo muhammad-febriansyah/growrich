@@ -1,6 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import { ColumnDef } from '@tanstack/react-table';
-import { ArrowDownToLine, CreditCard, History, Info, Send, Wallet } from 'lucide-react';
+import { ArrowDownToLine, History, Info, Send, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +50,9 @@ function parseRupiah(display: string): number {
     return cleaned ? parseInt(cleaned, 10) : 0;
 }
 
+const MIN_HOLD = 1_000_000;
+const fmt = (v: number) => 'Rp ' + new Intl.NumberFormat('id-ID').format(v);
+
 export default function WalletIndex({ wallet, withdrawals }: Props) {
     const { data, setData, post, processing, errors, reset } = useForm({
         amount: 0,
@@ -57,6 +60,8 @@ export default function WalletIndex({ wallet, withdrawals }: Props) {
         account_number: '',
         account_name: '',
     });
+
+    const withdrawable = Math.max(0, wallet.balance - MIN_HOLD);
 
     // Display value for the amount input (formatted string)
     const [amountDisplay, setAmountDisplay] = useState('');
@@ -143,19 +148,25 @@ export default function WalletIndex({ wallet, withdrawals }: Props) {
 
                         {/* Balance */}
                         <div className="relative mt-4">
-                            <p className="text-xs text-white/50 uppercase tracking-widest mb-1">Saldo Tersedia</p>
+                            <p className="text-xs text-white/50 uppercase tracking-widest mb-1">Total Saldo</p>
                             <h3 className="text-4xl font-extrabold tracking-tight">
-                                Rp {new Intl.NumberFormat('id-ID').format(wallet.balance)}
+                                {fmt(wallet.balance)}
                             </h3>
                         </div>
 
                         {/* Bottom row */}
                         <div className="relative mt-6 flex items-center justify-between border-t border-white/10 pt-4">
-                            <div className="flex items-center gap-2 text-white/60 text-xs">
-                                <ArrowDownToLine className="h-3.5 w-3.5" />
-                                <span>Siap ditarik ke rekening bank</span>
+                            <div>
+                                <p className="text-[10px] text-white/50 uppercase tracking-widest">Bisa Ditarik</p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <ArrowDownToLine className="h-3.5 w-3.5 text-white/70" />
+                                    <span className="text-base font-bold text-white">{fmt(withdrawable)}</span>
+                                </div>
                             </div>
-                            <CreditCard className="h-6 w-6 text-white/30" />
+                            <div className="text-right">
+                                <p className="text-[10px] text-white/50 uppercase tracking-widest">Min. Hold (Auto RO)</p>
+                                <p className="mt-0.5 text-sm font-semibold text-white/70">{fmt(MIN_HOLD)}</p>
+                            </div>
                         </div>
                     </div>
 
@@ -163,67 +174,87 @@ export default function WalletIndex({ wallet, withdrawals }: Props) {
                     <Card className="shadow-premium border-none">
                         <CardHeader>
                             <CardTitle>Form Penarikan Dana</CardTitle>
-                            <CardDescription>Minimal penarikan adalah Rp 50.000</CardDescription>
+                            <CardDescription>
+                                Saldo minimum Rp 1.000.000 dipertahankan untuk Auto RO bulanan. Minimal tarik Rp 50.000.
+                            </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={submitWithdraw} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="amount">Jumlah Penarikan</Label>
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-sm select-none">
-                                            Rp
-                                        </span>
-                                        <Input
-                                            id="amount"
-                                            type="text"
-                                            inputMode="numeric"
-                                            placeholder="50.000"
-                                            value={amountDisplay}
-                                            onChange={handleAmountChange}
-                                            className="font-bold text-lg h-12 pl-10"
-                                        />
-                                    </div>
-                                    {data.amount > 0 && (
+                            {withdrawable === 0 ? (
+                                <Alert className="border-amber-200 bg-amber-50">
+                                    <Info className="h-4 w-4 text-amber-600" />
+                                    <AlertTitle className="text-amber-800">Penarikan Tidak Tersedia</AlertTitle>
+                                    <AlertDescription className="text-amber-700">
+                                        Saldo e-wallet belum melebihi Rp 1.000.000. Terus kumpulkan bonus agar bisa menarik dana.
+                                    </AlertDescription>
+                                </Alert>
+                            ) : (
+                                <form onSubmit={submitWithdraw} className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="amount">Jumlah Penarikan</Label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-sm select-none">
+                                                Rp
+                                            </span>
+                                            <Input
+                                                id="amount"
+                                                type="text"
+                                                inputMode="numeric"
+                                                placeholder="50.000"
+                                                value={amountDisplay}
+                                                onChange={handleAmountChange}
+                                                className="font-bold text-lg h-12 pl-10"
+                                            />
+                                        </div>
                                         <p className="text-xs text-muted-foreground">
-                                            Nominal: <span className="font-semibold text-foreground">Rp {new Intl.NumberFormat('id-ID').format(data.amount)}</span>
+                                            Maks dapat ditarik:{' '}
+                                            <span className="font-semibold text-foreground">{fmt(withdrawable)}</span>
                                         </p>
-                                    )}
-                                    {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="bank_name">Nama Bank</Label>
-                                        <Input
-                                            id="bank_name"
-                                            placeholder="BCA/Mandiri/dll"
-                                            value={data.bank_name}
-                                            onChange={(e) => setData('bank_name', e.target.value)}
-                                        />
+                                        {data.amount > 0 && data.amount > withdrawable && (
+                                            <p className="text-xs text-destructive">
+                                                Melebihi batas penarikan. Maks: {fmt(withdrawable)}
+                                            </p>
+                                        )}
+                                        {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="bank_name">Nama Bank</Label>
+                                            <Input
+                                                id="bank_name"
+                                                placeholder="BCA/Mandiri/dll"
+                                                value={data.bank_name}
+                                                onChange={(e) => setData('bank_name', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="account_number">No. Rekening</Label>
+                                            <Input
+                                                id="account_number"
+                                                placeholder="12345678"
+                                                value={data.account_number}
+                                                onChange={(e) => setData('account_number', e.target.value)}
+                                            />
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="account_number">No. Rekening</Label>
+                                        <Label htmlFor="account_name">Atas Nama</Label>
                                         <Input
-                                            id="account_number"
-                                            placeholder="12345678"
-                                            value={data.account_number}
-                                            onChange={(e) => setData('account_number', e.target.value)}
+                                            id="account_name"
+                                            placeholder="Nama sesuai buku tabungan"
+                                            value={data.account_name}
+                                            onChange={(e) => setData('account_name', e.target.value)}
                                         />
                                     </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="account_name">Atas Nama</Label>
-                                    <Input
-                                        id="account_name"
-                                        placeholder="Nama sesuai buku tabungan"
-                                        value={data.account_name}
-                                        onChange={(e) => setData('account_name', e.target.value)}
-                                    />
-                                </div>
-                                <Button type="submit" className="w-full h-11 font-semibold" disabled={processing || data.amount < 50000}>
-                                    <Send className="mr-2 h-4 w-4" />
-                                    Tarik Dana Sekarang
-                                </Button>
-                            </form>
+                                    <Button
+                                        type="submit"
+                                        className="w-full h-11 font-semibold"
+                                        disabled={processing || data.amount < 50000 || data.amount > withdrawable}
+                                    >
+                                        <Send className="mr-2 h-4 w-4" />
+                                        Tarik Dana Sekarang
+                                    </Button>
+                                </form>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
