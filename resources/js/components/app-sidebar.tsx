@@ -64,6 +64,7 @@ export const adminNavGroups: NavGroup[] = [
         label: 'Keuangan',
         items: [
             { title: 'Riwayat Bonus', href: '/admin/bonuses', icon: DollarSign },
+            { title: 'Pembayaran Bonus Harian', href: '/admin/bonuses/daily-payment', icon: Banknote },
             { title: 'Penarikan Dana', href: '/admin/withdrawals', icon: Wallet },
             { title: 'Transaksi RO', href: '/admin/repeat-orders', icon: ShoppingCart },
         ],

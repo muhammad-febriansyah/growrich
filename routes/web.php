@@ -315,9 +315,13 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::resource('admin/products', App\Http\Controllers\Admin\ProductController::class)->names('admin.products');
 
     Route::get('admin/bonuses', [App\Http\Controllers\Admin\BonusController::class, 'index'])->name('admin.bonuses.index');
+    Route::get('admin/bonuses/daily-payment', [App\Http\Controllers\Admin\BonusController::class, 'dailyPayment'])->name('admin.bonuses.daily-payment');
+    Route::get('admin/bonuses/daily-payment/export', [App\Http\Controllers\Admin\BonusController::class, 'exportDailyPayment'])->name('admin.bonuses.export-daily');
+    Route::post('admin/bonuses/daily-payment/pay-member', [App\Http\Controllers\Admin\BonusController::class, 'payMember'])->name('admin.bonuses.pay-member');
     Route::get('admin/bonuses/{bonus}', [App\Http\Controllers\Admin\BonusController::class, 'show'])->name('admin.bonuses.show');
     Route::post('admin/bonuses/{bonus}/approve', [App\Http\Controllers\Admin\BonusController::class, 'approve'])->name('admin.bonuses.approve');
     Route::post('admin/bonuses/{bonus}/reject', [App\Http\Controllers\Admin\BonusController::class, 'reject'])->name('admin.bonuses.reject');
+    Route::post('admin/bonuses/{bonus}/pay', [App\Http\Controllers\Admin\BonusController::class, 'pay'])->name('admin.bonuses.pay');
 
     Route::get('admin/withdrawals', [App\Http\Controllers\Admin\WithdrawalController::class, 'index'])->name('admin.withdrawals.index');
     Route::get('admin/withdrawals/{withdrawal}', [App\Http\Controllers\Admin\WithdrawalController::class, 'show'])->name('admin.withdrawals.show');

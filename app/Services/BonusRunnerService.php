@@ -270,7 +270,7 @@ class BonusRunnerService
         $ewalletAmount = (int) ($amount * 0.2);
         $cashAmount = $amount - $ewalletAmount;
 
-        return Bonus::create([
+        return $this->createApprovedBonus([
             'member_profile_id' => $profile->id,
             'bonus_type' => BonusType::Pairing->value,
             'amount' => $amount,
@@ -319,7 +319,7 @@ class BonusRunnerService
                     $ewalletAmount = (int) ($amount * 0.2);
                     $cashAmount = $amount - $ewalletAmount;
 
-                    Bonus::create([
+                    $this->createApprovedBonus([
                         'member_profile_id' => $ancestor->id,
                         'bonus_type' => BonusType::Matching->value,
                         'amount' => $amount,
@@ -384,7 +384,7 @@ class BonusRunnerService
             $ewalletAmount = (int) ($amount * 0.2);
             $cashAmount = $amount - $ewalletAmount;
 
-            Bonus::create([
+            $this->createApprovedBonus([
                 'member_profile_id' => $profile->id,
                 'bonus_type' => BonusType::Leveling->value,
                 'amount' => $amount,
@@ -520,7 +520,7 @@ class BonusRunnerService
             $ewalletAmount = (int) ($amount * 0.2);
             $cashAmount = $amount - $ewalletAmount;
 
-            Bonus::create([
+            $this->createApprovedBonus([
                 'member_profile_id' => $profile->id,
                 'bonus_type' => BonusType::Pairing->value,
                 'amount' => $amount,
@@ -586,7 +586,7 @@ class BonusRunnerService
                         $ewalletAmount = (int) ($amount * 0.2);
                         $cashAmount = $amount - $ewalletAmount;
 
-                        Bonus::create([
+                        $this->createApprovedBonus([
                             'member_profile_id' => $ancestor->id,
                             'bonus_type' => BonusType::Matching->value,
                             'amount' => $amount,
@@ -677,7 +677,7 @@ class BonusRunnerService
                 $ewalletAmount = (int) ($amount * 0.2);
                 $cashAmount = $amount - $ewalletAmount;
 
-                Bonus::create([
+                $this->createApprovedBonus([
                     'member_profile_id' => $profile->id,
                     'bonus_type' => BonusType::Leveling->value,
                     'amount' => $amount,
@@ -805,7 +805,7 @@ class BonusRunnerService
                     $ewalletAmount = (int) ($amount * 0.2);
                     $cashAmount = $amount - $ewalletAmount;
 
-                    Bonus::create([
+                    $this->createApprovedBonus([
                         'member_profile_id' => $ancestor->id,
                         'bonus_type' => BonusType::RepeatOrder->value,
                         'amount' => $amount,
@@ -896,7 +896,7 @@ class BonusRunnerService
                 $ewalletAmount = (int) ($perMember * 0.2);
                 $cashAmount = $perMember - $ewalletAmount;
 
-                Bonus::create([
+                $this->createApprovedBonus([
                     'member_profile_id' => $profile->id,
                     'bonus_type' => BonusType::GlobalSharing->value,
                     'amount' => $perMember,
@@ -1014,5 +1014,30 @@ class BonusRunnerService
         SQL, [$profileId, $maxGenerations]);
 
         return array_column($results, 'id');
+    }
+
+    /**
+     * Create a bonus with Approved status and immediately credit the member's ewallet.
+     * All bonus creation should go through this method instead of Bonus::create directly.
+     */
+    public function createApprovedBonus(array $attributes): Bonus
+    {
+        $bonus = Bonus::create(array_merge($attributes, ['status' => BonusStatus::Approved->value]));
+
+        if ($bonus->ewallet_amount > 0) {
+            $wallet = MemberProfile::with('user.wallet')
+                ->find($attributes['member_profile_id'])
+                ?->user
+                ?->wallet;
+
+            $wallet?->credit(
+                $bonus->ewallet_amount,
+                'Bonus '.$bonus->bonus_type->value.' disetujui',
+                Bonus::class,
+                $bonus->id,
+            );
+        }
+
+        return $bonus;
     }
 }

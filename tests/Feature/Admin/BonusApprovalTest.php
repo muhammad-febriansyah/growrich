@@ -97,3 +97,41 @@ it('rejecting_a_bonus_sets_status_to_rejected', function () {
 
     expect($bonus->fresh()->status)->toBe(BonusStatus::Rejected);
 });
+
+// ── Pay ───────────────────────────────────────────────────────────────────────
+
+it('marking_an_approved_bonus_as_paid_sets_status_to_paid', function () {
+    $bonus = Bonus::factory()
+        ->for($this->memberProfile, 'memberProfile')
+        ->approved($this->admin->id)
+        ->create();
+
+    actingAs($this->admin)
+        ->post("/admin/bonuses/{$bonus->id}/pay")
+        ->assertRedirect();
+
+    expect($bonus->fresh()->status)->toBe(BonusStatus::Paid);
+});
+
+it('cannot_mark_a_pending_bonus_as_paid', function () {
+    $bonus = Bonus::factory()
+        ->for($this->memberProfile, 'memberProfile')
+        ->create(); // default Pending
+
+    actingAs($this->admin)
+        ->post("/admin/bonuses/{$bonus->id}/pay");
+
+    expect($bonus->fresh()->status)->toBe(BonusStatus::Pending);
+});
+
+it('cannot_mark_an_already_paid_bonus_as_paid_again', function () {
+    $bonus = Bonus::factory()
+        ->for($this->memberProfile, 'memberProfile')
+        ->paid($this->admin->id)
+        ->create();
+
+    actingAs($this->admin)
+        ->post("/admin/bonuses/{$bonus->id}/pay");
+
+    expect($bonus->fresh()->status)->toBe(BonusStatus::Paid);
+});

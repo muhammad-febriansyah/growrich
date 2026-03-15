@@ -146,7 +146,7 @@ class RegistrationController extends Controller
             $ewalletAmount = (int) ($bonusAmount * 0.2);
             $cashAmount = $bonusAmount - $ewalletAmount;
 
-            $sponsorBonus = Bonus::create([
+            $sponsorBonus = $this->bonusRunnerService->createApprovedBonus([
                 'member_profile_id' => $sponsorProfile->id,
                 'bonus_type' => BonusType::Sponsor->value,
                 'amount' => $bonusAmount,
@@ -221,7 +221,7 @@ class RegistrationController extends Controller
                     $passUpEwallet = (int) ($give * 0.2);
                     $passUpCash = $give - $passUpEwallet;
 
-                    $bonus = Bonus::create([
+                    $bonus = $this->bonusRunnerService->createApprovedBonus([
                         'member_profile_id' => $uplineProfile->id,
                         'bonus_type' => BonusType::PassUpSponsor->value,
                         'amount' => $give,

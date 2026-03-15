@@ -1,8 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { approve, reject } from '@/actions/App/Http/Controllers/Admin/BonusController';
-import { show } from '@/actions/App/Http/Controllers/Admin/BonusController';
+import { dailyPayment, pay, show } from '@/actions/App/Http/Controllers/Admin/BonusController';
 import { ColumnDef } from '@tanstack/react-table';
-import { BadgeCheck, Eye, Search, XCircle } from 'lucide-react';
+import { Banknote, Eye, FileText, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
@@ -36,6 +35,7 @@ interface Stats {
     pending: number;
     approved: number;
     rejected: number;
+    paid: number;
     total_amount: number;
 }
 
@@ -96,15 +96,9 @@ const BonusTypeBadge = ({ type }: { type: string }) => {
 export default function BonusIndex({ bonuses, filters, stats }: Props) {
     const [search, setSearch] = useState(filters.search || '');
 
-    const handleApprove = (bonus: Bonus) => {
-        if (confirm(`Setujui bonus ${bonus.bonus_type} sebesar ${fmt(bonus.amount)} untuk ${bonus.member_profile?.user?.name}?`)) {
-            router.post(approve(bonus.id).url);
-        }
-    };
-
-    const handleReject = (bonus: Bonus) => {
-        if (confirm(`Tolak bonus ${bonus.bonus_type} sebesar ${fmt(bonus.amount)} untuk ${bonus.member_profile?.user?.name}?`)) {
-            router.post(reject(bonus.id).url);
+    const handlePay = (bonus: Bonus) => {
+        if (confirm(`Tandai bonus ${bonus.bonus_type} sebesar ${fmt(bonus.amount)} untuk ${bonus.member_profile?.user?.name} sebagai Sudah Dibayar?`)) {
+            router.post(pay(bonus.id).url);
         }
     };
 
@@ -155,27 +149,16 @@ export default function BonusIndex({ bonuses, filters, stats }: Props) {
                             <Eye className="h-3.5 w-3.5" />
                         </Link>
                     </Button>
-                    {row.original.status === 'Pending' && (
-                        <>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 gap-1 border-green-300 bg-green-50 px-2 text-green-700 hover:bg-green-100 hover:text-green-800"
-                                onClick={() => handleApprove(row.original)}
-                            >
-                                <BadgeCheck className="h-3.5 w-3.5" />
-                                Setujui
-                            </Button>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 gap-1 border-red-300 bg-red-50 px-2 text-red-700 hover:bg-red-100 hover:text-red-800"
-                                onClick={() => handleReject(row.original)}
-                            >
-                                <XCircle className="h-3.5 w-3.5" />
-                                Tolak
-                            </Button>
-                        </>
+                    {row.original.status === 'Approved' && (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 gap-1 border-blue-300 bg-blue-50 px-2 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+                            onClick={() => handlePay(row.original)}
+                        >
+                            <Banknote className="h-3.5 w-3.5" />
+                            Dibayar
+                        </Button>
                     )}
                 </div>
             ),
@@ -205,24 +188,30 @@ export default function BonusIndex({ bonuses, filters, stats }: Props) {
                         <h1 className="text-xl font-bold text-gray-900">Manajemen Bonus</h1>
                         <p className="text-sm text-muted-foreground">Tinjau dan setujui bonus member yang dihasilkan sistem.</p>
                     </div>
+                    <Button asChild variant="outline" className="gap-1.5">
+                        <Link href={dailyPayment.url()}>
+                            <FileText className="h-4 w-4" />
+                            Pembayaran Harian
+                        </Link>
+                    </Button>
                 </div>
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                     <div className="rounded-xl border bg-amber-50 p-4">
-                        <p className="text-xs text-amber-600">Pending</p>
-                        <p className="mt-1 text-2xl font-bold text-amber-700">{stats.pending}</p>
+                        <p className="text-xs text-amber-600">Belum Ditransfer</p>
+                        <p className="mt-1 text-2xl font-bold text-amber-700">{stats.approved}</p>
                     </div>
-                    <div className="rounded-xl border bg-green-50 p-4">
-                        <p className="text-xs text-green-600">Disetujui</p>
-                        <p className="mt-1 text-2xl font-bold text-green-700">{stats.approved}</p>
+                    <div className="rounded-xl border bg-blue-50 p-4">
+                        <p className="text-xs text-blue-600">Sudah Ditransfer</p>
+                        <p className="mt-1 text-2xl font-bold text-blue-700">{stats.paid}</p>
                     </div>
                     <div className="rounded-xl border bg-red-50 p-4">
                         <p className="text-xs text-red-600">Ditolak</p>
                         <p className="mt-1 text-2xl font-bold text-red-700">{stats.rejected}</p>
                     </div>
                     <div className="rounded-xl border bg-brand-50 p-4">
-                        <p className="text-xs text-brand/70">Total Dibayar</p>
+                        <p className="text-xs text-brand/70">Total Cash Ditransfer</p>
                         <p className="mt-1 text-lg font-bold text-brand">{fmt(stats.total_amount)}</p>
                     </div>
                 </div>

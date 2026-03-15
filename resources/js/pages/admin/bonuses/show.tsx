@@ -1,9 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { approve, reject } from '@/actions/App/Http/Controllers/Admin/BonusController';
+import { approve, pay, reject } from '@/actions/App/Http/Controllers/Admin/BonusController';
 import { index } from '@/routes/admin/bonuses';
 import {
     ArrowLeft,
     BadgeCheck,
+    Banknote,
     Calendar,
     CircleDollarSign,
     Clock,
@@ -134,6 +135,7 @@ export default function BonusShow({ bonus }: Props) {
     const statusCfg = statusConfig[bonus.status] ?? { label: bonus.status, className: 'bg-gray-100 text-gray-700 border-gray-300' };
     const bonusColor = bonusTypeColor[bonus.bonus_type] ?? 'bg-gray-100 text-gray-700';
     const isPending = bonus.status === 'Pending';
+    const isApproved = bonus.status === 'Approved';
 
     const handleApprove = () => {
         if (confirm(`Setujui bonus ini sebesar ${fmt(bonus.amount)}?`)) {
@@ -144,6 +146,12 @@ export default function BonusShow({ bonus }: Props) {
     const handleReject = () => {
         if (confirm('Tolak bonus ini? Tindakan ini tidak dapat dibatalkan.')) {
             router.post(reject(bonus.id).url);
+        }
+    };
+
+    const handlePay = () => {
+        if (confirm(`Tandai bonus ini sebagai Sudah Dibayar? Pastikan transfer tunai ${fmt(bonus.cash_amount)} telah dilakukan.`)) {
+            router.post(pay(bonus.id).url);
         }
     };
 
@@ -194,6 +202,18 @@ export default function BonusShow({ bonus }: Props) {
                             >
                                 <XCircle className="h-4 w-4" />
                                 Tolak
+                            </Button>
+                        </div>
+                    )}
+                    {isApproved && (
+                        <div className="flex gap-2 sm:shrink-0">
+                            <Button
+                                variant="outline"
+                                className="gap-1.5 border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+                                onClick={handlePay}
+                            >
+                                <Banknote className="h-4 w-4" />
+                                Tandai Dibayar
                             </Button>
                         </div>
                     )}

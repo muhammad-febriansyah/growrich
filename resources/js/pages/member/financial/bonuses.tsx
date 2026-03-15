@@ -73,10 +73,10 @@ const MONTHLY_BONUS_LABELS: Record<string, string> = {
 
 const StatusBadge = ({ status }: { status: string }) => {
     const map: Record<string, { label: string; className: string }> = {
-        Pending: { label: 'Pending', className: 'bg-green-100 text-green-700 border-green-200' },
-        Approved: { label: 'Disetujui', className: 'bg-green-100 text-green-700 border-green-200' },
-        Rejected: { label: 'Ditolak', className: 'bg-red-100 text-red-700 border-red-300' },
-        Paid: { label: 'Dibayar', className: 'bg-blue-100 text-blue-700 border-blue-300' },
+        Pending:  { label: 'Belum Dibayar', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+        Approved: { label: 'Belum Dibayar', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+        Rejected: { label: 'Ditolak',       className: 'bg-red-100 text-red-700 border-red-300' },
+        Paid:     { label: 'Sudah Dibayar', className: 'bg-green-100 text-green-700 border-green-300' },
     };
     const cfg = map[status] ?? { label: status, className: 'bg-gray-100 text-gray-700 border-gray-300' };
     return (
@@ -274,8 +274,7 @@ export default function BonusIndex({
                                 {tanggal && dailyFilteredTotal !== null && dailyData.length > 0 && (
                                     <div className="mt-0 border-t border-slate-100 px-4 py-3 flex items-center">
                                         <span className="font-bold text-slate-800 flex-1">Total Bonus Harian</span>
-                                        <span className="font-bold text-slate-900">{fmt(dailyFilteredTotal)}</span>
-                                        <span className="w-[130px]" />
+                                        <span className="font-bold text-slate-900 mr-[150px]">{fmt(dailyFilteredTotal)}</span>
                                     </div>
                                 )}
                             </CardContent>
@@ -376,8 +375,7 @@ export default function BonusIndex({
                                 {bulan && monthlyFilteredTotal !== null && monthlyData.length > 0 && (
                                     <div className="mt-0 border-t border-slate-100 px-4 py-3 flex items-center">
                                         <span className="font-bold text-slate-800 flex-1">Total Bonus</span>
-                                        <span className="font-bold text-slate-900">{fmt(monthlyFilteredTotal)}</span>
-                                        <span className="w-[130px]" />
+                                        <span className="font-bold text-slate-900 mr-[150px]">{fmt(monthlyFilteredTotal)}</span>
                                     </div>
                                 )}
                             </CardContent>
