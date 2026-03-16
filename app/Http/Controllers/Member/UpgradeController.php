@@ -127,6 +127,9 @@ class UpgradeController extends Controller
             'notes' => 'Upgrade otomatis via PIN upgrade.',
         ]);
 
+        // Propagate Pairing Point delta up the binary tree
+        $this->bonusRunnerService->propagateUpgradePairingPoints($profile, $currentPackage, $targetPackage);
+
         // Propagate Reward Point delta up the binary tree
         $this->bonusRunnerService->propagateUpgradeRewardPoints($profile, $currentPackage, $targetPackage);
 

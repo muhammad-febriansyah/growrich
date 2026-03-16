@@ -168,6 +168,77 @@ class BonusRunnerService
     }
 
     /**
+     * Propagate the delta Pairing Points up the binary tree when a member upgrades their package.
+     * Only the PP difference (newPackage - oldPackage) is propagated.
+     * Called on every package upgrade.
+     */
+    public function propagateUpgradePairingPoints(MemberProfile $profile, PackageType $fromPackage, PackageType $toPackage): void
+    {
+        $ppDelta = $toPackage->pairingPoint() - $fromPackage->pairingPoint();
+
+        if ($ppDelta <= 0) {
+            return;
+        }
+
+        $current = $profile;
+        $today = now();
+        $depthFromUpgraded = 1;
+
+        while ($current->parent_id) {
+            $parent = MemberProfile::find($current->parent_id);
+
+            if (! $parent) {
+                break;
+            }
+
+            $leg = $current->leg_position?->value;
+
+            if (! $leg) {
+                break;
+            }
+
+            $ppColumn = $leg === 'left' ? 'left_pp_total' : 'right_pp_total';
+            $ppCumulativeColumn = $leg === 'left' ? 'left_pp_cumulative' : 'right_pp_cumulative';
+            $ppBefore = $parent->$ppColumn;
+            $ppAfter = $ppBefore + $ppDelta;
+
+            $parent->increment($ppColumn, $ppDelta);
+            $parent->increment($ppCumulativeColumn, $ppDelta);
+            $parent->refresh();
+
+            PairingPointLedger::create([
+                'member_profile_id' => $parent->id,
+                'leg' => $leg,
+                'points' => $ppDelta,
+                'balance_before' => $ppBefore,
+                'balance_after' => $ppAfter,
+                'reason' => 'upgrade',
+                'reference_id' => $profile->id,
+                'ledger_date' => $today->toDateString(),
+            ]);
+
+            if ($parent->package_status === 'active') {
+                $pairingBonus = $this->processPairingForProfile($parent, $today);
+
+                if ($pairingBonus) {
+                    $parent->refresh();
+                    $this->processMatchingForBonus($pairingBonus, $today);
+                    $this->triggerRewardsForProfile($parent);
+                }
+
+                $this->autoUpgradeCareerLevelForProfile($parent);
+
+                if ($depthFromUpgraded <= 6) {
+                    $this->processLevelingForProfile($parent, $today);
+                }
+            }
+
+            $depthFromUpgraded++;
+            $current = $parent;
+        }
+    }
+
+    /**
      * Propagate the delta Reward Points up the binary tree when a member upgrades their package.
      * Only the RP difference (newPackage - oldPackage) is propagated.
      * Called on every package upgrade.

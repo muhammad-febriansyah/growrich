@@ -243,3 +243,63 @@ it('reverses_pp_rp_for_ancestors_above_direct_parent', function () {
         ->and($grandparentProfile->right_pp_total)->toBe(3)   // unchanged
         ->and($grandparentProfile->right_rp_total)->toBe(1);  // unchanged
 });
+
+it('decrements_pp_cumulative_for_parent_and_ancestors_on_deletion', function () {
+    // grandparent → parent → leaf (all left leg)
+    $gpUser = User::factory()->create();
+    $gpProfile = MemberProfile::factory()->for($gpUser)->create([
+        'parent_id' => null,
+        'left_pp_cumulative' => 5,
+        'right_pp_cumulative' => 0,
+    ]);
+
+    $parentUser = User::factory()->create();
+    $parentProfile = MemberProfile::factory()->for($parentUser)->create([
+        'parent_id' => $gpProfile->id,
+        'leg_position' => LegPosition::Left->value,
+        'left_pp_cumulative' => 2,
+        'right_pp_cumulative' => 0,
+    ]);
+    $gpProfile->update(['left_child_id' => $parentProfile->id]);
+
+    $leafUser = User::factory()->create();
+    $leafProfile = MemberProfile::factory()->for($leafUser)->create([
+        'parent_id' => $parentProfile->id,
+        'leg_position' => LegPosition::Left->value,
+    ]);
+    $parentProfile->update(['left_child_id' => $leafProfile->id]);
+
+    // Ledger: leaf contributed 2 PP to grandparent's left, 2 PP to parent's left
+    PairingPointLedger::create([
+        'member_profile_id' => $gpProfile->id,
+        'leg' => 'left',
+        'points' => 2,
+        'balance_before' => 3,
+        'balance_after' => 5,
+        'reason' => 'registration',
+        'reference_id' => $leafProfile->id,
+        'ledger_date' => now()->toDateString(),
+    ]);
+    PairingPointLedger::create([
+        'member_profile_id' => $parentProfile->id,
+        'leg' => 'left',
+        'points' => 2,
+        'balance_before' => 0,
+        'balance_after' => 2,
+        'reason' => 'registration',
+        'reference_id' => $leafProfile->id,
+        'ledger_date' => now()->toDateString(),
+    ]);
+
+    actingAs($this->admin)->delete("/admin/member-deletions/{$leafUser->id}");
+
+    $parentProfile->refresh();
+    $gpProfile->refresh();
+
+    // Parent (direct parent): cumulative decremented by ledger sum = 2
+    expect($parentProfile->left_pp_cumulative)->toBe(0);   // 2 - 2
+
+    // Grandparent (ancestor): cumulative decremented by ledger sum = 2
+    expect($gpProfile->left_pp_cumulative)->toBe(3);       // 5 - 2
+    expect($gpProfile->right_pp_cumulative)->toBe(0);      // unchanged
+});
