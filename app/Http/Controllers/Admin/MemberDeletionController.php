@@ -111,10 +111,17 @@ class MemberDeletionController extends Controller
         if ($parentProfile && $legPosition) {
             $leg = $legPosition === LegPosition::Left ? 'left' : 'right';
 
-            // Reset direct parent's PP/RP for the deleted leg
+            // Calculate how much the deleted subtree contributed to the direct parent
+            $ppToSubtractFromParent = (int) PairingPointLedger::where('member_profile_id', $parentProfile->id)
+                ->where('leg', $leg)
+                ->whereIn('reference_id', $allDeletedIds)
+                ->sum('points');
+
+            // Reset direct parent's PP/RP for the deleted leg and subtract from cumulative
             $parentProfile->update([
                 $leg.'_pp_total' => 0,
                 $leg.'_rp_total' => 0,
+                $leg.'_pp_cumulative' => max(0, (int) $parentProfile->{$leg.'_pp_cumulative'} - $ppToSubtractFromParent),
             ]);
 
             // Reverse PP/RP propagation for all ancestors above the direct parent
@@ -125,6 +132,7 @@ class MemberDeletionController extends Controller
                 $ancestorLeg = $child->leg_position === LegPosition::Left ? 'left' : 'right';
                 $ppCol = $ancestorLeg.'_pp_total';
                 $rpCol = $ancestorLeg.'_rp_total';
+                $ppCumulativeCol = $ancestorLeg.'_pp_cumulative';
 
                 $ppToSubtract = (int) PairingPointLedger::where('member_profile_id', $ancestor->id)
                     ->where('leg', $ancestorLeg)
@@ -139,6 +147,7 @@ class MemberDeletionController extends Controller
                 $ancestor->update([
                     $ppCol => max(0, (int) $ancestor->$ppCol - $ppToSubtract),
                     $rpCol => max(0, (int) $ancestor->$rpCol - $rpToSubtract),
+                    $ppCumulativeCol => max(0, (int) $ancestor->$ppCumulativeCol - $ppToSubtract),
                 ]);
 
                 $this->resetLevelingForProfile($ancestor);
