@@ -99,8 +99,8 @@ class NetworkController extends Controller
             'package' => $member->package_type->value,
             'career_level' => $member->career_level->value ?? $member->career_level,
             'avatar' => $member->user->avatar,
-            'left_pp' => $member->left_pp_total,
-            'right_pp' => $member->right_pp_total,
+            'left_pp' => $member->left_pp_cumulative,
+            'right_pp' => $member->right_pp_cumulative,
             'left' => $this->getTree($member->leftChild, $depth - 1),
             'right' => $this->getTree($member->rightChild, $depth - 1),
         ];

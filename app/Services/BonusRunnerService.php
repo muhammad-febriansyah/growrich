@@ -104,10 +104,12 @@ class BonusRunnerService
 
             // Propagate Pairing Points
             $ppColumn = $leg === 'left' ? 'left_pp_total' : 'right_pp_total';
+            $ppCumulativeColumn = $leg === 'left' ? 'left_pp_cumulative' : 'right_pp_cumulative';
             $ppBefore = $parent->$ppColumn;
             $ppAfter = $ppBefore + $pp;
 
             $parent->increment($ppColumn, $pp);
+            $parent->increment($ppCumulativeColumn, $pp);
             $parent->refresh();
 
             PairingPointLedger::create([
@@ -148,9 +150,11 @@ class BonusRunnerService
                 if ($pairingBonus) {
                     $parent->refresh();
                     $this->processMatchingForBonus($pairingBonus, $today);
-                    $this->autoUpgradeCareerLevelForProfile($parent);
                     $this->triggerRewardsForProfile($parent);
                 }
+
+                // Career level is checked on every PP gain (uses cumulative, never decreases)
+                $this->autoUpgradeCareerLevelForProfile($parent);
 
                 // Leveling: only ancestors within 6 hops can gain new leveling bonuses
                 if ($depthFromNew <= 6) {
@@ -408,7 +412,7 @@ class BonusRunnerService
      */
     private function autoUpgradeCareerLevelForProfile(MemberProfile $profile): void
     {
-        $smallerLeg = min((int) $profile->left_pp_total, (int) $profile->right_pp_total);
+        $smallerLeg = min((int) $profile->left_pp_cumulative, (int) $profile->right_pp_cumulative);
 
         $currentLevel = $profile->career_level instanceof CareerLevel
             ? $profile->career_level
@@ -927,7 +931,7 @@ class BonusRunnerService
         $profiles = MemberProfile::where('package_status', 'active')->get();
 
         foreach ($profiles as $profile) {
-            $smallerLeg = min((int) $profile->left_pp_total, (int) $profile->right_pp_total);
+            $smallerLeg = min((int) $profile->left_pp_cumulative, (int) $profile->right_pp_cumulative);
 
             $currentLevel = $profile->career_level instanceof CareerLevel
                 ? $profile->career_level

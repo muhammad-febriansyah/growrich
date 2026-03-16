@@ -28,6 +28,8 @@ class MemberProfile extends Model
         'leg_position',
         'left_pp_total',
         'right_pp_total',
+        'left_pp_cumulative',
+        'right_pp_cumulative',
         'left_rp_total',
         'right_rp_total',
         'career_level',
@@ -67,6 +69,8 @@ class MemberProfile extends Model
             'activated_at' => 'datetime',
             'left_pp_total' => 'integer',
             'right_pp_total' => 'integer',
+            'left_pp_cumulative' => 'integer',
+            'right_pp_cumulative' => 'integer',
             'left_rp_total' => 'integer',
             'right_rp_total' => 'integer',
             'is_stockist' => 'boolean',
@@ -145,10 +149,16 @@ class MemberProfile extends Model
         return $this->package_status === 'active';
     }
 
-    /** The smaller of left/right PP total — used for pairing & career threshold. */
+    /** The smaller of left/right PP total — used for pairing calculation. */
     public function smallerLegPp(): int
     {
         return min($this->left_pp_total, $this->right_pp_total);
+    }
+
+    /** The smaller of left/right cumulative PP — used for career level thresholds. */
+    public function smallerLegPpCumulative(): int
+    {
+        return min($this->left_pp_cumulative, $this->right_pp_cumulative);
     }
 
     /** The smaller of left/right RP total — used for reward thresholds. */

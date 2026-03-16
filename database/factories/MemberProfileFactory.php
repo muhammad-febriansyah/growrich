@@ -69,6 +69,8 @@ class MemberProfileFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'left_pp_total' => $leftPp,
             'right_pp_total' => $rightPp,
+            'left_pp_cumulative' => $leftPp,
+            'right_pp_cumulative' => $rightPp,
             'left_rp_total' => $leftRp,
             'right_rp_total' => $rightRp,
         ]);

@@ -21,8 +21,8 @@ class CareerController extends Controller
             ? $profile->career_level
             : CareerLevel::from($profile->career_level);
 
-        $leftPp = (int) $profile->left_pp_total;
-        $rightPp = (int) $profile->right_pp_total;
+        $leftPp = (int) $profile->left_pp_cumulative;
+        $rightPp = (int) $profile->right_pp_cumulative;
         $smallerLeg = min($leftPp, $rightPp);
 
         // Build all levels with progress info
