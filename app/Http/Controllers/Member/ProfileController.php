@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Member;
 
 use App\Http\Controllers\Controller;
 use App\Models\MemberProfile;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -88,5 +90,28 @@ class ProfileController extends Controller
         $user->update($updateData);
 
         return back()->with('success', 'Profil berhasil diperbarui.');
+    }
+
+    public function changePassword(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'current_password' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'current_password.required' => 'Password saat ini wajib diisi.',
+            'password.required' => 'Password baru wajib diisi.',
+            'password.min' => 'Password baru minimal 8 karakter.',
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
+        ]);
+
+        $user = auth()->user();
+
+        if (! Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'Password saat ini tidak sesuai.']);
+        }
+
+        $user->update(['password' => Hash::make($request->password)]);
+
+        return back()->with('success', 'Password berhasil diubah.');
     }
 }

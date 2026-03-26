@@ -13,8 +13,10 @@ use App\Models\MemberReward;
 use App\Models\Package;
 use App\Models\PairingPointLedger;
 use App\Models\RepeatOrder;
+use App\Models\RepeatOrderItem;
 use App\Models\RewardMilestone;
 use App\Models\RewardPointLedger;
+use App\Models\RoPreference;
 use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -1127,7 +1129,7 @@ class BonusRunnerService
      */
     private function autoRepeatOrderIfNeeded(MemberProfile $profile, mixed $wallet): void
     {
-        $autoRoAmount = 1_000_000;
+        $minRoAmount = 1_000_000;
 
         $hasRoThisMonth = RepeatOrder::where('member_profile_id', $profile->id)
             ->where('payment_method', 'ewallet')
@@ -1139,14 +1141,26 @@ class BonusRunnerService
             return;
         }
 
+        $preferences = RoPreference::where('member_profile_id', $profile->id)
+            ->with('product')
+            ->get();
+
+        // Calculate amount from preferences, fallback to default minimum
+        if ($preferences->isNotEmpty()) {
+            $autoRoAmount = $preferences->sum(fn ($pref) => $pref->product->ro_price * $pref->quantity);
+            $autoRoAmount = max($autoRoAmount, $minRoAmount);
+        } else {
+            $autoRoAmount = $minRoAmount;
+        }
+
         $wallet->refresh();
 
         if ($wallet->balance < $autoRoAmount) {
             return;
         }
 
-        DB::transaction(function () use ($profile, $wallet, $autoRoAmount) {
-            RepeatOrder::create([
+        DB::transaction(function () use ($profile, $wallet, $autoRoAmount, $preferences) {
+            $order = RepeatOrder::create([
                 'member_profile_id' => $profile->id,
                 'order_number' => 'RO-AUTO-'.strtoupper(uniqid()),
                 'total_amount' => $autoRoAmount,
@@ -1157,9 +1171,19 @@ class BonusRunnerService
                 'paid_at' => now(),
             ]);
 
+            foreach ($preferences as $pref) {
+                RepeatOrderItem::create([
+                    'repeat_order_id' => $order->id,
+                    'product_id' => $pref->product_id,
+                    'quantity' => $pref->quantity,
+                    'unit_price' => $pref->product->ro_price,
+                    'subtotal' => $pref->product->ro_price * $pref->quantity,
+                ]);
+            }
+
             $wallet->decrement('balance', $autoRoAmount);
         });
 
-        Log::info("Auto RO created for profile #{$profile->id} (Rp {$autoRoAmount} from ewallet)");
+        Log::info("Auto RO created for profile #{$profile->id} (Rp {$autoRoAmount} from ewallet, ".count($preferences).' product(s))');
     }
 }

@@ -16,6 +16,14 @@ class MemberReward extends Model
         'status',
         'qualified_at',
         'fulfilled_at',
+        'claimed_at',
+        'recipient_name',
+        'recipient_phone',
+        'recipient_address',
+        'courier',
+        'tracking_number',
+        'shipping_notes',
+        'shipped_at',
     ];
 
     protected function casts(): array
@@ -23,6 +31,8 @@ class MemberReward extends Model
         return [
             'qualified_at' => 'datetime',
             'fulfilled_at' => 'datetime',
+            'claimed_at' => 'datetime',
+            'shipped_at' => 'datetime',
         ];
     }
 

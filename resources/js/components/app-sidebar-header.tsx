@@ -43,6 +43,7 @@ import {
     CommandList,
 } from '@/components/ui/command';
 import { adminNavGroups, memberNavGroups } from './app-sidebar';
+import { NotificationBell } from './notification-bell';
 
 function MenuSearch({ role }: { role: string }) {
     const [open, setOpen] = useState(false);
@@ -205,9 +206,12 @@ export function AppSidebarHeader({ breadcrumbs = [] }: { breadcrumbs?: Breadcrum
                 </div>
             </div>
 
-            {/* Right: search + avatar dropdown */}
-            <div className="flex shrink-0 items-center gap-4">
+            {/* Right: search + notifications + avatar dropdown */}
+            <div className="flex shrink-0 items-center gap-2">
                 <MenuSearch role={user.role} />
+                {user.role === 'member' && (
+                    <NotificationBell notifications={(usePage().props as Record<string, unknown>).recentNotifications as []} />
+                )}
                 <UserAvatarDropdown user={user} />
             </div>
         </header>

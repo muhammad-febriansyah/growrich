@@ -1,6 +1,10 @@
-import { Head } from '@inertiajs/react';
-import { Gift, CheckCircle, Star, Plane, Banknote, Car, Home, Lock, Trophy, ArrowLeftRight, ArrowRightLeft, Medal } from 'lucide-react';
+import { Head, useForm } from '@inertiajs/react';
+import { Gift, CheckCircle, Star, Plane, Banknote, Car, Home, Lock, Trophy, ArrowLeftRight, ArrowRightLeft, Medal, Truck, Package } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
@@ -19,8 +23,17 @@ interface RewardProgress {
     rightProgress: number;
     qualified: boolean;
     status: string | null;
+    memberRewardId: number | null;
     qualifiedAt: string | null;
     fulfilledAt: string | null;
+    claimedAt: string | null;
+    shippedAt: string | null;
+    courier: string | null;
+    trackingNumber: string | null;
+    shippingNotes: string | null;
+    recipientName: string | null;
+    recipientPhone: string | null;
+    recipientAddress: string | null;
 }
 
 interface Props {
@@ -74,7 +87,9 @@ function getConfig(type: string) {
 function StatusBadge({ status }: { status: string | null }) {
     if (!status) return null;
     const map: Record<string, { className: string; label: string }> = {
-        pending: { className: 'bg-amber-100 text-amber-700 border-amber-300', label: 'Menunggu Pemenuhan' },
+        pending: { className: 'bg-amber-100 text-amber-700 border-amber-300', label: 'Menunggu Konfirmasi' },
+        claimed: { className: 'bg-blue-100 text-blue-700 border-blue-300', label: 'Diklaim' },
+        shipped: { className: 'bg-purple-100 text-purple-700 border-purple-300', label: 'Dalam Pengiriman' },
         fulfilled: { className: 'bg-green-100 text-green-700 border-green-300', label: 'Terpenuhi' },
         rejected: { className: 'bg-red-100 text-red-700 border-red-300', label: 'Ditolak' },
     };
@@ -84,6 +99,73 @@ function StatusBadge({ status }: { status: string | null }) {
         <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${cfg.className}`}>
             {cfg.label}
         </span>
+    );
+}
+
+function ClaimModal({ reward, onClose }: { reward: RewardProgress; onClose: () => void }) {
+    const { data, setData, post, processing, errors } = useForm({
+        recipient_name: '',
+        recipient_phone: '',
+        recipient_address: '',
+    });
+
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        post(`/member/rewards/${reward.memberRewardId}/claim`, {
+            onSuccess: onClose,
+        });
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                <h2 className="mb-1 text-lg font-bold">Klaim Reward</h2>
+                <p className="mb-4 text-sm text-muted-foreground">
+                    <strong>{reward.name}</strong> — isi data pengiriman untuk memproses reward Anda.
+                </p>
+                <form onSubmit={submit} className="space-y-3">
+                    <div className="space-y-1">
+                        <Label htmlFor="recipient_name">Nama Penerima</Label>
+                        <Input
+                            id="recipient_name"
+                            value={data.recipient_name}
+                            onChange={(e) => setData('recipient_name', e.target.value)}
+                            placeholder="Nama lengkap penerima"
+                        />
+                        {errors.recipient_name && <p className="text-xs text-destructive">{errors.recipient_name}</p>}
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor="recipient_phone">No. Telepon</Label>
+                        <Input
+                            id="recipient_phone"
+                            value={data.recipient_phone}
+                            onChange={(e) => setData('recipient_phone', e.target.value)}
+                            placeholder="08xx-xxxx-xxxx"
+                        />
+                        {errors.recipient_phone && <p className="text-xs text-destructive">{errors.recipient_phone}</p>}
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor="recipient_address">Alamat Lengkap</Label>
+                        <textarea
+                            id="recipient_address"
+                            rows={3}
+                            value={data.recipient_address}
+                            onChange={(e) => setData('recipient_address', e.target.value)}
+                            placeholder="Jalan, RT/RW, Kelurahan, Kecamatan, Kota, Kode Pos"
+                            className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        {errors.recipient_address && <p className="text-xs text-destructive">{errors.recipient_address}</p>}
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                        <Button type="submit" disabled={processing} className="flex-1">
+                            <Package className="size-4" />
+                            {processing ? 'Mengirim...' : 'Kirim Klaim'}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={onClose}>Batal</Button>
+                    </div>
+                </form>
+            </div>
+        </div>
     );
 }
 
@@ -114,10 +196,12 @@ function ProgressRing({ value, size = 56, stroke = 5 }: { value: number; size?: 
 export default function RewardsPage({ rewardProgress, leftRp, rightRp }: Props) {
     const qualifiedCount = rewardProgress.filter((r) => r.qualified).length;
     const fulfilledCount = rewardProgress.filter((r) => r.status === 'fulfilled').length;
+    const [claimTarget, setClaimTarget] = useState<RewardProgress | null>(null);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Progress Reward" />
+            {claimTarget && <ClaimModal reward={claimTarget} onClose={() => setClaimTarget(null)} />}
 
             <div className="flex flex-col gap-6 p-4 md:p-6">
                 {/* Header */}
@@ -326,6 +410,36 @@ export default function RewardsPage({ rewardProgress, leftRp, rightRp }: Props) 
                                                     )}
                                                 </span>
                                             </div>
+                                        )}
+
+                                        {/* Tracking info */}
+                                        {reward.trackingNumber && (
+                                            <div className="rounded-lg bg-purple-50 border border-purple-100 p-3 text-xs space-y-1">
+                                                <p className="flex items-center gap-1.5 font-semibold text-purple-700">
+                                                    <Truck className="h-3.5 w-3.5" /> Dalam Pengiriman
+                                                </p>
+                                                <p className="text-muted-foreground">Kurir: <span className="font-medium text-foreground">{reward.courier}</span></p>
+                                                <p className="text-muted-foreground">No. Resi: <span className="font-mono font-medium text-foreground">{reward.trackingNumber}</span></p>
+                                                {reward.shippingNotes && (
+                                                    <p className="text-muted-foreground">{reward.shippingNotes}</p>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Claim button */}
+                                        {reward.status === 'pending' && reward.memberRewardId && (
+                                            <Button
+                                                size="sm"
+                                                className="w-full gap-1.5"
+                                                onClick={() => setClaimTarget(reward)}
+                                            >
+                                                <Package className="h-3.5 w-3.5" /> Klaim Reward
+                                            </Button>
+                                        )}
+                                        {reward.status === 'claimed' && (
+                                            <p className="text-center text-xs text-blue-600 font-medium">
+                                                ✓ Klaim diterima, menunggu proses pengiriman
+                                            </p>
                                         )}
                                     </CardContent>
                                 </Card>

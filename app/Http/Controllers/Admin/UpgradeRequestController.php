@@ -8,6 +8,8 @@ use App\Jobs\SendUpgradeApprovedEmail;
 use App\Jobs\SendUpgradeRejectedEmail;
 use App\Models\PackageUpgradeRequest;
 use App\Models\User;
+use App\Notifications\AppNotification;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -76,6 +78,19 @@ class UpgradeRequestController extends Controller
 
         SendUpgradeApprovedEmail::dispatch($upgradeRequest->load('memberProfile.user'));
 
+        $upgradeRequest->memberProfile->user->notify(new AppNotification(
+            title: 'Upgrade Paket Disetujui',
+            body: "Selamat! Permintaan upgrade paket ke {$upgradeRequest->requested_package} Anda telah disetujui.",
+            type: 'upgrade_approved',
+            url: '/member/upgrade',
+        ));
+
+        ActivityLogger::log(
+            'upgrade.approved',
+            "Upgrade paket member '{$upgradeRequest->memberProfile->user->name}' ke {$upgradeRequest->requested_package} disetujui.",
+            $upgradeRequest,
+        );
+
         return back()->with('success', "Upgrade paket berhasil disetujui. Member sekarang menggunakan paket {$upgradeRequest->requested_package}.");
     }
 
@@ -93,6 +108,19 @@ class UpgradeRequestController extends Controller
         ]);
 
         SendUpgradeRejectedEmail::dispatch($upgradeRequest->load('memberProfile.user'));
+
+        $upgradeRequest->memberProfile->user->notify(new AppNotification(
+            title: 'Upgrade Paket Ditolak',
+            body: "Permintaan upgrade paket ke {$upgradeRequest->requested_package} Anda tidak dapat disetujui.",
+            type: 'upgrade_rejected',
+            url: '/member/upgrade',
+        ));
+
+        ActivityLogger::log(
+            'upgrade.rejected',
+            "Upgrade paket member '{$upgradeRequest->memberProfile->user->name}' ke {$upgradeRequest->requested_package} ditolak.",
+            $upgradeRequest,
+        );
 
         return back()->with('success', 'Permintaan upgrade berhasil ditolak.');
     }

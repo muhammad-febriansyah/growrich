@@ -12,6 +12,7 @@ declare module '@inertiajs/core' {
                 recaptcha_site_key: string | null;
             };
             sidebarOpen: boolean;
+            unreadNotificationCount: number;
             [key: string]: unknown;
         };
     }

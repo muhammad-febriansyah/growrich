@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Jobs\SendBonusApprovedEmail;
 use App\Jobs\SendBonusRejectedEmail;
 use App\Models\Bonus;
+use App\Notifications\AppNotification;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -96,6 +98,19 @@ class BonusController extends Controller
         });
 
         SendBonusApprovedEmail::dispatch($bonus->load('memberProfile.user'));
+
+        $bonus->memberProfile->user->notify(new AppNotification(
+            title: 'Bonus Disetujui',
+            body: 'Bonus '.ucfirst($bonus->bonus_type->value).' sebesar Rp '.number_format($bonus->ewallet_amount, 0, ',', '.').' telah disetujui dan masuk ke e-wallet Anda.',
+            type: 'bonus_approved',
+            url: '/member/bonuses',
+        ));
+
+        ActivityLogger::log(
+            'bonus.approved',
+            "Bonus {$bonus->bonus_type->value} member '{$bonus->memberProfile->user->name}' disetujui. Jumlah: Rp ".number_format($bonus->ewallet_amount, 0, ',', '.'),
+            $bonus,
+        );
 
         return back()->with('success', 'Bonus berhasil disetujui dan saldo member telah diperbarui.');
     }
@@ -192,6 +207,181 @@ class BonusController extends Controller
         return back()->with('success', 'Member berhasil ditandai sudah ditransfer.');
     }
 
+    public function export(Request $request): StreamedResponse
+    {
+        $query = Bonus::query()->with('memberProfile.user');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('type')) {
+            $query->where('bonus_type', $request->type);
+        }
+
+        if ($request->filled('search')) {
+            $query->whereHas('memberProfile.user', function ($q) use ($request) {
+                $q->where('name', 'like', "%{$request->search}%")
+                    ->orWhere('member_id', 'like', "%{$request->search}%")
+                    ->orWhere('referral_code', 'like', "%{$request->search}%");
+            });
+        }
+
+        $bonuses = $query->orderByDesc('bonus_date')->get();
+
+        // ── Palette ──────────────────────────────────────────────────────────
+        $C_HEADER = '257A15';
+        $C_SUBHEADER = '32A620';
+        $C_COL_FG = 'FFFFFF';
+        $C_ROW_ODD = 'FFFFFF';
+        $C_ROW_EVEN = 'EDFBEA';
+        $C_TOTAL_BG = 'D5F0CE';
+        $C_TOTAL_FG = '1A5C0E';
+        $C_BORDER = 'A8D8A0';
+        $C_FOOTER = '888888';
+
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Data Bonus');
+        $sheet->getDefaultRowDimension()->setRowHeight(18);
+
+        $lastCol = 'I';
+
+        // Row 1: Company
+        $sheet->mergeCells("A1:{$lastCol}1");
+        $sheet->setCellValue('A1', 'PT GROWRICH INTERNATIONAL');
+        $sheet->getStyle('A1')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => $C_COL_FG]],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $C_HEADER]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+        $sheet->getRowDimension(1)->setRowHeight(42);
+
+        // Row 2: Title
+        $sheet->mergeCells("A2:{$lastCol}2");
+        $sheet->setCellValue('A2', 'LAPORAN DATA BONUS');
+        $sheet->getStyle('A2')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 13, 'color' => ['rgb' => $C_COL_FG]],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $C_SUBHEADER]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+        $sheet->getRowDimension(2)->setRowHeight(28);
+
+        // Row 3: Info
+        $sheet->mergeCells("A3:{$lastCol}3");
+        $sheet->setCellValue('A3', 'Dicetak: '.now()->translatedFormat('d F Y, H:i').' WIB   |   Total Bonus: '.$bonuses->count().'   |   Total Jumlah: Rp '.number_format($bonuses->sum('amount'), 0, ',', '.'));
+        $sheet->getStyle('A3')->applyFromArray([
+            'font' => ['italic' => true, 'size' => 10, 'color' => ['rgb' => $C_TOTAL_FG]],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $C_TOTAL_BG]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+        $sheet->getRowDimension(3)->setRowHeight(20);
+
+        // Row 4: Spacer
+        $sheet->getRowDimension(4)->setRowHeight(6);
+
+        // Row 5: Headers
+        $headers = ['A' => 'No.', 'B' => 'Tanggal', 'C' => 'ID Member', 'D' => 'Nama Member',
+            'E' => 'Jenis Bonus', 'F' => 'Jumlah (Rp)', 'G' => 'Cash 80% (Rp)', 'H' => 'E-Wallet 20% (Rp)', 'I' => 'Status'];
+        foreach ($headers as $col => $label) {
+            $sheet->setCellValue("{$col}5", $label);
+        }
+        $sheet->getStyle("A5:{$lastCol}5")->applyFromArray([
+            'font' => ['bold' => true, 'size' => 10, 'color' => ['rgb' => $C_COL_FG]],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $C_HEADER]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => $C_BORDER]]],
+        ]);
+        $sheet->getRowDimension(5)->setRowHeight(28);
+
+        // Data rows
+        $rowNum = 6;
+        $totalAmount = 0;
+        $totalCash = 0;
+        $totalEwallet = 0;
+
+        foreach ($bonuses as $i => $bonus) {
+            $user = $bonus->memberProfile?->user;
+            $rowBg = $i % 2 === 0 ? $C_ROW_ODD : $C_ROW_EVEN;
+
+            $sheet->setCellValue("A{$rowNum}", $i + 1);
+            $sheet->setCellValue("B{$rowNum}", $bonus->bonus_date?->format('d/m/Y') ?? '-');
+            $sheet->setCellValue("C{$rowNum}", $user?->member_id ?? $user?->referral_code ?? '-');
+            $sheet->setCellValue("D{$rowNum}", $user?->name ?? '-');
+            $sheet->setCellValue("E{$rowNum}", $bonus->bonus_type instanceof \BackedEnum ? $bonus->bonus_type->value : $bonus->bonus_type);
+            $sheet->setCellValue("F{$rowNum}", $bonus->amount);
+            $sheet->setCellValue("G{$rowNum}", $bonus->cash_amount);
+            $sheet->setCellValue("H{$rowNum}", $bonus->ewallet_amount);
+            $sheet->setCellValue("I{$rowNum}", $bonus->status instanceof \BackedEnum ? $bonus->status->value : $bonus->status);
+
+            $totalAmount += $bonus->amount;
+            $totalCash += $bonus->cash_amount;
+            $totalEwallet += $bonus->ewallet_amount;
+
+            $sheet->getStyle("A{$rowNum}:{$lastCol}{$rowNum}")->applyFromArray([
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $rowBg]],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => $C_BORDER]]],
+                'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+            ]);
+            foreach (['A', 'B', 'C', 'E', 'I'] as $c) {
+                $sheet->getStyle("{$c}{$rowNum}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            }
+            foreach (['F', 'G', 'H'] as $c) {
+                $sheet->getStyle("{$c}{$rowNum}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle("{$c}{$rowNum}")->getNumberFormat()->setFormatCode('#,##0');
+            }
+
+            $rowNum++;
+        }
+
+        // Total row
+        $sheet->mergeCells("A{$rowNum}:E{$rowNum}");
+        $sheet->setCellValue("A{$rowNum}", 'TOTAL');
+        $sheet->setCellValue("F{$rowNum}", $totalAmount);
+        $sheet->setCellValue("G{$rowNum}", $totalCash);
+        $sheet->setCellValue("H{$rowNum}", $totalEwallet);
+        $sheet->getStyle("A{$rowNum}:{$lastCol}{$rowNum}")->applyFromArray([
+            'font' => ['bold' => true, 'size' => 10, 'color' => ['rgb' => $C_TOTAL_FG]],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $C_TOTAL_BG]],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['rgb' => $C_HEADER]]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+        foreach (['F', 'G', 'H'] as $c) {
+            $sheet->getStyle("{$c}{$rowNum}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle("{$c}{$rowNum}")->getNumberFormat()->setFormatCode('#,##0');
+        }
+        $sheet->getRowDimension($rowNum)->setRowHeight(22);
+        $rowNum++;
+
+        // Footer
+        $sheet->mergeCells("A{$rowNum}:{$lastCol}{$rowNum}");
+        $sheet->setCellValue("A{$rowNum}", 'Dokumen ini digenerate secara otomatis oleh sistem GrowRich pada '.now()->format('d/m/Y H:i').' WIB');
+        $sheet->getStyle("A{$rowNum}")->applyFromArray([
+            'font' => ['italic' => true, 'size' => 9, 'color' => ['rgb' => $C_FOOTER]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
+        ]);
+
+        // Column widths
+        foreach (['A' => 5, 'B' => 14, 'C' => 16, 'D' => 28, 'E' => 18, 'F' => 20, 'G' => 20, 'H' => 20, 'I' => 14] as $col => $w) {
+            $sheet->getColumnDimension($col)->setWidth($w);
+        }
+
+        $sheet->freezePane('A6');
+        $sheet->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
+        $sheet->getPageSetup()->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_A4);
+        $sheet->getPageSetup()->setFitToWidth(1);
+
+        $filename = 'data-bonus-'.now()->format('Y-m-d').'.xlsx';
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            (new Xlsx($spreadsheet))->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'max-age=0',
+            'Content-Disposition' => 'attachment',
+        ]);
+    }
+
     public function exportDailyPayment(Request $request): StreamedResponse
     {
         $date = $request->get('tanggal', today()->toDateString());
@@ -210,16 +400,16 @@ class BonusController extends Controller
         $dateId = $d->day.' '.$months[$d->month - 1].' '.$d->year;
 
         // ── Palette ──────────────────────────────────────────────────────────
-        $C_HEADER = '1B6311';
-        $C_SUBHEADER = '2E8B1E';
-        $C_DATE_BG = 'E8F5E2';
-        $C_DATE_FG = '1B6311';
+        $C_HEADER = '257A15';
+        $C_SUBHEADER = '32A620';
+        $C_DATE_BG = 'E5F7E0';
+        $C_DATE_FG = '257A15';
         $C_COL_FG = 'FFFFFF';
         $C_ROW_ODD = 'FFFFFF';
-        $C_ROW_EVEN = 'EFF8EC';
-        $C_TOTAL_BG = 'D5EDD0';
-        $C_TOTAL_FG = '1B4E08';
-        $C_BORDER = 'B0C8AA';
+        $C_ROW_EVEN = 'EDFBEA';
+        $C_TOTAL_BG = 'D5F0CE';
+        $C_TOTAL_FG = '1A5C0E';
+        $C_BORDER = 'A8D8A0';
         $C_FOOTER = '888888';
 
         $spreadsheet = new Spreadsheet;
@@ -398,6 +588,19 @@ class BonusController extends Controller
         ]);
 
         SendBonusRejectedEmail::dispatch($bonus->load('memberProfile.user'));
+
+        $bonus->memberProfile->user->notify(new AppNotification(
+            title: 'Bonus Ditolak',
+            body: 'Bonus '.ucfirst($bonus->bonus_type->value).' sebesar Rp '.number_format($bonus->amount, 0, ',', '.').' tidak dapat disetujui.',
+            type: 'bonus_rejected',
+            url: '/member/bonuses',
+        ));
+
+        ActivityLogger::log(
+            'bonus.rejected',
+            "Bonus {$bonus->bonus_type->value} member '{$bonus->memberProfile->user->name}' ditolak.",
+            $bonus,
+        );
 
         return back()->with('success', 'Bonus berhasil ditolak.');
     }

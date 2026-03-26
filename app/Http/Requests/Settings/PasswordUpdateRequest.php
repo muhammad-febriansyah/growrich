@@ -22,4 +22,17 @@ class PasswordUpdateRequest extends FormRequest
             'password' => $this->passwordRules(),
         ];
     }
+
+    /**
+     * Get custom validation messages.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'current_password.current_password' => 'The current password you entered is incorrect.',
+            'password.confirmed' => 'The new password and confirmation do not match.',
+        ];
+    }
 }

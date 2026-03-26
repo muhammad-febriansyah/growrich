@@ -1,9 +1,10 @@
 import { Head, router } from '@inertiajs/react';
-import { Check, ChevronLeft, Copy, MessageCircle, User as UserIcon, UserPlus } from 'lucide-react';
-import { useState } from 'react';
+import { Check, ChevronLeft, Copy, Loader2, MessageCircle, Search, User as UserIcon, UserPlus, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { cn } from '@/lib/utils';
@@ -244,6 +245,122 @@ function Node({
     );
 }
 
+// ── NetworkSearch ─────────────────────────────────────────────────────────────
+
+type SearchResult = {
+    id: number;
+    name: string;
+    member_id: string;
+    package: string;
+};
+
+function NetworkSearch() {
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState<SearchResult[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState(false);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+
+        if (query.length < 2) {
+            setResults([]);
+            setOpen(false);
+            return;
+        }
+
+        debounceRef.current = setTimeout(async () => {
+            setLoading(true);
+            try {
+                const res = await fetch(`/member/network/search?q=${encodeURIComponent(query)}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                const json = await res.json();
+                setResults(json.results ?? []);
+                setOpen(true);
+            } finally {
+                setLoading(false);
+            }
+        }, 350);
+    }, [query]);
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        function handleClick(e: MouseEvent) {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, []);
+
+    function handleSelect(result: SearchResult) {
+        setQuery('');
+        setResults([]);
+        setOpen(false);
+        navigateTo(result.id);
+    }
+
+    function handleClear() {
+        setQuery('');
+        setResults([]);
+        setOpen(false);
+    }
+
+    return (
+        <div ref={containerRef} className="relative w-56">
+            <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                    placeholder="Cari nama / ID member..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onFocus={() => results.length > 0 && setOpen(true)}
+                    className="h-8 pl-8 pr-8 text-xs"
+                />
+                {loading && (
+                    <Loader2 className="absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+                )}
+                {!loading && query && (
+                    <button onClick={handleClear} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        <X className="size-3.5" />
+                    </button>
+                )}
+            </div>
+
+            {open && (
+                <div className="absolute left-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-xl border bg-white shadow-lg">
+                    {results.length === 0 ? (
+                        <div className="px-4 py-3 text-xs text-muted-foreground">Tidak ada member ditemukan.</div>
+                    ) : (
+                        <ul>
+                            {results.map((result) => (
+                                <li key={result.id}>
+                                    <button
+                                        onClick={() => handleSelect(result)}
+                                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-accent/60 transition-colors"
+                                    >
+                                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted">
+                                            <UserIcon className="size-3.5 text-muted-foreground" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="truncate text-xs font-semibold">{result.name}</p>
+                                            <p className="text-[10px] text-muted-foreground">{result.member_id} · {result.package}</p>
+                                        </div>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function NetworkIndex({ tree, ancestors }: Props) {
@@ -361,31 +478,36 @@ export default function NetworkIndex({ tree, ancestors }: Props) {
                 <Card className="overflow-hidden">
                     <CardHeader className="border-b bg-white px-4 py-3 md:px-6">
                         <div className="flex flex-wrap items-center justify-between gap-3">
-                            {isSubTree ? (
-                                <button
-                                    onClick={handleBack}
-                                    className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
-                                >
-                                    <ChevronLeft className="h-4 w-4" />
-                                    Kembali ke atas
-                                </button>
-                            ) : (
-                                <span className="text-sm font-medium text-muted-foreground">Pohon Jaringan</span>
-                            )}
+                            <div className="flex items-center gap-3">
+                                {isSubTree ? (
+                                    <button
+                                        onClick={handleBack}
+                                        className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                        Kembali ke atas
+                                    </button>
+                                ) : (
+                                    <span className="text-sm font-medium text-muted-foreground">Pohon Jaringan</span>
+                                )}
+                            </div>
 
-                            <div className="flex gap-3 text-[11px] text-muted-foreground">
-                                <span className="flex items-center gap-1.5">
-                                    <span className="inline-block h-3 w-3 rounded bg-gray-300" />
-                                    Silver
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                    <span className="inline-block h-3 w-3 rounded bg-amber-400" />
-                                    Gold
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                    <span className="inline-block h-3 w-3 rounded bg-[#1B2B1B]" />
-                                    Platinum
-                                </span>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <NetworkSearch />
+                                <div className="flex gap-3 text-[11px] text-muted-foreground">
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="inline-block h-3 w-3 rounded bg-gray-300" />
+                                        Silver
+                                    </span>
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="inline-block h-3 w-3 rounded bg-amber-400" />
+                                        Gold
+                                    </span>
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="inline-block h-3 w-3 rounded bg-[#1B2B1B]" />
+                                        Platinum
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </CardHeader>

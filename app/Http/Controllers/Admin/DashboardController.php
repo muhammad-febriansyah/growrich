@@ -21,26 +21,41 @@ class DashboardController extends Controller
         $stats = [
             'total_members' => User::where('role', 'member')->count(),
             'active_members' => MemberProfile::where('package_status', 'active')->count(),
-            'new_members_30d' => User::where('role', 'member')
-                ->where('created_at', '>=', now()->subDays(30))
+            'new_members_this_month' => User::where('role', 'member')
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
                 ->count(),
             'pending_bonuses' => Bonus::where('status', BonusStatus::Pending)->count(),
-            'total_bonus_approved' => Bonus::whereIn('status', [BonusStatus::Approved, BonusStatus::Paid])->sum('amount'),
+            'approved_bonuses' => Bonus::where('status', BonusStatus::Approved)->count(),
+            'total_bonus_paid_cash' => Bonus::where('status', BonusStatus::Paid)->sum('cash_amount'),
+            'total_bonus_approved_ewallet' => Bonus::where('status', BonusStatus::Approved)->sum('ewallet_amount'),
             'pending_withdrawals' => Withdrawal::where('status', 'pending')->count(),
             'pending_withdrawal_amount' => Withdrawal::where('status', 'pending')->sum('amount'),
             'available_pins' => RegistrationPin::where('status', 'available')->count(),
             'total_ro' => RepeatOrder::count(),
         ];
 
-        $bonusByType = Bonus::whereIn('status', [BonusStatus::Approved, BonusStatus::Paid])
-            ->select('bonus_type', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
+        $bonusByType = Bonus::whereNotIn('status', [BonusStatus::Rejected])
+            ->select(
+                'bonus_type',
+                DB::raw('SUM(amount) as total_amount'),
+                DB::raw('SUM(CASE WHEN status = "Paid" THEN cash_amount ELSE 0 END) as paid_cash'),
+                DB::raw('COUNT(*) as count'),
+                DB::raw('SUM(CASE WHEN status = "Pending" THEN 1 ELSE 0 END) as pending_count'),
+                DB::raw('SUM(CASE WHEN status = "Approved" THEN 1 ELSE 0 END) as approved_count'),
+                DB::raw('SUM(CASE WHEN status = "Paid" THEN 1 ELSE 0 END) as paid_count'),
+            )
             ->groupBy('bonus_type')
-            ->orderByDesc('total')
+            ->orderByDesc('total_amount')
             ->get()
             ->map(fn ($b) => [
                 'type' => $b->bonus_type instanceof \BackedEnum ? $b->bonus_type->value : $b->bonus_type,
-                'total' => (int) $b->total,
-                'count' => $b->count,
+                'total' => (int) $b->total_amount,
+                'paid_cash' => (int) $b->paid_cash,
+                'count' => (int) $b->count,
+                'pending_count' => (int) $b->pending_count,
+                'approved_count' => (int) $b->approved_count,
+                'paid_count' => (int) $b->paid_count,
             ]);
 
         $memberGrowth = User::where('role', 'member')

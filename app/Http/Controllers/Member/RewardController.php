@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Member;
 use App\Http\Controllers\Controller;
 use App\Models\MemberReward;
 use App\Models\RewardMilestone;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class RewardController extends Controller
@@ -48,8 +50,17 @@ class RewardController extends Controller
                 'qualified' => $leftRp >= $milestone->required_left_rp
                     && $rightRp >= $milestone->required_right_rp,
                 'status' => $reward?->status ?? null,
+                'memberRewardId' => $reward?->id,
                 'qualifiedAt' => $reward?->qualified_at?->toDateString(),
                 'fulfilledAt' => $reward?->fulfilled_at?->toDateString(),
+                'claimedAt' => $reward?->claimed_at?->toDateString(),
+                'shippedAt' => $reward?->shipped_at?->toDateString(),
+                'courier' => $reward?->courier,
+                'trackingNumber' => $reward?->tracking_number,
+                'shippingNotes' => $reward?->shipping_notes,
+                'recipientName' => $reward?->recipient_name,
+                'recipientPhone' => $reward?->recipient_phone,
+                'recipientAddress' => $reward?->recipient_address,
             ];
         });
 
@@ -58,5 +69,35 @@ class RewardController extends Controller
             'leftRp' => (int) $profile->left_rp_total,
             'rightRp' => (int) $profile->right_rp_total,
         ]);
+    }
+
+    public function claim(Request $request, MemberReward $memberReward): RedirectResponse
+    {
+        $user = auth()->user();
+
+        if ($memberReward->memberProfile->user_id !== $user->id) {
+            abort(403);
+        }
+
+        if ($memberReward->status !== 'pending') {
+            return back()->with('error', 'Reward ini tidak dapat diklaim.');
+        }
+
+        $validated = $request->validate([
+            'recipient_name' => 'required|string|max:255',
+            'recipient_phone' => 'required|string|max:20',
+            'recipient_address' => 'required|string|max:1000',
+        ], [
+            'recipient_name.required' => 'Nama penerima wajib diisi.',
+            'recipient_phone.required' => 'Nomor telepon wajib diisi.',
+            'recipient_address.required' => 'Alamat pengiriman wajib diisi.',
+        ]);
+
+        $memberReward->update(array_merge($validated, [
+            'status' => 'claimed',
+            'claimed_at' => now(),
+        ]));
+
+        return back()->with('success', 'Klaim reward berhasil dikirim. Admin akan memproses pengiriman segera.');
     }
 }

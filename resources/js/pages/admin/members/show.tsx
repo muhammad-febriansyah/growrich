@@ -13,6 +13,8 @@ interface Member extends User {
         package_status: string;
         career_level: string;
         is_stockist: boolean;
+        stockist_level: string | null;
+        stockist_parent_id: number | null;
         pin_code?: string;
         activated_at: string;
         left_pp_total: number;
@@ -108,38 +110,53 @@ export default function MemberShow({ member }: Props) {
                             <p className="text-xs text-muted-foreground text-green-600">Saldo saat ini</p>
                         </CardContent>
                     </Card>
-                    <Card className={member.member_profile?.is_stockist ? 'border-orange-300 bg-orange-50' : ''}>
+                    <Card className={member.member_profile?.is_stockist ? 'border-violet-300 bg-violet-50/40' : ''}>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium flex items-center gap-1.5">
                                 <Package className="h-4 w-4" />
-                                Status Stokis
+                                Level Stokis
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="flex flex-col gap-3">
                             <div>
-                                {member.member_profile?.is_stockist ? (
-                                    <span className="inline-flex items-center rounded-full border border-orange-300 bg-orange-100 px-2.5 py-1 text-xs font-bold text-orange-700">
-                                        ✦ Stokis Aktif
+                                {member.member_profile?.stockist_level ? (
+                                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${
+                                        member.member_profile.stockist_level === 'center'
+                                            ? 'border-violet-300 bg-violet-100 text-violet-700'
+                                            : member.member_profile.stockist_level === 'point'
+                                                ? 'border-blue-300 bg-blue-100 text-blue-700'
+                                                : 'border-orange-300 bg-orange-100 text-orange-700'
+                                    }`}>
+                                        ✦ {{
+                                            center: 'Stockist Center',
+                                            point: 'Stockist Point',
+                                            sub: 'Sub Stockist',
+                                        }[member.member_profile.stockist_level]}
                                     </span>
                                 ) : (
                                     <span className="text-sm text-muted-foreground">Bukan Stokis</span>
                                 )}
                             </div>
-                            <Button
-                                size="sm"
-                                variant={member.member_profile?.is_stockist ? 'outline' : 'default'}
-                                className={member.member_profile?.is_stockist
-                                    ? 'h-7 text-xs border-orange-300 text-orange-700 hover:bg-orange-50 hover:text-orange-700'
-                                    : 'h-7 text-xs bg-orange-500 hover:bg-orange-600 text-white'}
-                                onClick={() => {
-                                    const action = member.member_profile?.is_stockist ? 'Cabut status Stokis' : 'Tunjuk sebagai Stokis';
-                                    if (confirm(`${action} untuk ${member.name}?`)) {
-                                        router.post(`/admin/members/${member.id}/toggle-stockist`);
+                            <select
+                                className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs"
+                                value={member.member_profile?.stockist_level ?? ''}
+                                onChange={(e) => {
+                                    const level = e.target.value || null;
+                                    const label = level
+                                        ? { center: 'Stockist Center', point: 'Stockist Point', sub: 'Sub Stockist' }[level]
+                                        : 'Bukan Stokis';
+                                    if (confirm(`Ubah level stokis ${member.name} menjadi "${label}"?`)) {
+                                        router.post(`/admin/members/${member.id}/set-stockist-level`, {
+                                            stockist_level: level,
+                                        });
                                     }
                                 }}
                             >
-                                {member.member_profile?.is_stockist ? 'Cabut Stokis' : 'Tunjuk Stokis'}
-                            </Button>
+                                <option value="">— Bukan Stokis —</option>
+                                <option value="center">Stockist Center</option>
+                                <option value="point">Stockist Point</option>
+                                <option value="sub">Sub Stockist</option>
+                            </select>
                         </CardContent>
                     </Card>
                 </div>

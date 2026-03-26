@@ -7,8 +7,11 @@ use Inertia\Inertia;
 // Override Fortify's registration routes with our custom full-form registration
 Route::middleware('guest')->group(function () {
     Route::get('register', [App\Http\Controllers\Auth\GuestRegistrationController::class, 'create'])->name('register');
-    Route::post('register', [App\Http\Controllers\Auth\GuestRegistrationController::class, 'store'])->name('register.store');
+    Route::post('register', [App\Http\Controllers\Auth\GuestRegistrationController::class, 'store'])->middleware('recaptcha')->name('register.store');
 });
+
+// Override Fortify's forgot-password POST to add reCAPTCHA validation
+Route::middleware(['guest', 'recaptcha'])->post('forgot-password', [\Laravel\Fortify\Http\Controllers\PasswordResetLinkController::class, 'store'])->name('password.email');
 
 Route::middleware('auth')->get('auth/redirect', function () {
     $role = auth()->user()?->role;
@@ -296,11 +299,12 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('admin/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('admin.dashboard');
 
     Route::get('admin/members', [App\Http\Controllers\Admin\MemberController::class, 'index'])->name('admin.members.index');
+    Route::get('admin/members/export', [App\Http\Controllers\Admin\MemberController::class, 'export'])->name('admin.members.export');
     Route::get('admin/members/{user}', [App\Http\Controllers\Admin\MemberController::class, 'show'])->name('admin.members.show');
     Route::get('admin/members/{user}/edit', [App\Http\Controllers\Admin\MemberController::class, 'edit'])->name('admin.members.edit');
     Route::put('admin/members/{user}', [App\Http\Controllers\Admin\MemberController::class, 'update'])->name('admin.members.update');
     Route::post('admin/members/{user}/reset-password', [App\Http\Controllers\Admin\MemberController::class, 'resetPassword'])->name('admin.members.reset-password');
-    Route::post('admin/members/{user}/toggle-stockist', [App\Http\Controllers\Admin\MemberController::class, 'toggleStockist'])->name('admin.members.toggle-stockist');
+    Route::post('admin/members/{user}/set-stockist-level', [App\Http\Controllers\Admin\MemberController::class, 'setStockistLevel'])->name('admin.members.set-stockist-level');
     Route::delete('admin/members/{user}', [App\Http\Controllers\Admin\MemberController::class, 'destroy'])->name('admin.members.destroy');
     Route::get('admin/member-deletions', [App\Http\Controllers\Admin\MemberDeletionController::class, 'index'])->name('admin.member-deletions.index');
     Route::delete('admin/member-deletions', [App\Http\Controllers\Admin\MemberDeletionController::class, 'bulkDestroy'])->name('admin.member-deletions.bulk-destroy');
@@ -315,6 +319,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::resource('admin/products', App\Http\Controllers\Admin\ProductController::class)->names('admin.products');
 
     Route::get('admin/bonuses', [App\Http\Controllers\Admin\BonusController::class, 'index'])->name('admin.bonuses.index');
+    Route::get('admin/bonuses/export', [App\Http\Controllers\Admin\BonusController::class, 'export'])->name('admin.bonuses.export');
     Route::get('admin/bonuses/daily-payment', [App\Http\Controllers\Admin\BonusController::class, 'dailyPayment'])->name('admin.bonuses.daily-payment');
     Route::get('admin/bonuses/daily-payment/export', [App\Http\Controllers\Admin\BonusController::class, 'exportDailyPayment'])->name('admin.bonuses.export-daily');
     Route::post('admin/bonuses/daily-payment/pay-member', [App\Http\Controllers\Admin\BonusController::class, 'payMember'])->name('admin.bonuses.pay-member');
@@ -324,9 +329,15 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::post('admin/bonuses/{bonus}/pay', [App\Http\Controllers\Admin\BonusController::class, 'pay'])->name('admin.bonuses.pay');
 
     Route::get('admin/withdrawals', [App\Http\Controllers\Admin\WithdrawalController::class, 'index'])->name('admin.withdrawals.index');
+    Route::get('admin/withdrawals/export', [App\Http\Controllers\Admin\WithdrawalController::class, 'export'])->name('admin.withdrawals.export');
     Route::get('admin/withdrawals/{withdrawal}', [App\Http\Controllers\Admin\WithdrawalController::class, 'show'])->name('admin.withdrawals.show');
     Route::post('admin/withdrawals/{withdrawal}/approve', [App\Http\Controllers\Admin\WithdrawalController::class, 'approve'])->name('admin.withdrawals.approve');
     Route::post('admin/withdrawals/{withdrawal}/reject', [App\Http\Controllers\Admin\WithdrawalController::class, 'reject'])->name('admin.withdrawals.reject');
+
+    Route::get('admin/wallet-transactions/export', [App\Http\Controllers\Admin\WalletController::class, 'export'])->name('admin.wallet-transactions.export');
+
+    Route::get('admin/activity-logs', [App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('admin.activity-logs.index');
+    Route::get('admin/activity-logs/export', [App\Http\Controllers\Admin\ActivityLogController::class, 'export'])->name('admin.activity-logs.export');
 
     Route::get('admin/settings', [App\Http\Controllers\Admin\SiteSettingController::class, 'index'])->name('admin.settings.index');
     Route::put('admin/settings', [App\Http\Controllers\Admin\SiteSettingController::class, 'update'])->name('admin.settings.update');
@@ -338,6 +349,22 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::resource('admin/faqs', App\Http\Controllers\Admin\FaqController::class)->names('admin.faqs');
 
     Route::resource('admin/blog-posts', App\Http\Controllers\Admin\BlogPostController::class)->names('admin.blog-posts');
+    Route::resource('admin/announcements', App\Http\Controllers\Admin\AnnouncementController::class)->names('admin.announcements');
+    // Support Tickets (Admin)
+    Route::get('admin/support', [App\Http\Controllers\Admin\AdminSupportTicketController::class, 'index'])->name('admin.support.index');
+    Route::get('admin/support/{ticket}', [App\Http\Controllers\Admin\AdminSupportTicketController::class, 'show'])->name('admin.support.show');
+    Route::post('admin/support/{ticket}/reply', [App\Http\Controllers\Admin\AdminSupportTicketController::class, 'reply'])->name('admin.support.reply');
+    Route::post('admin/support/{ticket}/close', [App\Http\Controllers\Admin\AdminSupportTicketController::class, 'close'])->name('admin.support.close');
+
+    // Live Chat (Admin)
+    Route::get('admin/chat', [App\Http\Controllers\Admin\AdminChatController::class, 'index'])->name('admin.chat.index');
+    Route::get('admin/chat/{chatSession}', [App\Http\Controllers\Admin\AdminChatController::class, 'show'])->name('admin.chat.show');
+    Route::post('admin/chat/{chatSession}/reply', [App\Http\Controllers\Admin\AdminChatController::class, 'reply'])->name('admin.chat.reply');
+    Route::post('admin/chat/{chatSession}/takeover', [App\Http\Controllers\Admin\AdminChatController::class, 'takeover'])->name('admin.chat.takeover');
+    Route::post('admin/chat/{chatSession}/close', [App\Http\Controllers\Admin\AdminChatController::class, 'close'])->name('admin.chat.close');
+    Route::get('admin/chat/{chatSession}/messages', [App\Http\Controllers\Admin\AdminChatController::class, 'messages'])->name('admin.chat.messages');
+
+    Route::get('admin/reports', [App\Http\Controllers\Admin\ReportController::class, 'index'])->name('admin.reports.index');
     Route::resource('admin/users', App\Http\Controllers\Admin\AdminUserController::class)->names('admin.users');
     Route::post('admin/users/{user}/reset-password', [App\Http\Controllers\Admin\AdminUserController::class, 'resetPassword'])->name('admin.users.reset-password');
 
@@ -352,6 +379,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
 
     // Reward Management
     Route::get('admin/rewards', [App\Http\Controllers\Admin\AdminRewardController::class, 'index'])->name('admin.rewards.index');
+    Route::post('admin/rewards/{reward}/ship', [App\Http\Controllers\Admin\AdminRewardController::class, 'ship'])->name('admin.rewards.ship');
     Route::post('admin/rewards/{reward}/fulfill', [App\Http\Controllers\Admin\AdminRewardController::class, 'fulfill'])->name('admin.rewards.fulfill');
     Route::post('admin/rewards/{reward}/reject', [App\Http\Controllers\Admin\AdminRewardController::class, 'reject'])->name('admin.rewards.reject');
 
@@ -394,12 +422,18 @@ Route::middleware(['auth', 'verified', 'role:member'])->group(function () {
     Route::get('member/profile', [App\Http\Controllers\Member\ProfileController::class, 'index'])->name('member.profile.index');
     Route::get('member/profile/edit', [App\Http\Controllers\Member\ProfileController::class, 'edit'])->name('member.profile.edit');
     Route::match(['PUT', 'POST'], 'member/profile', [App\Http\Controllers\Member\ProfileController::class, 'update'])->name('member.profile.update');
+    Route::post('member/profile/change-password', [App\Http\Controllers\Member\ProfileController::class, 'changePassword'])->name('member.profile.change-password');
 
     Route::get('member/network', [App\Http\Controllers\Member\NetworkController::class, 'index'])->name('member.network.index');
+    Route::get('member/network/search', [App\Http\Controllers\Member\NetworkController::class, 'search'])->name('member.network.search');
 
     Route::get('member/wallet', [App\Http\Controllers\Member\FinancialController::class, 'wallet'])->name('member.wallet.index');
     Route::post('member/withdraw', [App\Http\Controllers\Member\FinancialController::class, 'withdraw'])->name('member.withdraw.store');
+    Route::post('member/bank-accounts', [App\Http\Controllers\Member\BankAccountController::class, 'store'])->name('member.bank-accounts.store');
+    Route::post('member/bank-accounts/{bankAccount}/primary', [App\Http\Controllers\Member\BankAccountController::class, 'setPrimary'])->name('member.bank-accounts.primary');
+    Route::delete('member/bank-accounts/{bankAccount}', [App\Http\Controllers\Member\BankAccountController::class, 'destroy'])->name('member.bank-accounts.destroy');
     Route::get('member/bonuses', [App\Http\Controllers\Member\FinancialController::class, 'bonuses'])->name('member.bonuses.index');
+    Route::get('member/bonuses/simulation', [App\Http\Controllers\Member\BonusSimulationController::class, 'index'])->name('member.bonuses.simulation');
 
     Route::get('member/ro', [App\Http\Controllers\Member\OrderController::class, 'index'])->name('member.ro.index');
     Route::post('member/ro', [App\Http\Controllers\Member\OrderController::class, 'store'])->name('member.ro.store');
@@ -424,6 +458,10 @@ Route::middleware(['auth', 'verified', 'role:member'])->group(function () {
     Route::get('member/ro/{order}/payment', [App\Http\Controllers\Member\OrderController::class, 'paymentPage'])->name('member.ro.payment');
     Route::post('member/ro/{order}/upload-receipt', [App\Http\Controllers\Member\OrderController::class, 'uploadReceipt'])->name('member.ro.upload-receipt');
 
+    Route::get('member/ro-preference', [App\Http\Controllers\Member\RoPreferenceController::class, 'index'])->name('member.ro-preference.index');
+    Route::post('member/ro-preference', [App\Http\Controllers\Member\RoPreferenceController::class, 'store'])->name('member.ro-preference.store');
+    Route::delete('member/ro-preference', [App\Http\Controllers\Member\RoPreferenceController::class, 'destroy'])->name('member.ro-preference.destroy');
+
     // Upgrade Paket
     Route::get('member/upgrade', [App\Http\Controllers\Member\UpgradeController::class, 'index'])->name('member.upgrade.index');
     Route::post('member/upgrade', [App\Http\Controllers\Member\UpgradeController::class, 'store'])->name('member.upgrade.store');
@@ -433,7 +471,28 @@ Route::middleware(['auth', 'verified', 'role:member'])->group(function () {
 
     // Progress Reward
     Route::get('member/rewards', [App\Http\Controllers\Member\RewardController::class, 'index'])->name('member.rewards.index');
+    Route::post('member/rewards/{memberReward}/claim', [App\Http\Controllers\Member\RewardController::class, 'claim'])->name('member.rewards.claim');
+
+    // Notifikasi
+    Route::get('member/notifications', [App\Http\Controllers\Member\NotificationController::class, 'index'])->name('member.notifications.index');
+    Route::patch('member/notifications/{id}/read', [App\Http\Controllers\Member\NotificationController::class, 'markAsRead'])->name('member.notifications.read');
+    Route::post('member/notifications/read-all', [App\Http\Controllers\Member\NotificationController::class, 'markAllAsRead'])->name('member.notifications.read-all');
+
+    Route::get('member/announcements', [App\Http\Controllers\Member\AnnouncementController::class, 'index'])->name('member.announcements.index');
+    Route::get('member/announcements/{announcement}', [App\Http\Controllers\Member\AnnouncementController::class, 'show'])->name('member.announcements.show');
+
+    // Support Tickets (Member)
+    Route::get('member/support', [App\Http\Controllers\Member\SupportTicketController::class, 'index'])->name('member.support.index');
+    Route::get('member/support/create', [App\Http\Controllers\Member\SupportTicketController::class, 'create'])->name('member.support.create');
+    Route::post('member/support', [App\Http\Controllers\Member\SupportTicketController::class, 'store'])->name('member.support.store');
+    Route::get('member/support/{ticket}', [App\Http\Controllers\Member\SupportTicketController::class, 'show'])->name('member.support.show');
+    Route::post('member/support/{ticket}/reply', [App\Http\Controllers\Member\SupportTicketController::class, 'reply'])->name('member.support.reply');
 });
+
+// ── Live Chat API (no auth required) ──
+Route::post('chat/session', [App\Http\Controllers\ChatController::class, 'session'])->name('chat.session');
+Route::post('chat/send', [App\Http\Controllers\ChatController::class, 'send'])->name('chat.send');
+Route::get('chat/messages', [App\Http\Controllers\ChatController::class, 'messages'])->name('chat.messages');
 
 // ── Duitku Payment Callbacks (no auth, CSRF exempted via bootstrap/app.php) ──
 Route::post('payment/callback', [App\Http\Controllers\Payment\DuitkuCallbackController::class, 'handle'])->name('payment.callback');

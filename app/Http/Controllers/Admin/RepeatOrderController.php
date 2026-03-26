@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\SendRoApprovedEmail;
 use App\Jobs\SendRoRejectedEmail;
 use App\Models\RepeatOrder;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -60,6 +61,12 @@ class RepeatOrderController extends Controller
 
         SendRoApprovedEmail::dispatch($repeatOrder->load('memberProfile.user', 'items.product'));
 
+        ActivityLogger::log(
+            'repeat_order.approved',
+            "Repeat Order #{$repeatOrder->id} member '{$repeatOrder->memberProfile->user->name}' disetujui.",
+            $repeatOrder,
+        );
+
         return back()->with('success', 'Repeat Order berhasil disetujui.');
     }
 
@@ -80,6 +87,12 @@ class RepeatOrderController extends Controller
         $repeatOrder->update(['status' => 'rejected']);
 
         SendRoRejectedEmail::dispatch($repeatOrder->load('memberProfile.user', 'items.product'));
+
+        ActivityLogger::log(
+            'repeat_order.rejected',
+            "Repeat Order #{$repeatOrder->id} member '{$repeatOrder->memberProfile->user->name}' ditolak.",
+            $repeatOrder,
+        );
 
         return back()->with('success', 'Repeat Order berhasil ditolak.');
     }

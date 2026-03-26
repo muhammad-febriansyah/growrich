@@ -1,0 +1,227 @@
+import { Head, Link, router } from '@inertiajs/react';
+import { ColumnDef } from '@tanstack/react-table';
+import {
+    FileText,
+    Globe,
+    Lock,
+    Pencil,
+    Plus,
+    Search,
+    Trash2,
+} from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/ui/data-table';
+import { Input } from '@/components/ui/input';
+import AppLayout from '@/layouts/app-layout';
+import { BreadcrumbItem } from '@/types';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
+
+interface NewsItem {
+    id: number;
+    title: string;
+    slug: string;
+    thumbnail_url: string | null;
+    is_published: boolean;
+    published_at: string | null;
+    created_at: string;
+    category: { id: number; title: string } | null;
+}
+
+interface Props {
+    news: {
+        data: NewsItem[];
+        current_page: number;
+        last_page: number;
+        total: number;
+        links: { url: string | null; label: string; active: boolean }[];
+    };
+}
+
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Manajemen Berita', href: '/admin/news' },
+];
+
+export default function NewsIndex({ news }: Props) {
+    const [search, setSearch] = useState('');
+
+    const handleDelete = (item: NewsItem) => {
+        if (
+            confirm(
+                `Hapus berita "${item.title}"? Tindakan ini tidak bisa dibatalkan.`,
+            )
+        ) {
+            router.delete(`/admin/news/${item.id}`);
+        }
+    };
+
+    const columns: ColumnDef<NewsItem>[] = [
+        {
+            id: 'news',
+            header: 'Berita',
+            cell: ({ row }) => (
+                <div className="flex items-center gap-3">
+                    <div className="size-12 shrink-0 overflow-hidden rounded-lg border bg-gray-50">
+                        {row.original.thumbnail_url ? (
+                            <img
+                                src={row.original.thumbnail_url}
+                                alt={row.original.title}
+                                className="size-full object-cover"
+                            />
+                        ) : (
+                            <div className="flex size-full items-center justify-center text-gray-300">
+                                <FileText className="size-6" />
+                            </div>
+                        )}
+                    </div>
+                    <div className="max-w-xs md:max-w-sm">
+                        <div className="truncate font-semibold text-gray-900">
+                            {row.original.title}
+                        </div>
+                        {row.original.category && (
+                            <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 ring-1 ring-purple-700/10 ring-inset">
+                                {row.original.category.title}
+                            </span>
+                        )}
+                    </div>
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'is_published',
+            header: 'Status',
+            cell: ({ row }) => (
+                <div className="flex items-center gap-2">
+                    {row.original.is_published ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">
+                            <Globe className="h-3 w-3" /> Publik
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700 ring-1 ring-yellow-600/20 ring-inset">
+                            <Lock className="h-3 w-3" /> Draft
+                        </span>
+                    )}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'created_at',
+            header: 'Tanggal Dibuat',
+            cell: ({ row }) => (
+                <div className="text-sm text-gray-500">
+                    {format(new Date(row.original.created_at), 'd MMM yyyy', {
+                        locale: id,
+                    })}
+                </div>
+            ),
+        },
+        {
+            id: 'actions',
+            header: () => <div className="text-right">Aksi</div>,
+            cell: ({ row }) => (
+                <div className="flex justify-end gap-1">
+                    <Link href={`/admin/news/${row.original.id}/edit`}>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-amber-600"
+                        >
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                    </Link>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => handleDelete(row.original)}
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                </div>
+            ),
+        },
+    ];
+
+    const filtered = news.data.filter((n) =>
+        n.title.toLowerCase().includes(search.toLowerCase()),
+    );
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Manajemen Berita" />
+
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                            Manajemen Berita
+                        </h1>
+                        <p className="text-sm text-muted-foreground">
+                            Kelola berita dan pengumuman untuk website.
+                        </p>
+                    </div>
+                    <Link href="/admin/news/create">
+                        <Button className="gap-2 bg-primary text-white hover:bg-primary/90">
+                            <Plus className="h-4 w-4" />
+                            Tambah Berita
+                        </Button>
+                    </Link>
+                </div>
+
+                <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                    <div className="relative flex-1">
+                        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            placeholder="Cari judul berita..."
+                            className="pl-9"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                <DataTable
+                    columns={columns}
+                    data={filtered}
+                    emptyTitle="Belum ada berita"
+                    emptyDescription="Mulai tambahkan berita pertama Anda untuk menjangkau audiens lebih luas."
+                />
+
+                <div className="flex items-center justify-between gap-3 border-t pt-4">
+                    <div className="text-sm text-muted-foreground italic">
+                        Menampilkan {news.data.length} dari {news.total} total
+                        berita
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={news.current_page === 1}
+                            onClick={() => {
+                                const prev = news.links[news.current_page - 1];
+                                if (prev?.url) router.get(prev.url);
+                            }}
+                        >
+                            Sebelumnya
+                        </Button>
+                        <span className="px-1 text-sm font-medium">
+                            {news.current_page} / {news.last_page}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={news.current_page === news.last_page}
+                            onClick={() => {
+                                const next = news.links[news.current_page + 1];
+                                if (next?.url) router.get(next.url);
+                            }}
+                        >
+                            Selanjutnya
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </AppLayout>
+    );
+}

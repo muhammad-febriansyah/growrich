@@ -834,8 +834,8 @@ export default function SiteSettings({ settings }: Props) {
                             <TabsContent value="recaptcha" className="mt-0 focus-visible:outline-none">
                                 <Card className="border shadow-sm rounded-xl overflow-hidden">
                                     <CardHeader className="border-b bg-slate-50/50 py-4 px-6 font-semibold">
-                                        <CardTitle className="text-lg">Google reCAPTCHA v2</CardTitle>
-                                        <CardDescription>Konfigurasi keamanan Google reCAPTCHA v2 untuk form pendaftaran dan login.</CardDescription>
+                                        <CardTitle className="text-lg">Google reCAPTCHA v3</CardTitle>
+                                        <CardDescription>Konfigurasi keamanan Google reCAPTCHA v3 untuk form pendaftaran dan login.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="p-6 space-y-6">
                                         <div className="space-y-2">

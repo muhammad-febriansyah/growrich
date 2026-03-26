@@ -17,9 +17,11 @@ import { BreadcrumbItem } from '@/types';
 interface Stats {
     total_members: number;
     active_members: number;
-    new_members_30d: number;
+    new_members_this_month: number;
     pending_bonuses: number;
-    total_bonus_approved: number;
+    approved_bonuses: number;
+    total_bonus_paid_cash: number;
+    total_bonus_approved_ewallet: number;
     pending_withdrawals: number;
     pending_withdrawal_amount: number;
     available_pins: number;
@@ -29,7 +31,11 @@ interface Stats {
 interface BonusType {
     type: string;
     total: number;
+    paid_cash: number;
     count: number;
+    pending_count: number;
+    approved_count: number;
+    paid_count: number;
 }
 
 interface MemberGrowth {
@@ -82,12 +88,13 @@ const PackageBadge = ({ type }: { type: string | null }) => {
 };
 
 const bonusTypeColor: Record<string, string> = {
-    Sponsor:       'bg-violet-500',
-    Pairing:       'bg-brand',
-    Matching:      'bg-sky-500',
-    Leveling:      'bg-orange-500',
-    RepeatOrder:   'bg-teal-500',
-    GlobalSharing: 'bg-pink-500',
+    Sponsor:        'bg-violet-500',
+    Pairing:        'bg-brand',
+    Matching:       'bg-sky-500',
+    Leveling:       'bg-orange-500',
+    RepeatOrder:    'bg-teal-500',
+    GlobalSharing:  'bg-pink-500',
+    PassUpSponsor:  'bg-indigo-500',
 };
 
 export default function AdminDashboard({ stats, bonusByType, memberGrowth, recentMembers, recentWithdrawals }: Props) {
@@ -136,7 +143,7 @@ export default function AdminDashboard({ stats, bonusByType, memberGrowth, recen
                                 <div>
                                     <p className="text-xs text-muted-foreground">Total Member</p>
                                     <p className="mt-1 text-2xl font-bold text-gray-900">{stats.total_members}</p>
-                                    <p className="mt-0.5 text-xs text-green-600">+{stats.new_members_30d} bulan ini</p>
+                                    <p className="mt-0.5 text-xs text-green-600">+{stats.new_members_this_month} bulan ini</p>
                                 </div>
                                 <div className="flex size-9 items-center justify-center rounded-lg bg-brand-50">
                                     <Users className="size-4 text-brand" />
@@ -164,9 +171,11 @@ export default function AdminDashboard({ stats, bonusByType, memberGrowth, recen
                         <CardContent className="p-5">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Total Bonus Dibayar</p>
-                                    <p className="mt-1 text-lg font-bold text-gray-900">{fmt(stats.total_bonus_approved)}</p>
-                                    <p className="mt-0.5 text-xs text-amber-600">{stats.pending_bonuses} pending</p>
+                                    <p className="text-xs text-muted-foreground">Bonus Sudah Dibayar</p>
+                                    <p className="mt-1 text-lg font-bold text-gray-900">{fmt(stats.total_bonus_paid_cash)}</p>
+                                    <p className="mt-0.5 text-xs text-amber-600">
+                                        {stats.approved_bonuses > 0 ? `${stats.approved_bonuses} disetujui belum dibayar` : `${stats.pending_bonuses} pending`}
+                                    </p>
                                 </div>
                                 <div className="flex size-9 items-center justify-center rounded-lg bg-amber-50">
                                     <TrendingUp className="size-4 text-amber-600" />
@@ -215,7 +224,14 @@ export default function AdminDashboard({ stats, bonusByType, memberGrowth, recen
                                                 <span className="text-xs text-muted-foreground">({b.count}x)</span>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <span className="font-semibold text-gray-900">{fmt(b.total)}</span>
+                                                <div className="text-right">
+                                                    <span className="font-semibold text-gray-900">{fmt(b.total)}</span>
+                                                    <p className="text-[10px] text-muted-foreground">
+                                                        {b.pending_count > 0 && <span className="text-amber-600">{b.pending_count} pending </span>}
+                                                        {b.approved_count > 0 && <span className="text-green-600">{b.approved_count} disetujui </span>}
+                                                        {b.paid_count > 0 && <span className="text-blue-600">{b.paid_count} dibayar</span>}
+                                                    </p>
+                                                </div>
                                                 <span className="w-8 text-right text-xs text-muted-foreground">{pct}%</span>
                                             </div>
                                         </div>

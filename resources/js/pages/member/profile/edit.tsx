@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Camera, Save, User as UserIcon } from 'lucide-react';
+import { ArrowLeft, Camera, KeyRound, Save, User as UserIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +20,19 @@ export default function ProfileEdit({ user }: Props) {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(user.avatar ?? null);
+
+    const pwForm = useForm({
+        current_password: '',
+        password: '',
+        password_confirmation: '',
+    });
+
+    const submitPassword = (e: React.FormEvent) => {
+        e.preventDefault();
+        pwForm.post('/member/profile/change-password', {
+            onSuccess: () => pwForm.reset(),
+        });
+    };
 
     const { data, setData, post, processing, errors } = useForm<{
         name: string;
@@ -162,6 +175,63 @@ export default function ProfileEdit({ user }: Props) {
                             Simpan Perubahan
                         </Button>
                     </div>
+                </form>
+
+                {/* Ganti Password */}
+                <form onSubmit={submitPassword}>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <KeyRound className="h-4 w-4" />
+                                Ganti Password
+                            </CardTitle>
+                            <CardDescription>Gunakan password yang kuat dan unik.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="current_password">Password Saat Ini</Label>
+                                <Input
+                                    id="current_password"
+                                    type="password"
+                                    value={pwForm.data.current_password}
+                                    onChange={(e) => pwForm.setData('current_password', e.target.value)}
+                                    autoComplete="current-password"
+                                />
+                                {pwForm.errors.current_password && (
+                                    <p className="text-sm text-destructive">{pwForm.errors.current_password}</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="password">Password Baru</Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    value={pwForm.data.password}
+                                    onChange={(e) => pwForm.setData('password', e.target.value)}
+                                    autoComplete="new-password"
+                                />
+                                {pwForm.errors.password && (
+                                    <p className="text-sm text-destructive">{pwForm.errors.password}</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="password_confirmation">Konfirmasi Password Baru</Label>
+                                <Input
+                                    id="password_confirmation"
+                                    type="password"
+                                    value={pwForm.data.password_confirmation}
+                                    onChange={(e) => pwForm.setData('password_confirmation', e.target.value)}
+                                    autoComplete="new-password"
+                                />
+                            </div>
+                            <div className="flex justify-end">
+                                <Button type="submit" variant="outline" disabled={pwForm.processing}>
+                                    <KeyRound className="mr-2 h-4 w-4" />
+                                    {pwForm.processing ? 'Menyimpan...' : 'Ganti Password'}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </form>
             </div>
         </AppLayout>

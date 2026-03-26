@@ -1,6 +1,7 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { Banknote, BookOpen, Eye, EyeOff, HeartHandshake, Key, Layout, Lock, MapPin, User, UserPlus } from 'lucide-react';
 import { useState } from 'react';
+import { GoogleReCaptchaProvider, useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,10 +24,11 @@ interface Props {
     prefillLeg?: 'left' | 'right' | null;
 }
 
-export default function Register({ prefillParentId, prefillLeg }: Props) {
+function RegisterForm({ prefillParentId, prefillLeg }: Props) {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [agreedToEthics, setAgreedToEthics] = useState(false);
+    const { executeRecaptcha } = useGoogleReCaptcha();
 
     const isSlotLocked = Boolean(prefillParentId && prefillLeg);
 
@@ -66,10 +68,18 @@ export default function Register({ prefillParentId, prefillLeg }: Props) {
         // Penempatan Jaringan
         parent_id: prefillParentId ?? null,
         leg_position: (prefillLeg ?? 'left') as 'left' | 'right',
+        // reCAPTCHA
+        'g-recaptcha-response': '',
     });
 
-    const submit = (e: React.FormEvent) => {
+    const submit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (executeRecaptcha) {
+            const token = await executeRecaptcha('register');
+            data['g-recaptcha-response'] = token;
+        }
+
         post('/register', {
             onError: () => reset('password', 'password_confirmation'),
         });
@@ -754,6 +764,10 @@ export default function Register({ prefillParentId, prefillLeg }: Props) {
                             </CardContent>
                         </Card>
 
+                        {errors['g-recaptcha-response'] && (
+                            <p className="text-sm text-center text-destructive">{errors['g-recaptcha-response']}</p>
+                        )}
+
                         <Button
                             type="submit"
                             className="h-12 w-full text-base"
@@ -772,4 +786,18 @@ export default function Register({ prefillParentId, prefillLeg }: Props) {
             </section>
         </HomeLayout>
     );
+}
+
+export default function Register(props: Props) {
+    const siteKey = usePage().props.site.recaptcha_site_key as string | undefined;
+
+    if (siteKey) {
+        return (
+            <GoogleReCaptchaProvider reCaptchaKey={siteKey}>
+                <RegisterForm {...props} />
+            </GoogleReCaptchaProvider>
+        );
+    }
+
+    return <RegisterForm {...props} />;
 }

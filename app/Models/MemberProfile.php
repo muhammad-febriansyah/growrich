@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\Mlm\CareerLevel;
 use App\Enums\Mlm\LegPosition;
 use App\Enums\Mlm\PackageType;
+use App\Enums\Mlm\StockistLevel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -34,6 +35,8 @@ class MemberProfile extends Model
         'right_rp_total',
         'career_level',
         'is_stockist',
+        'stockist_level',
+        'stockist_parent_id',
         'leveling_rewarded_levels',
         // Data Pribadi
         'birth_date',
@@ -74,6 +77,7 @@ class MemberProfile extends Model
             'left_rp_total' => 'integer',
             'right_rp_total' => 'integer',
             'is_stockist' => 'boolean',
+            'stockist_level' => StockistLevel::class,
             'leveling_rewarded_levels' => 'array',
         ];
     }
@@ -88,6 +92,16 @@ class MemberProfile extends Model
     public function parent(): BelongsTo
     {
         return $this->belongsTo(MemberProfile::class, 'parent_id');
+    }
+
+    public function stockistParent(): BelongsTo
+    {
+        return $this->belongsTo(MemberProfile::class, 'stockist_parent_id');
+    }
+
+    public function stockistChildren(): HasMany
+    {
+        return $this->hasMany(MemberProfile::class, 'stockist_parent_id');
     }
 
     public function leftChild(): HasOne

@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ColumnDef } from '@tanstack/react-table';
-import { CheckCircle2, Eye, Search, XCircle } from 'lucide-react';
+import { CheckCircle2, Download, Eye, Search, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -158,6 +158,14 @@ export default function WithdrawalIndex({ withdrawals, filters }: Props) {
         handleFilterChange('search', search);
     };
 
+    const buildExportUrl = () => {
+        const params = new URLSearchParams();
+        if (filters.status) params.set('status', filters.status);
+        if (filters.search) params.set('search', filters.search);
+        const qs = params.toString();
+        return '/admin/withdrawals/export' + (qs ? '?' + qs : '');
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Manajemen Penarikan Dana" />
@@ -168,6 +176,12 @@ export default function WithdrawalIndex({ withdrawals, filters }: Props) {
                         <h1 className="text-2xl font-bold font-heading">Penarikan Dana</h1>
                         <p className="text-muted-foreground">Proses permintaan pencairan dana dari member.</p>
                     </div>
+                    <a href={buildExportUrl()}>
+                        <Button variant="outline" size="sm" className="gap-1.5">
+                            <Download className="h-4 w-4" />
+                            Export Excel
+                        </Button>
+                    </a>
                 </div>
 
                 <div className="flex flex-col gap-4 md:flex-row md:items-center">

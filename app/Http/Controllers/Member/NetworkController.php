@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Member;
 
 use App\Http\Controllers\Controller;
 use App\Models\MemberProfile;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -37,6 +38,66 @@ class NetworkController extends Controller
             'tree' => $this->getTree($viewRoot, 2),
             'ancestors' => $this->buildAncestors($authProfile, $viewRoot),
         ]);
+    }
+
+    /**
+     * Search for a member within the authenticated user's downline.
+     * Returns member_profile id if found, so the frontend can navigate to it.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $authProfile = auth()->user()->memberProfile;
+
+        if (! $authProfile) {
+            return response()->json(['results' => []]);
+        }
+
+        $keyword = trim($request->get('q', ''));
+
+        if (strlen($keyword) < 2) {
+            return response()->json(['results' => []]);
+        }
+
+        // Get all descendant profile IDs using recursive CTE
+        $descendants = DB::select(<<<'SQL'
+            WITH RECURSIVE downline AS (
+                SELECT id FROM member_profiles WHERE id = ?
+                UNION ALL
+                SELECT mp.id FROM member_profiles mp
+                INNER JOIN downline d ON mp.parent_id = d.id
+            )
+            SELECT id FROM downline WHERE id != ?
+        SQL, [$authProfile->id, $authProfile->id]);
+
+        $descendantIds = array_column($descendants, 'id');
+
+        if (empty($descendantIds)) {
+            return response()->json(['results' => []]);
+        }
+
+        $results = MemberProfile::whereIn('member_profiles.id', $descendantIds)
+            ->join('users', 'users.id', '=', 'member_profiles.user_id')
+            ->where(function ($q) use ($keyword) {
+                $q->where('users.name', 'like', "%{$keyword}%")
+                    ->orWhere('users.member_id', 'like', "%{$keyword}%")
+                    ->orWhere('users.referral_code', 'like', "%{$keyword}%");
+            })
+            ->select(
+                'member_profiles.id',
+                'users.name',
+                'users.member_id',
+                'member_profiles.package_type',
+            )
+            ->limit(8)
+            ->get()
+            ->map(fn ($row) => [
+                'id' => $row->id,
+                'name' => $row->name,
+                'member_id' => $row->member_id,
+                'package' => $row->package_type,
+            ]);
+
+        return response()->json(['results' => $results]);
     }
 
     /**

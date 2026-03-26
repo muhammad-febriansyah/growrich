@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal, Search, Users } from 'lucide-react';
+import { Download, MoreHorizontal, Search, Users } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
@@ -263,17 +263,35 @@ export default function MemberIndex({ members, filters }: Props) {
         handleFilterChange('search', search || 'all');
     };
 
+    const buildExportUrl = () => {
+        const params = new URLSearchParams();
+        if (filters.package) params.set('package', filters.package);
+        if (filters.status) params.set('status', filters.status);
+        if (filters.career_level) params.set('career_level', filters.career_level);
+        if (filters.search) params.set('search', filters.search);
+        const qs = params.toString();
+        return '/admin/members/export' + (qs ? '?' + qs : '');
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Manajemen Member" />
 
             <div className="flex flex-col gap-6 p-4 md:p-6">
                 {/* Header */}
-                <div>
-                    <h1 className="text-xl font-bold text-gray-900">Daftar Member</h1>
-                    <p className="text-sm text-muted-foreground">
-                        {members.total} member terdaftar
-                    </p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-xl font-bold text-gray-900">Daftar Member</h1>
+                        <p className="text-sm text-muted-foreground">
+                            {members.total} member terdaftar
+                        </p>
+                    </div>
+                    <a href={buildExportUrl()}>
+                        <Button variant="outline" size="sm" className="gap-1.5">
+                            <Download className="h-4 w-4" />
+                            Export Excel
+                        </Button>
+                    </a>
                 </div>
 
                 {/* Filters */}

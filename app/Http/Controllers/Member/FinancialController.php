@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Member;
 use App\Enums\Mlm\BonusType;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendWithdrawalSubmittedEmail;
+use App\Models\BankAccount;
 use App\Models\Bonus;
 use App\Models\Withdrawal;
 use Illuminate\Http\Request;
@@ -20,9 +21,15 @@ class FinancialController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10, ['*'], 'wd_page');
 
+        $bankAccounts = BankAccount::where('user_id', $user->id)
+            ->orderByDesc('is_primary')
+            ->orderBy('created_at')
+            ->get(['id', 'bank_name', 'account_number', 'account_name', 'is_primary']);
+
         return Inertia::render('member/financial/wallet', [
             'wallet' => $user->wallet,
             'withdrawals' => $withdrawals,
+            'bankAccounts' => $bankAccounts,
         ]);
     }
 
@@ -120,9 +127,14 @@ class FinancialController extends Controller
     {
         $request->validate([
             'amount' => 'required|integer|min:50000',
-            'bank_name' => 'required|string',
-            'account_number' => 'required|string',
-            'account_name' => 'required|string',
+            'bank_account_id' => 'nullable|exists:bank_accounts,id',
+            'bank_name' => 'required_without:bank_account_id|string|nullable',
+            'account_number' => 'required_without:bank_account_id|string|nullable',
+            'account_name' => 'required_without:bank_account_id|string|nullable',
+        ], [
+            'bank_name.required_without' => 'Nama bank wajib diisi jika tidak memilih rekening tersimpan.',
+            'account_number.required_without' => 'Nomor rekening wajib diisi.',
+            'account_name.required_without' => 'Nama pemilik rekening wajib diisi.',
         ]);
 
         $user = auth()->user();
@@ -139,15 +151,29 @@ class FinancialController extends Controller
             return back()->with('error', 'Maksimal penarikan adalah Rp '.number_format($maxWithdraw, 0, ',', '.').' (saldo harus tersisa minimal Rp 1.000.000).');
         }
 
+        // Resolve bank account details
+        if ($request->filled('bank_account_id')) {
+            $bankAccount = BankAccount::where('id', $request->bank_account_id)
+                ->where('user_id', $user->id)
+                ->firstOrFail();
+            $bankName = $bankAccount->bank_name;
+            $accountNumber = $bankAccount->account_number;
+            $accountName = $bankAccount->account_name;
+        } else {
+            $bankName = $request->bank_name;
+            $accountNumber = $request->account_number;
+            $accountName = $request->account_name;
+        }
+
         $withdrawal = null;
 
-        DB::transaction(function () use ($user, $request, &$withdrawal) {
+        DB::transaction(function () use ($user, $request, $bankName, $accountNumber, $accountName, &$withdrawal) {
             $withdrawal = Withdrawal::create([
                 'user_id' => $user->id,
                 'amount' => $request->amount,
-                'bank_name' => $request->bank_name,
-                'account_number' => $request->account_number,
-                'account_name' => $request->account_name,
+                'bank_name' => $bankName,
+                'account_number' => $accountNumber,
+                'account_name' => $accountName,
                 'status' => 'pending',
             ]);
 

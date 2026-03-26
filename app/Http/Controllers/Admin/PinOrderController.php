@@ -8,6 +8,8 @@ use App\Jobs\SendPinOrderCompletedEmail;
 use App\Jobs\SendPinOrderShippedEmail;
 use App\Models\PinOrder;
 use App\Models\RegistrationPin;
+use App\Notifications\AppNotification;
+use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -107,6 +109,19 @@ class PinOrderController extends Controller
 
         SendPinOrderCompletedEmail::dispatch($pinOrder);
 
+        $pinOrder->user->notify(new AppNotification(
+            title: 'Order PIN Selesai',
+            body: "Order #{$pinOrder->order_number} telah selesai. {$pinOrder->quantity} PIN telah ditambahkan ke stok Anda.",
+            type: 'pin_order_completed',
+            url: '/member/pins',
+        ));
+
+        ActivityLogger::log(
+            'pin_order.completed',
+            "Order PIN #{$pinOrder->order_number} milik '{$pinOrder->user->name}' diselesaikan. {$pinOrder->quantity} PIN ditambahkan.",
+            $pinOrder,
+        );
+
         return back()->with('success', $msg);
     }
 
@@ -136,6 +151,19 @@ class PinOrderController extends Controller
 
         SendPinOrderShippedEmail::dispatch($pinOrder->fresh());
 
+        $pinOrder->user->notify(new AppNotification(
+            title: 'Order PIN Dikirim',
+            body: "Order #{$pinOrder->order_number} telah dikirim via {$request->shipping_courier} dengan resi {$request->shipping_tracking_number}.",
+            type: 'pin_order_shipped',
+            url: '/member/pin-orders',
+        ));
+
+        ActivityLogger::log(
+            'pin_order.shipped',
+            "Order PIN #{$pinOrder->order_number} milik '{$pinOrder->user->name}' ditandai dikirim via {$request->shipping_courier} (resi: {$request->shipping_tracking_number}).",
+            $pinOrder,
+        );
+
         return back()->with('success', "Order #{$pinOrder->order_number} ditandai sudah dikirim via {$request->shipping_courier}.");
     }
 
@@ -146,6 +174,19 @@ class PinOrderController extends Controller
         }
 
         $pinOrder->update(['status' => 'cancelled']);
+
+        $pinOrder->user->notify(new AppNotification(
+            title: 'Order PIN Dibatalkan',
+            body: "Order #{$pinOrder->order_number} telah dibatalkan oleh admin.",
+            type: 'pin_order_cancelled',
+            url: '/member/pin-orders',
+        ));
+
+        ActivityLogger::log(
+            'pin_order.cancelled',
+            "Order PIN #{$pinOrder->order_number} milik '{$pinOrder->user->name}' dibatalkan.",
+            $pinOrder,
+        );
 
         return back()->with('success', "Order #{$pinOrder->order_number} berhasil dibatalkan.");
     }
@@ -169,11 +210,11 @@ class PinOrderController extends Controller
         $sheet->setTitle('Order PIN');
 
         // ── Warna brand ───────────────────────────────────────────────────────
-        $colorHeader = '1E3A5F'; // navy dark
-        $colorSubhead = '2563EB'; // blue-600
-        $colorAlt = 'EFF6FF'; // blue-50 (baris ganjil)
+        $colorHeader = '257A15';
+        $colorSubhead = '32A620';
+        $colorAlt = 'EDFBEA';
         $colorWhite = 'FFFFFF';
-        $colorBorder = 'BFDBFE'; // blue-200
+        $colorBorder = 'A8D8A0';
         $colorGreen = 'D1FAE5';
         $colorYellow = 'FEF9C3';
         $colorRed = 'FEE2E2';
@@ -283,7 +324,7 @@ class PinOrderController extends Controller
             $sheet->getStyle("A{$row}:U{$row}")->applyFromArray([
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $bgRow]],
                 'font' => ['size' => 9],
-                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'DBEAFE']]],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'A8D8A0']]],
                 'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
             ]);
 

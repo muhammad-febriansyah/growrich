@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { dailyPayment, pay, show } from '@/actions/App/Http/Controllers/Admin/BonusController';
 import { ColumnDef } from '@tanstack/react-table';
-import { Banknote, Eye, FileText, Search } from 'lucide-react';
+import { Banknote, Download, Eye, FileText, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
@@ -178,6 +178,15 @@ export default function BonusIndex({ bonuses, filters, stats }: Props) {
         handleFilterChange('search', search);
     };
 
+    const buildExportUrl = () => {
+        const params = new URLSearchParams();
+        if (filters.status) params.set('status', filters.status);
+        if (filters.type) params.set('type', filters.type);
+        if (filters.search) params.set('search', filters.search);
+        const qs = params.toString();
+        return '/admin/bonuses/export' + (qs ? '?' + qs : '');
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Manajemen Bonus" />
@@ -188,12 +197,20 @@ export default function BonusIndex({ bonuses, filters, stats }: Props) {
                         <h1 className="text-xl font-bold text-gray-900">Manajemen Bonus</h1>
                         <p className="text-sm text-muted-foreground">Tinjau dan setujui bonus member yang dihasilkan sistem.</p>
                     </div>
-                    <Button asChild variant="outline" className="gap-1.5">
-                        <Link href={dailyPayment.url()}>
-                            <FileText className="h-4 w-4" />
-                            Pembayaran Harian
-                        </Link>
-                    </Button>
+                    <div className="flex gap-2">
+                        <a href={buildExportUrl()}>
+                            <Button variant="outline" size="sm" className="gap-1.5">
+                                <Download className="h-4 w-4" />
+                                Export Excel
+                            </Button>
+                        </a>
+                        <Button asChild variant="outline" className="gap-1.5">
+                            <Link href={dailyPayment.url()}>
+                                <FileText className="h-4 w-4" />
+                                Pembayaran Harian
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Stats */}

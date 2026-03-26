@@ -19,7 +19,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Password() {
+export default function Password({ production }: { production: boolean }) {
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
 
@@ -95,6 +95,25 @@ export default function Password() {
                                         autoComplete="new-password"
                                         placeholder="New password"
                                     />
+
+                                    {production && (
+                                        <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                                            <li>• Minimum 12 characters</li>
+                                            <li>
+                                                • Uppercase and lowercase
+                                                letters
+                                            </li>
+                                            <li>• At least one number</li>
+                                            <li>
+                                                • At least one symbol (e.g. @,
+                                                #, $)
+                                            </li>
+                                            <li>
+                                                • Must not be a compromised
+                                                password
+                                            </li>
+                                        </ul>
+                                    )}
 
                                     <InputError message={errors.password} />
                                 </div>

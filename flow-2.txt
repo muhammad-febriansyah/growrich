@@ -168,3 +168,122 @@
 │ 4. Update salah satu nilai (mis. registration_price Silver)                                                                                                                                              │
 │ 5. Cek PackageType::Silver->registrationPrice() via tinker mengembalikan nilai baru                                                                                                                      │
 │ 6. php artisan test --compact tests/Feature/Admin/PackageControllerTest.php   
+
+
+
+
+
+
+
+
+⏺ Analisis Fitur Order PIN & Flow Stokis
+
+  Setelah menelusuri seluruh codebase, berikut temuan saya:
+
+  ---
+  Yang Sudah Ada (Working)
+
+  ┌──────────────────────────────────────────────┬────────┐
+  │                     Flow                     │ Status │
+  ├──────────────────────────────────────────────┼────────┤
+  │ Member order PIN (registrasi & upgrade)      │ ✅     │
+  ├──────────────────────────────────────────────┼────────┤
+  │ Pembayaran via Duitku (auto-generate PIN)    │ ✅     │
+  ├──────────────────────────────────────────────┼────────┤
+  │ Pembayaran manual transfer + upload bukti    │ ✅     │
+  ├──────────────────────────────────────────────┼────────┤
+  │ Admin konfirmasi order → generate PIN        │ ✅     │
+  ├──────────────────────────────────────────────┼────────┤
+  │ Admin tandai dikirim                         │ ✅     │
+  ├──────────────────────────────────────────────┼────────┤
+  │ Admin batalkan order                         │ ✅     │
+  ├──────────────────────────────────────────────┼────────┤
+  │ Member lihat stok PIN                        │ ✅     │
+  ├──────────────────────────────────────────────┼────────┤
+  │ PIN dipakai untuk registrasi/upgrade         │ ✅     │
+  ├──────────────────────────────────────────────┼────────┤
+  │ Admin generate PIN manual & assign ke member │ ✅     │
+  ├──────────────────────────────────────────────┼────────┤
+  │ Export Excel                                 │ ✅     │
+  └──────────────────────────────────────────────┴────────┘
+
+  ---
+  Yang KURANG / Belum Ada
+
+  1. Member Tidak Bisa Transfer PIN ke Member Lain
+
+  Saat ini PIN yang dibeli langsung assigned_to = pembeli. Tidak ada fitur untuk member mentransfer/menjual PIN ke downline-nya. Field assigned_to sudah support ini, tapi UI dan endpoint-nya belum ada.
+
+  2. Tidak Ada Konsep "Stokis" Formal
+
+  Sistem belum punya role/flag Stokis — member yang beli PIN dalam jumlah besar lalu distribusikan ke jaringannya. Saat ini semua member sama.
+
+  3. Tidak Ada Riwayat Perpindahan PIN
+
+  Ketika admin assign PIN ke member lain, tidak ada audit trail — siapa memindahkan ke siapa dan kapan.
+
+  4. Tidak Ada Notifikasi
+
+  - Member tidak diberitahu ketika order-nya dikonfirmasi admin
+  - Member tidak diberitahu ketika order ditandai dikirim
+  - Tidak ada email/push notification
+  -notif pakai email mailketing bisa kamu cek sudah ada 
+
+  5. Tidak Ada Tracking Number Pengiriman
+
+  shipped_at hanya timestamp. Tidak ada field untuk nomor resi atau kurir yang dipakai.
+
+  6. Tidak Ada Harga Stokis / Diskon Volume
+
+  Semua member beli PIN dengan harga yang sama. Belum ada mekanisme harga khusus untuk stokis atau diskon beli dalam jumlah banyak.
+
+  ---
+  Rekomendasi Flow Stokis yang Ideal
+
+  ┌─────────────────────────────────────────────────────────┐
+  │                    FLOW STOKIS MLM                       │
+  ├─────────────────────────────────────────────────────────┤
+  │                                                         │
+  │  1. ADMIN menunjuk member sebagai STOKIS                │
+  │     └─ Flag is_stockist di member_profiles              │
+  │     └─ Bisa set harga khusus (diskon stokis)            │
+  │                                                         │
+  │  2. STOKIS order PIN dalam jumlah besar                 │
+  │     └─ Harga lebih murah (harga stokis)                 │
+  │     └─ Batas minimal order (misal min 10 PIN)           │
+  │     └─ PIN masuk ke "stok stokis"                       │
+  │                                                         │
+  │  3. STOKIS transfer/jual PIN ke member jaringannya      │
+  │     └─ Fitur "Transfer PIN" di dashboard member         │
+  │     └─ Pilih PIN → masukkan member ID tujuan            │
+  │     └─ Riwayat transfer tercatat (audit trail)          │
+  │                                                         │
+  │  4. MEMBER terima PIN → pakai untuk registrasi/upgrade  │
+  │     └─ Flow yang sudah ada sekarang                     │
+  │                                                         │
+  │  5. ADMIN bisa monitor:                                 │
+  │     └─ Dashboard stokis (siapa stokis, stok berapa)     │
+  │     └─ Riwayat transfer PIN antar member                │
+  │     └─ Top stokis (penjualan terbanyak)                 │
+  │                                                         │
+  └─────────────────────────────────────────────────────────┘
+
+  Prioritas Implementasi (Saran)
+
+  ┌───────────┬─────────────────────────────────────────┬───────────────────────────────────────────────────────────┐
+  │ Prioritas │                  Fitur                  │                          Alasan                           │
+  ├───────────┼─────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ P0        │ Transfer PIN antar member               │ Core flow stokis — tanpa ini stokis tidak bisa distribusi │
+  ├───────────┼─────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ P0        │ Nomor resi + nama kurir di order        │ Penting untuk tracking fisik                              │
+  ├───────────┼─────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ P1        │ Flag stokis di member profile           │ Membedakan stokis vs member biasa                         │
+  ├───────────┼─────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ P1        │ Harga stokis (diskon volume)            │ Insentif jadi stokis                                      │
+  ├───────────┼─────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ P2        │ Riwayat transfer PIN (audit trail)      │ Transparansi perpindahan PIN                              │
+  ├───────────┼─────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ P2        │ Notifikasi (order dikonfirmasi/dikirim) │ UX improvement                                            │
+  ├───────────┼─────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ P3        │ Dashboard stokis di admin               │ Monitoring performa stokis                                │
+  └───────────┴─────────────────────────────────────────┴───────────────────────────────────────────────────────────┘

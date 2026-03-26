@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/resizable-navbar';
 import { ShimmerButton } from '@/components/ui/shimmer-button';
 import AppLogo from '@/components/app-logo';
+import ChatWidget from '@/components/chat-widget';
 import { dashboard, login, register } from '@/routes';
 
 interface Props {
@@ -217,6 +218,9 @@ export default function HomeLayout({ children, transparentNavbar }: Props) {
 
             {/* Page content */}
             <main>{children}</main>
+
+            {/* Live Chat Widget */}
+            <ChatWidget />
 
             {/* Footer */}
             <footer className="relative overflow-hidden border-t border-primary/10 bg-primary/[0.03]">
