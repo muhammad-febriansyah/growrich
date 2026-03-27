@@ -28,6 +28,8 @@ class SiteSetting extends Model
         'duitku_merchant_code',
         'duitku_api_key',
         'duitku_is_sandbox',
+        'biteship_api_key',
+        'biteship_origin_postal_code',
         // Diskon & Ketentuan PIN Stokis
         'stockist_min_order',
         'stockist_discount_percent',

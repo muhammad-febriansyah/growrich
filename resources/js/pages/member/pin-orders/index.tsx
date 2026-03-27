@@ -1,6 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Banknote, CreditCard, Eye, Key, MapPin, Package, Phone, ShoppingCart } from 'lucide-react';
-import { useEffect } from 'react';
+import { Banknote, CreditCard, Eye, Key, Loader2, MapPin, Package, Phone, Search, ShoppingCart, Truck } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +33,27 @@ interface PinOrder {
     payment_receipt: string | null;
     created_at: string;
     completed_at: string | null;
+}
+
+interface BiteshipArea {
+    id: string;
+    name: string;
+    administrative_division_level_1_name: string;
+    administrative_division_level_2_name: string;
+    administrative_division_level_3_name: string;
+    postal_code: number;
+}
+
+interface ShippingRate {
+    courier_code: string;
+    courier_name: string;
+    courier_service_code: string;
+    courier_service_name: string;
+    type: string;
+    description: string;
+    duration: string;
+    shipment_duration_range: string;
+    price: number;
 }
 
 interface Props {
@@ -85,14 +106,112 @@ export default function PinOrderIndex({ orders, packages, prefill, discount }: P
         shipping_district: '',
         shipping_village: '',
         shipping_postal_code: '',
+        biteship_area_id: '',
+        shipping_cost: '0',
+        shipping_service: '',
+        shipping_etd: '',
         notes: '',
     });
+
+    // Biteship state
+    const [areaSearch, setAreaSearch] = useState('');
+    const [areas, setAreas] = useState<BiteshipArea[]>([]);
+    const [selectedArea, setSelectedArea] = useState<BiteshipArea | null>(null);
+    const [areaLoading, setAreaLoading] = useState(false);
+    const [showAreaDropdown, setShowAreaDropdown] = useState(false);
+
+    const [rates, setRates] = useState<ShippingRate[]>([]);
+    const [ratesLoading, setRatesLoading] = useState(false);
+    const [selectedRate, setSelectedRate] = useState<ShippingRate | null>(null);
+
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const areaInputRef = useRef<HTMLInputElement>(null);
+
+    const searchAreas = useCallback(async (input: string) => {
+        if (input.length < 3) {
+            setAreas([]);
+            setShowAreaDropdown(false);
+            return;
+        }
+        setAreaLoading(true);
+        try {
+            const res = await fetch(`/api/biteship/areas?input=${encodeURIComponent(input)}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const json = await res.json();
+            setAreas(json.areas ?? []);
+            setShowAreaDropdown(true);
+        } catch {
+            setAreas([]);
+        } finally {
+            setAreaLoading(false);
+        }
+    }, []);
+
+    const fetchRates = useCallback(async (areaId: string, qty: number) => {
+        setRatesLoading(true);
+        setRates([]);
+        setSelectedRate(null);
+        setData('shipping_cost', '0');
+        setData('shipping_service', '');
+        setData('shipping_etd', '');
+        try {
+            const res = await fetch('/api/biteship/rates', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''),
+                },
+                body: JSON.stringify({
+                    destination_area_id: areaId,
+                    quantity: qty,
+                }),
+            });
+            const json = await res.json();
+            setRates(json.rates ?? []);
+        } catch {
+            setRates([]);
+        } finally {
+            setRatesLoading(false);
+        }
+    }, [setData]);
+
+    const handleAreaInputChange = (value: string) => {
+        setAreaSearch(value);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => searchAreas(value), 400);
+    };
+
+    const handleSelectArea = (area: BiteshipArea) => {
+        setSelectedArea(area);
+        setAreaSearch(area.name);
+        setShowAreaDropdown(false);
+        setData('biteship_area_id', area.id);
+
+        const qty = Number(data.quantity || 1);
+        fetchRates(area.id, qty);
+    };
+
+    const handleSelectRate = (rate: ShippingRate) => {
+        setSelectedRate(rate);
+        setData('shipping_cost', String(rate.price));
+        setData('shipping_service', `${rate.courier_name} ${rate.courier_service_name}`);
+        setData('shipping_etd', rate.shipment_duration_range || rate.duration);
+    };
+
+    // Re-fetch rates when quantity changes (if area already selected)
+    useEffect(() => {
+        if (selectedArea) {
+            const qty = Number(data.quantity || 1);
+            fetchRates(selectedArea.id, qty);
+        }
+    }, [data.quantity]);
 
     const selectedPkg = packages.find((p) => p.value === data.package_type);
     const qty = Number(data.quantity || 0);
     const basePrice = selectedPkg?.price ?? 0;
 
-    // Hitung diskon (sama dengan logika backend)
     let discountPercent = 0;
     if (discount.is_stockist && discount.stockist_percent > 0) {
         discountPercent = discount.stockist_percent;
@@ -103,7 +222,9 @@ export default function PinOrderIndex({ orders, packages, prefill, discount }: P
     }
 
     const unitPrice = discountPercent > 0 ? Math.round(basePrice * (1 - discountPercent / 100)) : basePrice;
-    const totalAmount = unitPrice * qty;
+    const productTotal = unitPrice * qty;
+    const shippingCost = Number(data.shipping_cost || 0);
+    const grandTotal = productTotal + shippingCost;
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -187,20 +308,30 @@ export default function PinOrderIndex({ orders, packages, prefill, discount }: P
                                 <FieldError message={errors.quantity} />
                             </div>
 
-                            {totalAmount > 0 && (
-                                <div className="sm:col-span-2 rounded-xl border border-primary/20 bg-white px-4 py-3">
+                            {grandTotal > 0 && (
+                                <div className="sm:col-span-2 rounded-xl border border-primary/20 bg-white px-4 py-3 space-y-2">
                                     {discountPercent > 0 && (
-                                        <div className="mb-2 flex items-center gap-2">
+                                        <div className="flex items-center gap-2">
                                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${discount.is_stockist ? 'bg-orange-100 text-orange-700 border border-orange-300' : 'bg-blue-100 text-blue-700 border border-blue-300'}`}>
                                                 {discount.is_stockist ? `✦ Harga Stokis −${discountPercent}%` : `Diskon Volume −${discountPercent}%`}
                                             </span>
                                         </div>
                                     )}
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-muted-foreground">Total Pembayaran</span>
-                                        <span className="text-lg font-bold text-primary">{fmt(totalAmount)}</span>
+                                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                        <span>Subtotal Produk</span>
+                                        <span className="font-medium text-foreground">{fmt(productTotal)}</span>
                                     </div>
-                                    <p className="mt-1 text-xs text-muted-foreground">
+                                    {shippingCost > 0 && (
+                                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                            <span>Ongkos Kirim</span>
+                                            <span className="font-medium text-foreground">{fmt(shippingCost)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex items-center justify-between border-t pt-2">
+                                        <span className="text-sm text-muted-foreground">Total Pembayaran</span>
+                                        <span className="text-lg font-bold text-primary">{fmt(grandTotal)}</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
                                         {data.quantity} PIN × {fmt(unitPrice)}
                                         {discountPercent > 0 && (
                                             <span className="ml-1.5 line-through opacity-50">{fmt(basePrice)}</span>
@@ -331,6 +462,126 @@ export default function PinOrderIndex({ orders, packages, prefill, discount }: P
                                     rows={2}
                                 />
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* ── Cek Ongkir ────────────────────────────────────── */}
+                    <Card className="border-blue-200 shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-sm">
+                                <Truck className="h-4 w-4 text-blue-600" />
+                                Pilih Pengiriman
+                            </CardTitle>
+                            <CardDescription>
+                                Cari kelurahan/kecamatan tujuan untuk melihat tarif pengiriman.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {/* Area search */}
+                            <div className="space-y-2">
+                                <Label>Cari Lokasi Tujuan</Label>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <Input
+                                        ref={areaInputRef}
+                                        placeholder="Ketik nama kelurahan, kecamatan, atau kode pos..."
+                                        value={areaSearch}
+                                        onChange={(e) => handleAreaInputChange(e.target.value)}
+                                        onFocus={() => areas.length > 0 && setShowAreaDropdown(true)}
+                                        className="pl-9"
+                                    />
+                                    {areaLoading && (
+                                        <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                                    )}
+                                </div>
+
+                                {showAreaDropdown && areas.length > 0 && (
+                                    <div className="rounded-lg border bg-white shadow-md max-h-56 overflow-y-auto z-10">
+                                        {areas.map((area) => (
+                                            <button
+                                                key={area.id}
+                                                type="button"
+                                                onClick={() => handleSelectArea(area)}
+                                                className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted/50 border-b last:border-b-0"
+                                            >
+                                                <span className="font-medium">{area.name}</span>
+                                                <span className="ml-1 text-muted-foreground text-xs">
+                                                    {area.administrative_division_level_3_name && `${area.administrative_division_level_3_name}, `}
+                                                    {area.administrative_division_level_2_name}, {area.administrative_division_level_1_name}
+                                                    {area.postal_code ? ` (${area.postal_code})` : ''}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {showAreaDropdown && !areaLoading && areas.length === 0 && areaSearch.length >= 3 && (
+                                    <p className="text-xs text-muted-foreground px-1">Lokasi tidak ditemukan. Coba kata kunci lain.</p>
+                                )}
+                            </div>
+
+                            {/* Rates list */}
+                            {ratesLoading && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Mengambil tarif pengiriman...
+                                </div>
+                            )}
+
+                            {!ratesLoading && rates.length > 0 && (
+                                <div className="space-y-2">
+                                    <Label>Pilih Kurir</Label>
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                        {rates.map((rate) => {
+                                            const rateKey = `${rate.courier_code}-${rate.courier_service_code}`;
+                                            const selectedKey = selectedRate
+                                                ? `${selectedRate.courier_code}-${selectedRate.courier_service_code}`
+                                                : '';
+                                            const isSelected = rateKey === selectedKey;
+                                            return (
+                                                <button
+                                                    key={rateKey}
+                                                    type="button"
+                                                    onClick={() => handleSelectRate(rate)}
+                                                    className={`flex items-start gap-3 rounded-xl border-2 p-3 text-left transition-all ${isSelected
+                                                        ? 'border-blue-500 bg-blue-50'
+                                                        : 'border-muted hover:border-blue-300 hover:bg-muted/30'
+                                                        }`}
+                                                >
+                                                    <Truck className={`mt-0.5 h-4 w-4 shrink-0 ${isSelected ? 'text-blue-600' : 'text-muted-foreground'}`} />
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-sm font-bold leading-tight">{rate.courier_name}</p>
+                                                        <p className="text-xs text-muted-foreground">{rate.courier_service_name}</p>
+                                                        {(rate.shipment_duration_range || rate.duration) && (
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {rate.shipment_duration_range || rate.duration}
+                                                            </p>
+                                                        )}
+                                                        <p className="mt-1 text-sm font-bold text-blue-600">{fmt(rate.price)}</p>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {!ratesLoading && selectedArea && rates.length === 0 && !ratesLoading && (
+                                <p className="text-xs text-muted-foreground">Tidak ada layanan pengiriman tersedia ke lokasi ini.</p>
+                            )}
+
+                            {selectedRate && (
+                                <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
+                                    <p className="font-medium text-blue-800">
+                                        ✓ {selectedRate.courier_name} {selectedRate.courier_service_name} — {fmt(selectedRate.price)}
+                                    </p>
+                                    {(selectedRate.shipment_duration_range || selectedRate.duration) && (
+                                        <p className="text-xs text-blue-600 mt-0.5">
+                                            Estimasi: {selectedRate.shipment_duration_range || selectedRate.duration}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 

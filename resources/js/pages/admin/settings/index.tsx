@@ -1,6 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import React, { useState } from 'react';
-import { Save, Globe, Phone, Share2, Search, Layout, Settings, Image, Mail, CreditCard, Eye, EyeOff, ShieldCheck, Store } from 'lucide-react';
+import { Save, Globe, Phone, Share2, Search, Layout, Settings, Image, Mail, CreditCard, Eye, EyeOff, ShieldCheck, Store, Truck } from 'lucide-react';
 import { InputRupiah } from '@/components/ui/input-rupiah';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,6 +65,8 @@ interface SiteSettingsData {
     duitku_merchant_code: string | null;
     duitku_api_key: string | null;
     duitku_is_sandbox: boolean;
+    biteship_api_key: string | null;
+    biteship_origin_postal_code: string | null;
     nocaptcha_sitekey: string | null;
     nocaptcha_secret: string | null;
     google_maps_url: string | null;
@@ -144,6 +146,8 @@ export default function SiteSettings({ settings }: Props) {
         duitku_merchant_code: settings.duitku_merchant_code || '',
         duitku_api_key: settings.duitku_api_key || '',
         duitku_is_sandbox: !!settings.duitku_is_sandbox,
+        biteship_api_key: settings.biteship_api_key || '',
+        biteship_origin_postal_code: settings.biteship_origin_postal_code || '',
         bank_name: settings.bank_name || '',
         bank_account_number: settings.bank_account_number || '',
         bank_account_name: settings.bank_account_name || '',
@@ -161,6 +165,7 @@ export default function SiteSettings({ settings }: Props) {
     const [showEmailToken, setShowEmailToken] = useState(false);
     const [showDuitkuApiKey, setShowDuitkuApiKey] = useState(false);
     const [showNocaptchaSecret, setShowNocaptchaSecret] = useState(false);
+    const [showBiteshipApiKey, setShowBiteshipApiKey] = useState(false);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -784,6 +789,52 @@ export default function SiteSettings({ settings }: Props) {
                                                 checked={data.duitku_is_sandbox}
                                                 onCheckedChange={(checked) => setData('duitku_is_sandbox', checked)}
                                             />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border shadow-sm rounded-xl overflow-hidden mt-6">
+                                    <CardHeader className="border-b bg-slate-50/50 py-4 px-6 font-semibold">
+                                        <CardTitle className="text-lg flex items-center gap-2">
+                                            <Truck className="size-5 text-blue-600" />
+                                            Biteship (Ongkos Kirim)
+                                        </CardTitle>
+                                        <CardDescription>Konfigurasi integrasi cek ongkir menggunakan Biteship API.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-6 space-y-6">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="biteship_api_key">API Key Biteship</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    id="biteship_api_key"
+                                                    type={showBiteshipApiKey ? 'text' : 'password'}
+                                                    placeholder="biteship_live.xxxx atau biteship_test.xxxx"
+                                                    value={data.biteship_api_key}
+                                                    onChange={(e) => setData('biteship_api_key', e.target.value)}
+                                                    className="pr-10"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowBiteshipApiKey(!showBiteshipApiKey)}
+                                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                                                >
+                                                    {showBiteshipApiKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">Dapatkan API Key dari dashboard Biteship → Integrasi → Kunci API.</p>
+                                            {errors.biteship_api_key && <p className="text-sm text-destructive">{errors.biteship_api_key}</p>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="biteship_origin_postal_code">Kode Pos Asal Pengiriman</Label>
+                                            <Input
+                                                id="biteship_origin_postal_code"
+                                                placeholder="Contoh: 40131"
+                                                value={data.biteship_origin_postal_code}
+                                                onChange={(e) => setData('biteship_origin_postal_code', e.target.value)}
+                                                maxLength={10}
+                                            />
+                                            <p className="text-xs text-muted-foreground">Kode pos gudang/kantor asal pengiriman. Default: 40131 (Bandung, Coblong).</p>
+                                            {errors.biteship_origin_postal_code && <p className="text-sm text-destructive">{errors.biteship_origin_postal_code}</p>}
                                         </div>
                                     </CardContent>
                                 </Card>

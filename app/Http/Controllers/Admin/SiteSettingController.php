@@ -51,6 +51,8 @@ class SiteSettingController extends Controller
             'duitku_merchant_code' => 'nullable|string|max:255',
             'duitku_api_key' => 'nullable|string|max:255',
             'duitku_is_sandbox' => 'nullable|boolean',
+            'biteship_api_key' => 'nullable|string|max:500',
+            'biteship_origin_postal_code' => 'nullable|string|max:10',
             'nocaptcha_sitekey' => 'nullable|string|max:255',
             'nocaptcha_secret' => 'nullable|string|max:255',
             'contact_address' => 'nullable|string',

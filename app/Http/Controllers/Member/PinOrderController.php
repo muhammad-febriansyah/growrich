@@ -78,6 +78,10 @@ class PinOrderController extends Controller
             'shipping_district' => 'required|string|max:100',
             'shipping_village' => 'required|string|max:100',
             'shipping_postal_code' => 'required|string|max:10',
+            'biteship_area_id' => 'nullable|string|max:100',
+            'shipping_cost' => 'nullable|integer|min:0',
+            'shipping_service' => 'nullable|string|max:100',
+            'shipping_etd' => 'nullable|string|max:50',
             'notes' => 'nullable|string|max:500',
         ], [
             'package_type.required' => 'Jenis paket PIN wajib dipilih.',
@@ -136,7 +140,8 @@ class PinOrderController extends Controller
             $unitPrice = (int) round($unitPrice * (1 - $discountPercent / 100));
         }
 
-        $total = $unitPrice * $qty;
+        $shippingCost = (int) ($request->shipping_cost ?? 0);
+        $total = ($unitPrice * $qty) + $shippingCost;
 
         $pinOrder = PinOrder::create([
             'order_number' => PinOrder::generateOrderNumber(),
@@ -156,6 +161,10 @@ class PinOrderController extends Controller
             'shipping_district' => $request->shipping_district,
             'shipping_village' => $request->shipping_village,
             'shipping_postal_code' => $request->shipping_postal_code,
+            'biteship_area_id' => $request->biteship_area_id,
+            'shipping_cost' => $shippingCost,
+            'shipping_service' => $request->shipping_service,
+            'shipping_etd' => $request->shipping_etd,
             'notes' => $request->notes,
         ]);
 

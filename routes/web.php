@@ -489,6 +489,12 @@ Route::middleware(['auth', 'verified', 'role:member'])->group(function () {
     Route::post('member/support/{ticket}/reply', [App\Http\Controllers\Member\SupportTicketController::class, 'reply'])->name('member.support.reply');
 });
 
+// ── Biteship API (auth required) ──
+Route::middleware('auth')->prefix('api/biteship')->name('api.biteship.')->group(function () {
+    Route::get('areas', [App\Http\Controllers\Api\BiteshipController::class, 'areas'])->name('areas');
+    Route::post('rates', [App\Http\Controllers\Api\BiteshipController::class, 'rates'])->name('rates');
+});
+
 // ── Live Chat API (no auth required) ──
 Route::post('chat/session', [App\Http\Controllers\ChatController::class, 'session'])->name('chat.session');
 Route::post('chat/send', [App\Http\Controllers\ChatController::class, 'send'])->name('chat.send');
