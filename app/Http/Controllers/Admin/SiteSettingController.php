@@ -53,6 +53,7 @@ class SiteSettingController extends Controller
             'duitku_is_sandbox' => 'nullable|boolean',
             'biteship_api_key' => 'nullable|string|max:500',
             'biteship_origin_postal_code' => 'nullable|string|max:10',
+            'biteship_dummy_mode' => 'nullable|boolean',
             'nocaptcha_sitekey' => 'nullable|string|max:255',
             'nocaptcha_secret' => 'nullable|string|max:255',
             'contact_address' => 'nullable|string',

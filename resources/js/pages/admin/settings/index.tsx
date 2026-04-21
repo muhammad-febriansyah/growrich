@@ -67,6 +67,7 @@ interface SiteSettingsData {
     duitku_is_sandbox: boolean;
     biteship_api_key: string | null;
     biteship_origin_postal_code: string | null;
+    biteship_dummy_mode: boolean;
     nocaptcha_sitekey: string | null;
     nocaptcha_secret: string | null;
     google_maps_url: string | null;
@@ -148,6 +149,7 @@ export default function SiteSettings({ settings }: Props) {
         duitku_is_sandbox: !!settings.duitku_is_sandbox,
         biteship_api_key: settings.biteship_api_key || '',
         biteship_origin_postal_code: settings.biteship_origin_postal_code || '',
+        biteship_dummy_mode: !!settings.biteship_dummy_mode,
         bank_name: settings.bank_name || '',
         bank_account_number: settings.bank_account_number || '',
         bank_account_name: settings.bank_account_name || '',
@@ -835,6 +837,17 @@ export default function SiteSettings({ settings }: Props) {
                                             />
                                             <p className="text-xs text-muted-foreground">Kode pos gudang/kantor asal pengiriman. Default: 40131 (Bandung, Coblong).</p>
                                             {errors.biteship_origin_postal_code && <p className="text-sm text-destructive">{errors.biteship_origin_postal_code}</p>}
+                                        </div>
+                                        <div className="flex items-center justify-between rounded-lg border p-4">
+                                            <div className="space-y-0.5">
+                                                <Label htmlFor="biteship_dummy_mode">Dummy Mode</Label>
+                                                <p className="text-xs text-muted-foreground">Aktifkan untuk menggunakan data dummy sementara (API Biteship belum aktif).</p>
+                                            </div>
+                                            <Switch
+                                                id="biteship_dummy_mode"
+                                                checked={data.biteship_dummy_mode}
+                                                onCheckedChange={(checked) => setData('biteship_dummy_mode', checked)}
+                                            />
                                         </div>
                                     </CardContent>
                                 </Card>

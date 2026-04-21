@@ -30,6 +30,7 @@ class SiteSetting extends Model
         'duitku_is_sandbox',
         'biteship_api_key',
         'biteship_origin_postal_code',
+        'biteship_dummy_mode',
         // Diskon & Ketentuan PIN Stokis
         'stockist_min_order',
         'stockist_discount_percent',
@@ -89,6 +90,7 @@ class SiteSetting extends Model
 
     protected $casts = [
         'duitku_is_sandbox' => 'boolean',
+        'biteship_dummy_mode' => 'boolean',
         'pairing_bonus_amount' => 'integer',
     ];
 

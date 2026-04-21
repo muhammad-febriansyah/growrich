@@ -20,7 +20,7 @@ class BiteshipService
         $settings = \App\Models\SiteSetting::instance();
         $this->apiKey = $settings->biteship_api_key ?? config('biteship.api_key');
         $this->baseUrl = config('biteship.base_url');
-        $this->dummyMode = (bool) config('biteship.dummy_mode');
+        $this->dummyMode = $settings->biteship_dummy_mode ?? (bool) config('biteship.dummy_mode');
     }
 
     /**
